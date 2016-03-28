@@ -1,0 +1,33 @@
+{
+  "name": "polyana-dashboard",
+  "version": "0.1.0",
+  "authors": [
+    "Dimitris Moraitis <dimo@mist.io>",
+    "Maria Plakia <mplakia19@gmail.com>",
+    "Christina Papakonstantinou <xristina@mist.io>"
+  ],
+  "description": "A web component that uses Polymer to render a Grafana dashboard.",
+  "keywords": [
+    "web-component",
+    "polymer",
+    "seed",
+    "grafana",
+    "polyana",
+    "c3",
+    "d3"
+  ],
+  "main": "polyana-dashboard.html",
+  "license": "http://polymer.github.io/LICENSE.txt",
+  "homepage": "https://github.com/mistio/polyana-dashboard",
+  "ignore": [
+    "/.*",
+    "/test/"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.2.0"
+  },
+  "devDependencies": {
+    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
+    "web-component-tester": "^4.0.0"
+  }
+}

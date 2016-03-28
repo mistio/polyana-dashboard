@@ -1,0 +1,55 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+
+<link rel="import" href="dashboard-panel.html">
+<!--
+  TODO: collapse row, show collapsed, edit row
+-->
+<dom-module id="dashboard-row">
+    <template>
+      <style>
+        :host{
+          border-collapse: collapse;
+          width: 100%;
+          text-align: center;
+          display: inline-block;
+        }
+      </style>
+      <div>
+        <template is="dom-if" if="[[row.showTitle]]">
+          <h2 id="show">[[row.title]]</h2>
+        </template>
+        <template is="dom-repeat" items="[[row.panels]]">
+          <dashboard-panel datasource-uri="{{_datasourceUri(datasources, item)}}" panel="[[item]]" from="[[from]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block; float: left"></dashboard-panel>
+        </template>
+      </div>
+    </template>
+    <script>
+      Polymer({
+        is: 'dashboard-row',
+
+        properties: {
+          title: String,
+          from: String,
+          datasources: Array,
+          row: Object
+        },
+
+        _elementWidth: function (span) {
+          return 100*span/12 + '%';
+        },
+
+        _datasourceUri: function(datasources, panel) {
+          var prefix = '/api/datasources/proxy/';
+          if (panel) {
+            for(var i=0; i<datasources.length; i++) {
+              if(panel.datasource == datasources[i].name) {
+                return prefix + datasources[i].id;
+              }
+            }
+          }
+          return prefix;
+        }
+      });
+    </script>
+</dom-module>

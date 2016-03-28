@@ -1,0 +1,163 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/c3-chart/c3-chart.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+
+<dom-module id="dashboard-panel">
+  <template>
+    <style>
+      #target {
+        font-weight: bold;
+        text-align: left;
+      }
+      paper-card {
+        width: 100%;
+        padding: 16px;
+        margin: 16px;
+      }
+    </style>
+    <paper-card>
+      <h3>[[panel.title]]</h3>
+
+      <template is="dom-if" if="[[_isText(panel)]]">
+        <div>[[panel.content]]</div>
+      </template>
+
+      <template is="dom-if" if="[[_isSinglestat(panel)]]">
+        <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
+      </template>
+
+      <template is="dom-if" if="[[_isGraph(panel)]]">
+        <paper-spinner active="[[loading]]"></paper-spinner>
+        <iron-ajax auto
+          url="{{_computeUrl(datasourceUri)}}"
+          handle-as="json"
+          method="GET"
+          loading="{{loading}}"
+          on-response="_handlePanelResponse"
+          debounce-duration="300"></iron-ajax>
+        <div id="chart"></div>
+      </template>
+
+      <template is="dom-if" if="[[_isDashlist(panel)]]">
+        <div><!-- TODO -->...</div>
+      </template>
+
+      <template is="dom-if" if="[[_isTable(panel)]]">
+        <div><!-- TODO -->...</div>
+      </template>
+    </paper-card>
+  </template>
+  <script>
+    Polymer({
+      is: 'dashboard-panel',
+
+      properties: {
+        from: String,
+        panel: Object,
+        type: String,
+        loading: Boolean,
+        datasourceUri: {
+          type: String,
+          reflectToAttribute: true
+        },
+        chartData: {
+          type: Object,
+          value: {
+            xs: {},
+            columns: []
+          }
+        },
+        chartAxis: {
+          type: Object,
+          value: {
+            x: {
+              type: 'timeseries',
+              tick: {
+                format: "%H:%M",
+                fit: false
+              },
+              padding: {
+                left: 0,
+                right: 0
+              }
+            },
+            y: {
+              label: {
+                position: 'inner-top'
+              },
+              min: 0,
+              padding: {
+                bottom: 10
+              }
+            }
+          }
+        }
+      },
+
+      _handlePanelResponse(data){
+        var x = [], d = [], xs = {}, xcolumns = [], dcolumns = [];
+        for (var i = 0; i < data.detail.response.length; i++) {
+          x.push(data.detail.response[i].datapoints.map(function(point){
+            return point[1]
+          }));
+          d.push(data.detail.response[i].datapoints.map(function(point){
+            return point[0]
+          }));
+          xs[data.detail.response[i].target] = 'x'+(i+1);
+          xcolumns.push(['x'+(i+1)].concat(x[i]));
+          dcolumns.push([data.detail.response[i].target].concat(d[i]));
+        }
+        var columns = xcolumns.concat(dcolumns);
+        this.set('chartData', {xs: xs, columns: columns});
+
+        var chartEl = document.createElement("c3-chart");
+        chartEl.axis = this.chartAxis;
+        this.querySelector('paper-card div#chart').appendChild(chartEl);
+        chartEl.load(this.chartData);
+      },
+
+      _computeUrl: function(datasourceUri) {
+        var targetParams = '';
+        for (var i = 0; i < this.panel.targets.length; i++)
+          if (this.panel.targets[i].target)
+            targetParams += '&target=' + this.panel.targets[i].target
+        return datasourceUri + '/render?format=json' + targetParams + '&from=' + this.from.replace('m','min');
+      },
+
+      _isGraph: function(panel){
+        return panel.type == "graph"
+      },
+
+      _isDashlist: function(panel){
+        return panel.type == "dashlist"
+      },
+
+      _isText: function(panel){
+        return panel.type == "text"
+      },
+
+      _isSinglestat: function(panel){
+        return panel.type == "singlestat"
+      },
+
+      _isTable: function(panel){
+        return panel.type == "table"
+      },
+
+      _convertUnixtime:function(dtp) {
+        var date = new Date(dtp*1000);
+        // Hours part from the timestamp
+        var hours = date.getHours();
+        // Minutes part from the timestamp
+        var minutes = "0" + date.getMinutes();
+        // Seconds part from the timestamp
+        var seconds = "0" + date.getSeconds();
+
+        // Will display time in 10:30:23 format
+        var formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+        return formattedTime;
+      }
+    });
+  </script>
+</dom-module>

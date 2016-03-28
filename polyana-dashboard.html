@@ -1,0 +1,73 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="dashboard-row.html">
+<dom-module id="polyana-dashboard">
+    <template>
+      <style>
+        :host{
+          text-align: center;
+        }
+      </style>
+      <template is="dom-repeat" items="{{dashboard.rows}}">
+        <dashboard-row class="row" datasources="[[datasources]]" row="[[item]]" style="height: [[item.height]]; clear: both; display: block" from="[[dashboard.time.from]]" id="row-{{index}}"></dashboard-row>
+      </template>
+      <iron-ajax auto="[[uri]]"
+        url="/api/dashboards/[[uri]]"
+        handle-as="json"
+        method="GET"
+        on-response="_handleResponse"
+        debounce-duration="300"></iron-ajax>
+    </template>
+    <script>
+        Polymer({
+          is: 'polyana-dashboard',
+
+          properties: {
+            uri: {
+              type: String
+            },
+            dashboard: {
+              type: Object
+            },
+            datasources: {
+              type: Array
+            },
+            meta: {
+              type: Object
+            },
+            targets: {
+              type: Array,
+              computed: "_getTargets(dashboard, datasources)"
+            },
+            datapoints: {
+              type: Object
+            },
+            from: {
+              type: String
+            }
+          },
+
+          _handleResponse: function (data) {
+              this.meta = data.detail.response.meta;
+              this.dashboard = data.detail.response.dashboard;
+          },
+
+          _getTargets: function (dashboard, datasources) {
+              var targets = {};
+              for (var i=0; i<dashboard.rows.length; i++) {
+                if (dashboard.rows[i].panels)
+                  for (var j=0; j<dashboard.rows[i].panels.length; j++)
+                    if (dashboard.rows[i].panels[j] && dashboard.rows[i].panels[j].targets)
+                      for (var k=0; k < dashboard.rows[i].panels[j].targets.length; k++) {
+                          if (dashboard.rows[i].panels[j].datasource && targets[dashboard.rows[i].panels[j].datasource] == undefined)
+                            targets[dashboard.rows[i].panels[j].datasource] = [];
+                          if (dashboard.rows[i].panels[j].targets[k].target && targets[dashboard.rows[i].panels[j].datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target)==-1)
+                            targets[dashboard.rows[i].panels[j].datasource].push(dashboard.rows[i].panels[j].targets[k].target)
+                      }
+              }
+              return targets
+          }
+      });
+
+    </script>
+</dom-module>
