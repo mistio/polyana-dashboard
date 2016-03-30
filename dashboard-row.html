@@ -22,6 +22,7 @@
         <template is="dom-repeat" items="[[row.panels]]">
           <dashboard-panel datasource-uri="{{_datasourceUri(datasources, item)}}" panel="[[item]]" from="[[from]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block; float: left"></dashboard-panel>
         </template>
+        <div style="clear: both;"></div>
       </div>
     </template>
     <script>
@@ -40,15 +41,16 @@
         },
 
         _datasourceUri: function(datasources, panel) {
-          var prefix = '/api/datasources/proxy/';
-          if (panel) {
+          if (panel && panel.datasource) {
+            var prefix = '/api/datasources/proxy/';
             for(var i=0; i<datasources.length; i++) {
               if(panel.datasource == datasources[i].name) {
-                return prefix + datasources[i].id;
+                return datasources[i].uri || prefix + datasources[i].id;
               }
             }
+            console.error('Undefined datasource', panel.datasource);
           }
-          return prefix;
+
         }
       });
     </script>
