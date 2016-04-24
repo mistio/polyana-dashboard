@@ -90,11 +90,24 @@
                 bottom: 10
               }
             }
-          }
+          },
+        },
+        replaceTargets: {
+            type: Object,
+            value: {}
         }
       },
 
-      _handlePanelResponse(data){
+      _filterTarget: function(target) {
+          var k = Object.keys(this.get('replaceTargets'));
+          for (var i=0; i<k.length; i++) {
+            target = target.replace(k[i], this.replaceTargets[k[i]])
+          }
+          return target;
+      },
+
+      _handlePanelResponse: function(data){
+        console.info(data);
         var x = [], d = [], xs = {}, xcolumns = [], dcolumns = [];
         for (var i = 0; i < data.detail.response.length; i++) {
           x.push(data.detail.response[i].datapoints.map(function(point){
@@ -103,9 +116,9 @@
           d.push(data.detail.response[i].datapoints.map(function(point){
             return point[0]
           }));
-          xs[data.detail.response[i].target] = 'x'+(i+1);
+          xs[this._filterTarget(data.detail.response[i].target)] = 'x'+(i+1);
           xcolumns.push(['x'+(i+1)].concat(x[i]));
-          dcolumns.push([data.detail.response[i].target].concat(d[i]));
+          dcolumns.push([this._filterTarget(data.detail.response[i].target)].concat(d[i]));
         }
         var columns = xcolumns.concat(dcolumns);
         this.set('chartData', {xs: xs, columns: columns});
