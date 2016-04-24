@@ -92,18 +92,26 @@
             }
           },
         },
+        chartElement: {
+          type: Object
+        },
         replaceTargets: {
-            type: Object,
-            value: {}
+          type: Object,
+          value: {}
         }
       },
 
+      resize: function() {
+        if (this.chartElement && this.offsetWidth)
+          this.chartElement.resize({height:'100%', width:this.offsetWidth-32});
+      },
+
       _filterTarget: function(target) {
-          var k = Object.keys(this.get('replaceTargets'));
-          for (var i=0; i<k.length; i++) {
-            target = target.replace(k[i], this.replaceTargets[k[i]])
-          }
-          return target;
+        var k = Object.keys(this.get('replaceTargets'));
+        for (var i=0; i<k.length; i++) {
+          target = target.replace(k[i], this.replaceTargets[k[i]])
+        }
+        return target;
       },
 
       _handlePanelResponse: function(data){
@@ -123,10 +131,10 @@
         var columns = xcolumns.concat(dcolumns);
         this.set('chartData', {xs: xs, columns: columns});
 
-        var chartEl = document.createElement("c3-chart");
-        chartEl.axis = this.chartAxis;
-        this.querySelector('paper-card div#chart').appendChild(chartEl);
-        chartEl.load(this.chartData);
+        this.chartElement = document.createElement("c3-chart");
+        this.chartElement.axis = this.chartAxis;
+        this.querySelector('paper-card div#chart').appendChild(this.chartElement);
+        this.chartElement.load(this.chartData);
       },
 
       _computeUrl: function(datasourceUri) {
