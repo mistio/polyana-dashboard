@@ -9,8 +9,7 @@
         }
       </style>
       <template is="dom-repeat" items="{{dashboard.rows}}">
-        <timerange-picker></timerange-picker>
-        <dashboard-row class="row" datasources="[[datasources]]" row="[[item]]" style="height: [[item.height]]; clear: both; display: block" from="[[dashboard.time.from]]" id="row-{{index}}"></dashboard-row>
+        <dashboard-row class="row" datasources="[[datasources]]" row="[[item]]" replace-targets="[[replaceTargets]]" style="height: [[item.height]]; clear: both; display: block" from="[[dashboard.time.from]]" id="row-{{index}}"></dashboard-row>
       </template>
       <iron-ajax auto="[[uri]]"
         url="/api/dashboards/[[uri]]"
@@ -45,6 +44,10 @@
             },
             from: {
               type: String
+            },
+            replaceTargets: {
+                type: Object,
+                value: {}
             }
           },
 
