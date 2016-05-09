@@ -1,5 +1,6 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/timerange-picker/timerange-picker.html">
 <link rel="import" href="dashboard-row.html">
 <dom-module id="polyana-dashboard">
     <template>
@@ -9,6 +10,7 @@
         }
       </style>
       <template is="dom-repeat" items="{{dashboard.rows}}">
+        <timerange-picker></timerange-picker>
         <dashboard-row class="row" datasources="[[datasources]]" row="[[item]]" replace-targets="[[replaceTargets]]" style="height: [[item.height]]; clear: both; display: block" from="[[dashboard.time.from]]" id="row-{{index}}"></dashboard-row>
       </template>
       <iron-ajax auto="[[uri]]"
