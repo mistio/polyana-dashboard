@@ -16,6 +16,7 @@
       }
     </style>
     <paper-card>
+      <timerange-picker from="{{from}}" to="{{to}}"></timerange-picker>
       <h3>[[panel.title]]</h3>
 
       <template is="dom-if" if="[[_isText(panel)]]">
@@ -28,7 +29,7 @@
 
       <template is="dom-if" if="[[_isGraph(panel)]]">
         <paper-spinner active="[[loading]]"></paper-spinner>
-        <iron-ajax auto
+        <iron-ajax id="getdata" auto
           url="{{_computeUrl(datasourceUri)}}"
           handle-as="json"
           method="GET"
@@ -53,6 +54,7 @@
 
       properties: {
         from: String,
+        to: String,
         panel: Object,
         type: String,
         loading: Boolean,
@@ -100,7 +102,9 @@
           value: {}
         }
       },
-
+      listeners: {
+        "timechanged": "_getData"
+      },
       resize: function() {
         if (this.chartElement && this.offsetWidth)
           this.chartElement.resize({height:'100%', width:this.offsetWidth-32});
@@ -142,9 +146,26 @@
         for (var i = 0; i < this.panel.targets.length; i++)
           if (this.panel.targets[i].target)
             targetParams += '&target=' + this.panel.targets[i].target
-        return datasourceUri + '/render?format=json' + targetParams + '&from=' + this.from.replace('m','min');
-      },
 
+        console.warn(datasourceUri + 'render?format=json' + targetParams + '&from=' + this.from.replace('m','min') + '&to=' + this.to.replace('m','min'));
+        return datasourceUri + 'render?format=json' + targetParams + '&from=' + this.from.replace('m','min') + '&to=' + this.to.replace('m','min');
+
+      },
+      _getData: function(e){
+        var from = e.detail.from;
+        var to = e.detail.to;
+
+        var targetParams = '';
+        for (var i = 0; i < this.panel.targets.length; i++)
+          if (this.panel.targets[i].target)
+            targetParams += '&target=' + this.panel.targets[i].target
+          var targeturl = this.datasourceUri + 'render?format=json' + targetParams + '&from=' + this.from.replace('m','min') + '&to=' + this.to.replace('m','min');
+        //re compute url
+        console.log(e.detail);
+          document.querySelector('#getdata').setAttribute("url", targeturl);
+        //generate request
+        document.querySelector('#getdata').generateRequest();
+      },
       _isGraph: function(panel){
         return panel.type == "graph"
       },
