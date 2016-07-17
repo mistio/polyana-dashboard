@@ -11,6 +11,7 @@
         :host{
           border-collapse: collapse;
           width: 100%;
+          text-align: center;
           display: inline-block;
         }
       </style>
@@ -19,9 +20,8 @@
           <h2 id="show">[[row.title]]</h2>
         </template>
         <template is="dom-repeat" items="[[row.panels]]">
-          <dashboard-panel datasource-uri="{{_datasourceUri(datasources, item)}}" replace-targets="[[replaceTargets]]" panel="[[item]]" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block; float: left"></dashboard-panel>
+          <dashboard-panel datasource-uri="{{_datasourceUri(datasources, item)}}" panel="[[item]]" from="[[from]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
         </template>
-        <div style="clear: both;"></div>
       </div>
     </template>
     <script>
@@ -31,7 +31,6 @@
         properties: {
           title: String,
           from: String,
-          to: String,
           datasources: Array,
           row: Object
         },
@@ -41,16 +40,15 @@
         },
 
         _datasourceUri: function(datasources, panel) {
-          if (panel && panel.datasource) {
+          if (panel) {
             var prefix = '/api/datasources/proxy/';
             for(var i=0; i<datasources.length; i++) {
               if(panel.datasource == datasources[i].name) {
-                return datasources[i].uri || prefix + datasources[i].id;
+                return datasources[i].uri || this.prefix + datasources[i].id;
               }
             }
-            console.error('Undefined datasource', panel.datasource);
           }
-
+          console.error('Undefined datasource', panel.datasource);
         }
       });
     </script>
