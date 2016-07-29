@@ -1,7 +1,11 @@
+
+
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/c3-chart/c3-chart.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+
+
 
 <dom-module id="dashboard-panel">
   <template>
@@ -117,9 +121,8 @@
         }
         return target;
       },
-
       _handlePanelResponse: function(data){
-        console.info(data);
+        //console.log("DATA : " ,data);
         var x = [], d = [], xs = {}, xcolumns = [], dcolumns = [];
         for (var i = 0; i < data.detail.response.length; i++) {
           x.push(data.detail.response[i].datapoints.map(function(point){
@@ -139,22 +142,65 @@
         this.chartElement.axis = this.chartAxis;
         this.querySelector('paper-card div#chart').appendChild(this.chartElement);
         this.chartElement.load(this.chartData);
+        document.getElementById("chart").id = 'chart'+ Math.floor(Math.random()*10000).toString();
       },
 
       _computeUrl: function(datasourceUri) {
-        var targetParams = '';
-        for (var i = 0; i < this.panel.targets.length; i++)
-          if (this.panel.targets[i].target)
-            targetParams += '&target=' + this.panel.targets[i].target
-
-        console.warn(datasourceUri + 'render?format=json' + targetParams + '&from=' + this.from.replace('m','min') + '&to=' + this.to.replace('m','min'));
-        return datasourceUri + 'render?format=json' + targetParams + '&from=' + this.from.replace('m','min') + '&to=' + this.to.replace('m','min');
+        //console.log(datasourceUri, this.panel);
+        if(this.panel.datasource.type=="graphite"){
+           var targetParams = '';
+           for (var i = 0; i < this.panel.targets.length; i++)
+             if (this.panel.targets[i].target)
+               targetParams += '&target=' + this.panel.targets[i].target;
+               
+           return datasourceUri + '/render?format=json' + targetParams + '&from=' + this.from.replace('m','min');
+        }
+        else{
+        //for influxDB
+          var db='telegraf';
+          var type=[];
+          var params=[];
+          var paramsmini=[];
+          var minitag=[];
+          var tags=[];
+          var measurements=[];
+          var axis=[];
+          for (var i=0; i<this.panel.targets.length; i++){
+            for(var m=0; m<this.panel.targets[i].tags.length; m++){
+              minitag.push(this.panel.targets[i].tags[m]);
+            }
+            if(this.panel.targets[i]){
+              measurements.push(this.panel.targets[i].measurement);
+            }
+            for(var n=0; n<this.panel.targets[i].groupBy.length; n++){
+              axis.push(this.panel.targets[i].groupBy[n]);
+            }
+            tags.push(minitag);
+            for(var j=0; j<this.panel.targets[i].select.length; j++){
+                for(var k=0; k<this.panel.targets[i].select[j].length; k++){
+                  if(this.panel.targets[i].select[j][k].type){
+                    if(this.panel.targets[i].select[j][k].type!="field"){
+                      type.push(this.panel.targets[i].select[j][k].type);
+                    }
+                    for(var l=0; l<this.panel.targets[i].select[j][k].params.length; l++){
+                      if(this.panel.targets[i].select[j][k].params.length>0){
+                        paramsmini.push(this.panel.targets[i].select[j][k].params[l]);
+                        params.push(paramsmini);
+                      }
+                    }
+                  }
+                }
+            }
+          }
+          console.log(type,params,tags,axis);
+          return datasourceUri+'/query?db='+db+'&q=SELECT%20'+type[0]+'("'+params[0][0]+'")'+'%20FROM%20"'+measurements[0]+'"%20WHERE%20"'+tags[0][0].key+'"%20%3D%20%27'+tags[0][0].value+'%27%20AND%20'+axis[0].type+'%20>%20'+'now()'+'%20-%206h%20GROUP%20BY%20'+axis[0].type +'(20s)%20'+axis[1].type+'('+axis[1].params[0]+')&epoch=ms';
+      }
 
       },
       _getData: function(e){
         var from = e.detail.from;
         var to = e.detail.to;
-
+console.log(this.datasourceUri);
         var targetParams = '';
         for (var i = 0; i < this.panel.targets.length; i++)
           if (this.panel.targets[i].target)
@@ -184,6 +230,7 @@
 
       _isTable: function(panel){
         return panel.type == "table"
+
       },
 
       _convertUnixtime:function(dtp) {
