@@ -1,3 +1,7 @@
+-
+<!-- Latest Sortable
+<script src="http://rubaxa.github.io/Sortable/Sortable.js"></script>-->
+<link rel="import" href="../../bower_components/polymer-sortablejs/polymer-sortablejs.html"/>
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/timerange-picker/timerange-picker.html">
@@ -8,10 +12,29 @@
         :host{
           /*text-align: center;*/
         }
+        body {
+          padding: 20px;
+        }
+
+        .list-group-item {
+          cursor: move;
+          cursor: -webkit-grabbing;
+        }
       </style>
-      <template is="dom-repeat" items="{{dashboard.rows}}">
-        <dashboard-row class="row" datasources="[[datasources]]" row="[[item]]" replace-targets="[[replaceTargets]]" style="height: [[item.height]]; clear: both; display: block" from="[[dashboard.time.from]]" to="[[dashboard.time.to]]" id="row-{{index}}"></dashboard-row>
-      </template>
+      <paper-button on-tap="postData">Post Data</paper-button>
+      <iron-ajax
+        id="dataAjax"
+        url="/api/dashboards/db"
+        handle-as="json"
+        method="post"
+        on-response="postComplete"
+        debounce-duration="300"></iron-ajax>
+
+      <sortable-js>
+        <template is="dom-repeat" items="{{dashboard.rows}}">
+          <dashboard-row  class="row" datasources="[[datasources]]" row="[[item]]" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="[[dashboard.time.from]]" to="[[dashboard.time.to]]" id="row-{{index}}" ></dashboard-row>
+        </template>
+      </sortable-js>
       <iron-ajax auto="[[uri]]"
         url="/api/dashboards/[[uri]]"
         handle-as="json"
@@ -52,9 +75,21 @@
             replaceTargets: {
                 type: Object,
                 value: {}
-            }
+            },
           },
+          postData: function(){
+              console.log(this.dashboard);
+              this.$.dataAjax.headers["Content-Type"] = 'application/json';
+              this.$.dataAjax.body = {
+                dashboard: this.dashboard,
+                overwrite: true
+              };
+              this.$.dataAjax.generateRequest();
 
+            },
+            postComplete:function (){
+              console.log("post Complete");
+            },
           _handleResponse: function (data) {
               this.meta = data.detail.response.meta;
               this.dashboard = data.detail.response.dashboard;
@@ -67,12 +102,23 @@
                   for (var j=0; j<dashboard.rows[i].panels.length; j++)
                     if (dashboard.rows[i].panels[j] && dashboard.rows[i].panels[j].targets)
                       for (var k=0; k < dashboard.rows[i].panels[j].targets.length; k++) {
-                          if (dashboard.rows[i].panels[j].datasource && targets[dashboard.rows[i].panels[j].datasource] == undefined)
+                        if(dashboard.rows[i].panels[j].datasource==null){
+                            for(var p=0; p<datasources.length; p++){
+                              if(datasources[p].isDefault){
+                                dashboard.rows[i].panels[j].datasource=datasources[p];
+                                //break;
+                             }
+                            }
+                          }
+                          if (dashboard.rows[i].panels[j].datasource && targets[dashboard.rows[i].panels[j].datasource] == undefined){
                             targets[dashboard.rows[i].panels[j].datasource] = [];
-                          if (dashboard.rows[i].panels[j].targets[k].target && targets[dashboard.rows[i].panels[j].datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target)==-1)
-                            targets[dashboard.rows[i].panels[j].datasource].push(dashboard.rows[i].panels[j].targets[k].target)
+                          }
+                          if (dashboard.rows[i].panels[j].targets[k].target && targets[dashboard.rows[i].panels[j].datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target)==-1){
+                            targets[dashboard.rows[i].panels[j].datasource].push(dashboard.rows[i].panels[j].targets[k].target);
+                          }
                       }
               }
+
               return targets
           }
       });
