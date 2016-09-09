@@ -19,8 +19,7 @@
         padding: 16px;
       }
     </style>
-    <paper-card>
-      <timerange-picker from="{{from}}" to="{{to}}"></timerange-picker>
+    <paper-card id="paper">
       <h3>[[panel.title]]</h3>
 
       <template is="dom-if" if="[[_isText(panel)]]">
@@ -106,14 +105,31 @@
           value: {}
         }
       },
-      listeners: {
-        "timechanged": "_getData"
-      },
+
       resize: function() {
         if (this.chartElement && this.offsetWidth)
           this.chartElement.resize({height:'100%', width:this.offsetWidth-32});
       },
-
+      DateChange: function(Fyear,Fmonth,Fday,Tyear,Tmonth,Tday){
+        console.log(Fyear,Fmonth,Fday,Tyear,Tmonth,Tday);
+        var divs = document.querySelectorAll("[id]");
+        var len=divs.length;
+        var t=this.querySelectorAll('div[id~="PanelChart"]');
+        console.log(t);
+        var newurl=t[0].id.substr(11,t[0].id.length);
+        var array = newurl.split("/");
+        newurl="";
+        array.splice(-1,1);
+        for (var j=0; j<array.length; j++){
+          newurl+="&target="+array[j];
+        }
+        console.log(newurl);
+        var targeturl = this.datasourceUri + '/render?format=json' + /*targetParams*/newurl + '&from=' +Fyear+Fmonth+Fday /*from.replace('m','min')*/ + '&to=' +Tyear+Tmonth+Tday /*to.replace('m','min')*/;
+        //re compute url
+        document.querySelector('#getdata').setAttribute("url", targeturl);
+        //generate request
+        document.querySelector('#getdata').generateRequest();
+      },
       _filterTarget: function(target) {
         var k = Object.keys(this.get('replaceTargets'));
         for (var i=0; i<k.length; i++) {
@@ -122,7 +138,7 @@
         return target;
       },
       _handlePanelResponse: function(data){
-        //console.log("DATA : " ,data);
+        //console.log("DATA : " ,data, this);
         var x = [], d = [], xs = {}, xcolumns = [], dcolumns = [];
         for (var i = 0; i < data.detail.response.length; i++) {
           x.push(data.detail.response[i].datapoints.map(function(point){
@@ -137,22 +153,32 @@
         }
         var columns = xcolumns.concat(dcolumns);
         this.set('chartData', {xs: xs, columns: columns});
+        var targets="";
+        for(var i=0; i<data.detail.response.length; i++){
+          targets+=  data.detail.response[i].target+"/";
+        }
 
-        this.chartElement = document.createElement("c3-chart");
-        this.chartElement.axis = this.chartAxis;
-        this.querySelector('paper-card div#chart').appendChild(this.chartElement);
-        this.chartElement.load(this.chartData);
-        document.getElementById("chart").id = 'chart'+ Math.floor(Math.random()*10000).toString();
+        if(document.getElementById("chart")!=null){
+          this.chartElement = document.createElement("c3-chart");
+          this.chartElement.axis = this.chartAxis;
+          this.querySelector('paper-card div#chart').appendChild(this.chartElement);
+          this.chartElement.load(this.chartData);
+          document.getElementById("chart").id ="PanelChart "+targets;//data.detail.response[0].target; //'chart'+ Math.floor(Math.random()*10000).toString();
+        }
+        else {
+          var element = document.getElementById("PanelChart "+targets);
+          var PP=element.parentNode.parentNode;// document.getElementById("panel-1");
+          this.chartElement.axis=this.chartAxis;
+          PP.chartElement.load(this.chartData);
+        }
       },
 
       _computeUrl: function(datasourceUri) {
-        //console.log(datasourceUri, this.panel);
         if(this.panel.datasource.type=="graphite"){
            var targetParams = '';
            for (var i = 0; i < this.panel.targets.length; i++)
              if (this.panel.targets[i].target)
                targetParams += '&target=' + this.panel.targets[i].target;
-               
            return datasourceUri + '/render?format=json' + targetParams + '&from=' + this.from.replace('m','min');
         }
         else{
@@ -197,21 +223,7 @@
       }
 
       },
-      _getData: function(e){
-        var from = e.detail.from;
-        var to = e.detail.to;
-console.log(this.datasourceUri);
-        var targetParams = '';
-        for (var i = 0; i < this.panel.targets.length; i++)
-          if (this.panel.targets[i].target)
-            targetParams += '&target=' + this.panel.targets[i].target
-          var targeturl = this.datasourceUri + 'render?format=json' + targetParams + '&from=' + this.from.replace('m','min') + '&to=' + this.to.replace('m','min');
-        //re compute url
-        console.log(e.detail);
-          document.querySelector('#getdata').setAttribute("url", targeturl);
-        //generate request
-        document.querySelector('#getdata').generateRequest();
-      },
+
       _isGraph: function(panel){
         return panel.type == "graph"
       },

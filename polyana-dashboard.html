@@ -22,6 +22,7 @@
         }
       </style>
       <paper-button on-tap="postData">Post Data</paper-button>
+      <timerange-picker from="{{from}}" to="{{to}}"></timerange-picker>
       <iron-ajax
         id="dataAjax"
         url="/api/dashboards/db"
@@ -77,6 +78,9 @@
                 value: {}
             },
           },
+          listeners: {
+            "timechanged": "_getData"
+          },
           postData: function(){
               console.log(this.dashboard);
               this.$.dataAjax.headers["Content-Type"] = 'application/json';
@@ -89,6 +93,30 @@
             },
             postComplete:function (){
               console.log("post Complete");
+            },
+            _getData: function(e){
+
+              var from = e.detail.from;
+              var to = e.detail.to;
+              var targetParams = '';
+              for (var i = 0; i < this.targets.length; i++)
+                if (this.targets[i].target){
+                  targetParams += '&target=' + this.targets[i].target
+                }
+                var Fday=from.substr(0,2);
+                var Fmonth= from.substr(3,2);
+                var Fyear=from.substr(6,4);
+
+                var Tday=to.substr(0,2);
+                var Tmonth= to.substr(3,2);
+                var Tyear=to.substr(6,4);
+
+
+                var temp = document.querySelectorAll("dashboard-panel");
+                for(var j=0; j<temp.length; j++){
+                  temp[j].DateChange(Fyear,Fmonth,Fday,Tyear,Tmonth,Tday);
+                }
+
             },
           _handleResponse: function (data) {
               this.meta = data.detail.response.meta;
