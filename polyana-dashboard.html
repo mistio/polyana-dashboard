@@ -1,6 +1,4 @@
--
-<!-- Latest Sortable
-<script src="http://rubaxa.github.io/Sortable/Sortable.js"></script>-->
+- t
 <link rel="import" href="../../bower_components/polymer-sortablejs/polymer-sortablejs.html"/>
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
@@ -21,8 +19,26 @@
           cursor: -webkit-grabbing;
         }
       </style>
-      <paper-button on-tap="postData">Post Data</paper-button>
+      <style is="custom-style">
+    :host{
+      --primary-text-color: blue;
+      --paper-input-container-label: {
+          color:orange;
+      }
+    }
+</style>
+    <!--  <paper-button on-tap="postData">Post Data</paper-button> -->
       <timerange-picker from="{{from}}" to="{{to}}"></timerange-picker>
+
+      <paper-dropdown-menu label="Select an item" placeholder="off" >
+        <paper-menu class="dropdown-content" selected="1" attr-for-selected="data-value">
+          <paper-item data-value="1">off</paper-item>
+          <paper-item data-value="2">5s</paper-item>
+          <paper-item data-value="3">10s</paper-item>
+          <paper-item data-value="4">30s</paper-item>
+        </paper-menu>
+      </paper-dropdown-menu>
+
       <iron-ajax
         id="dataAjax"
         url="/api/dashboards/db"
@@ -30,7 +46,6 @@
         method="post"
         on-response="postComplete"
         debounce-duration="300"></iron-ajax>
-
       <sortable-js>
         <template is="dom-repeat" items="{{dashboard.rows}}">
           <dashboard-row  class="row" datasources="[[datasources]]" row="[[item]]" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="[[dashboard.time.from]]" to="[[dashboard.time.to]]" id="row-{{index}}" ></dashboard-row>
@@ -79,21 +94,28 @@
             },
           },
           listeners: {
-            "timechanged": "_getData"
+            "timechanged": "_getData",
+            'end': '_orderChanged',
           },
-          postData: function(){
-              console.log(this.dashboard);
-              this.$.dataAjax.headers["Content-Type"] = 'application/json';
-              this.$.dataAjax.body = {
-                dashboard: this.dashboard,
-                overwrite: true
-              };
-              this.$.dataAjax.generateRequest();
 
-            },
-            postComplete:function (){
-              console.log("post Complete");
-            },
+          _orderChanged: function(e){
+            console.log(this.dashboard);
+            this.$.dataAjax.headers["Content-Type"] = 'application/json';
+            this.$.dataAjax.body = {
+              dashboard: this.dashboard,
+              overwrite: true
+            };
+            this.$.dataAjax.generateRequest();
+          },
+          autoRefresh: function (){
+            console.log("peos");
+          },
+          //postData: function(){
+
+          //},
+          //postComplete:function (){
+            //console.log("post Complete");
+          //},
             _getData: function(e){
 
               var from = e.detail.from;

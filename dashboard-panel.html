@@ -157,13 +157,14 @@
         for(var i=0; i<data.detail.response.length; i++){
           targets+=  data.detail.response[i].target+"/";
         }
-
-        if(document.getElementById("chart")!=null){
+        var ch=this.querySelector('div#chart');
+        if(ch!=null){
           this.chartElement = document.createElement("c3-chart");
           this.chartElement.axis = this.chartAxis;
-          this.querySelector('paper-card div#chart').appendChild(this.chartElement);
+          ch.appendChild(this.chartElement);
+          //this.querySelector('div#chart').appendChild(this.chartElement);
           this.chartElement.load(this.chartData);
-          document.getElementById("chart").id ="PanelChart "+targets;//data.detail.response[0].target; //'chart'+ Math.floor(Math.random()*10000).toString();
+          ch.id ="PanelChart "+targets;//data.detail.response[0].target; //'chart'+ Math.floor(Math.random()*10000).toString();
         }
         else {
           var element = document.getElementById("PanelChart "+targets);
@@ -171,6 +172,7 @@
           this.chartElement.axis=this.chartAxis;
           PP.chartElement.load(this.chartData);
         }
+
       },
 
       _computeUrl: function(datasourceUri) {
