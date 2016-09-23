@@ -1,6 +1,6 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
-
+<link rel="import" href="../../bower_components/polymer-sortablejs/polymer-sortablejs.html"/>
 <link rel="import" href="dashboard-panel.html">
 <!--
   TODO: collapse row, show collapsed, edit row
@@ -11,7 +11,7 @@
         :host{
           border-collapse: collapse;
           width: 100%;
-          text-align: center;
+          /*text-align: center;*/
           display: inline-block;
         }
         body {
@@ -27,9 +27,11 @@
         <template is="dom-if" if="[[row.showTitle]]">
           <h2 id="show">[[row.title]]</h2>
         </template>
-        <template is="dom-repeat" items="[[row.panels]]">
-        <dashboard-panel datasource-uri="{{_datasourceUri(datasources, item)}}" panel="[[item]]" from="[[from]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
-        </template>
+        <sortable-js>
+          <template is="dom-repeat" items="{{row.panels}}">
+            <dashboard-panel refresh="[[refresh]]" datasource-uri="[[_datasourceUri(datasources, item)]]" chartData.type="bar" panel="[[item]]" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
+          </template>
+        </sortable-js>
       </div>
     </template>
     <script>
@@ -39,23 +41,24 @@
         properties: {
           title: String,
           from: String,
+          to: String,
           datasources: Array,
-          row: Object
+          row: Object,
+          refresh:String
         },
-
         _elementWidth: function (span) {
           return 100*span/12 + '%';
         },
 
         _datasourceUri: function(datasources, panel) {
-          //console.log("pdn: "+panel.datasource.name,datasources,panel,panel.datasource);
+          console.log(this.refresh);
           if (panel && panel.datasource) {
             var prefix = '/api/datasources/proxy/';
             //graphite has a datasource object that has datasource.name
             for(var i=0; i<datasources.length; i++) {
-              if(panel.datasource.name!=undefined){
+              if(panel.datasource!=undefined){
                 var prefix = '/api/datasources/proxy/';
-                if(panel.datasource.name == datasources[i].name) {
+                if(panel.datasource == datasources[i].name) {
                   return datasources[i].uri || prefix + datasources[i].id;
                 }
               }
@@ -67,9 +70,8 @@
                 }
               }
             }
-            console.error('Undefined datasource', panel.datasource);
+            //console.error('Undefined datasource', panel.datasource);
           }
-
         }
       });
 

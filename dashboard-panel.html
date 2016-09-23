@@ -4,24 +4,38 @@
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/c3-chart/c3-chart.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
-
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 
 
 <dom-module id="dashboard-panel">
   <template>
+    <style include="iron-flex"></style>
     <style>
+      :host {
+        float: left;
+        display: inline-block;
+      }
       #target {
         font-weight: bold;
         text-align: left;
       }
       paper-card {
-        width: 100%;
+        width: calc(100% - 32px);
         padding: 16px;
+        margin: 16px;
+        box-sizing: border-box;
       }
     </style>
     <paper-card id="paper">
-      <h3>[[panel.title]]</h3>
-
+      <div class="layout horizontal">
+        <h3 class="flex">[[panel.title]]</h3>
+        <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
+          <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value" >
+            <paper-item data-value="bar">Bar</paper-item>
+            <paper-item data-value="spline">Spline</paper-item>
+          </paper-menu>
+        </paper-dropdown-menu>
+      </div>
       <template is="dom-if" if="[[_isText(panel)]]">
         <div>[[panel.content]]</div>
       </template>
@@ -29,17 +43,19 @@
       <template is="dom-if" if="[[_isSinglestat(panel)]]">
         <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
       </template>
-
       <template is="dom-if" if="[[_isGraph(panel)]]">
         <paper-spinner active="[[loading]]"></paper-spinner>
-        <iron-ajax id="getdata" auto
+        <iron-ajax id="getdata"
+          auto
+          params = [[params]]
           url="{{_computeUrl(datasourceUri)}}"
           handle-as="json"
           method="GET"
           loading="{{loading}}"
+          contentType="application/json"
           on-response="_handlePanelResponse"
           debounce-duration="300"></iron-ajax>
-        <div id="chart"></div>
+        <c3-chart from="[[from]]" chartid="[[panel.title]]"></c3-chart>
       </template>
 
       <template is="dom-if" if="[[_isDashlist(panel)]]">
@@ -56,8 +72,19 @@
       is: 'dashboard-panel',
 
       properties: {
-        from: String,
-        to: String,
+        from: {
+        type:String,
+      },
+        to: {
+          type: String,
+          value: 'now'
+        },
+        params: {
+          type: Object,
+          /*value :'{"from":"-1h", "to":"now", "targets": "carbon.agents.148f5ed73115-a.cpuUsage"}'*/
+          computed: '_computeParams(from, to,panel.targets)'
+        },
+        refresh:String,
         panel: Object,
         type: String,
         loading: Boolean,
@@ -105,31 +132,39 @@
           value: {}
         }
       },
-
+      detached: function() {
+          console.warn('detaching panel');
+          if (this.chartElement)
+            this.chartElement.destroy();
+      },
       resize: function() {
         if (this.chartElement && this.offsetWidth)
           this.chartElement.resize({height:'100%', width:this.offsetWidth-32});
       },
-      DateChange: function(Fyear,Fmonth,Fday,Tyear,Tmonth,Tday){
-        console.log(Fyear,Fmonth,Fday,Tyear,Tmonth,Tday);
-        var divs = document.querySelectorAll("[id]");
-        var len=divs.length;
-        var t=this.querySelectorAll('div[id~="PanelChart"]');
-        console.log(t);
-        var newurl=t[0].id.substr(11,t[0].id.length);
-        var array = newurl.split("/");
-        newurl="";
-        array.splice(-1,1);
-        for (var j=0; j<array.length; j++){
-          newurl+="&target="+array[j];
+      _changeGraph:function (panel){
+        if(this.type=="bar"){
+          this.chartData.type='bar';
+          this.panel.bars=true;
+          this.panel.lines=false;
         }
-        console.log(newurl);
-        var targeturl = this.datasourceUri + '/render?format=json' + /*targetParams*/newurl + '&from=' +Fyear+Fmonth+Fday /*from.replace('m','min')*/ + '&to=' +Tyear+Tmonth+Tday /*to.replace('m','min')*/;
-        //re compute url
-        document.querySelector('#getdata').setAttribute("url", targeturl);
-        //generate request
-        document.querySelector('#getdata').generateRequest();
+        else if(this.type=="spline"){
+          this.chartData.type="spline";
+          this.panel.bars=false;
+          this.panel.lines=true;
+        }
+      this.chartElement.load(this.chartData);
+      this.fire('end');
       },
+      _computeParams: function(from, to,targets){
+        //some graphite versions expect 'until' paramater and others "to"
+          var ret = {'format': 'json', 'from': from, 'to': to,'until':to}, tlist=[];
+          for (var i=0; i < targets.length; i++){
+            tlist.push(targets[i].target)
+          }
+          ret['target'] = tlist;
+          return ret;
+      },
+
       _filterTarget: function(target) {
         var k = Object.keys(this.get('replaceTargets'));
         for (var i=0; i<k.length; i++) {
@@ -138,92 +173,93 @@
         return target;
       },
       _handlePanelResponse: function(data){
-        //console.log("DATA : " ,data, this);
-        var x = [], d = [], xs = {}, xcolumns = [], dcolumns = [];
-        for (var i = 0; i < data.detail.response.length; i++) {
-          x.push(data.detail.response[i].datapoints.map(function(point){
-            return point[1]
-          }));
-          d.push(data.detail.response[i].datapoints.map(function(point){
-            return point[0]
-          }));
-          xs[this._filterTarget(data.detail.response[i].target)] = 'x'+(i+1);
-          xcolumns.push(['x'+(i+1)].concat(x[i]));
-          dcolumns.push([this._filterTarget(data.detail.response[i].target)].concat(d[i]));
-        }
-        var columns = xcolumns.concat(dcolumns);
-        this.set('chartData', {xs: xs, columns: columns});
-        var targets="";
-        for(var i=0; i<data.detail.response.length; i++){
-          targets+=  data.detail.response[i].target+"/";
-        }
-        var ch=this.querySelector('div#chart');
-        if(ch!=null){
-          this.chartElement = document.createElement("c3-chart");
+        if(this.chartData.columns.length==0 || this.refresh==null){
+          var cols=transformData(this,data);
+          /*var tc=[]
+          var d1= ['data1', -30, 200, 200, 400, -150, 250];
+          var d2= ['data2', 130, 100, -100, 200, -150, 50];
+          var d3= ['data3', -230, 200, 200, -300, 250, 250];
+          tc.push(d1);
+          tc.push(d2);
+          tc.push(d3);*/
+          //{xs: xs, columns: columns,groups:g}
+          this.set('chartData', cols);
+          if(this.panel.bars){
+            this.chartData.type="bar";
+            this.type="bar";
+          }
+          else if (this.panel.lines){
+            this.chartData.type="spline";
+            this.type="spline";
+          }
+          this.chartElement = this.querySelector('c3-chart');
+          this.chartElement.destroy();
           this.chartElement.axis = this.chartAxis;
-          ch.appendChild(this.chartElement);
-          //this.querySelector('div#chart').appendChild(this.chartElement);
           this.chartElement.load(this.chartData);
-          ch.id ="PanelChart "+targets;//data.detail.response[0].target; //'chart'+ Math.floor(Math.random()*10000).toString();
         }
-        else {
-          var element = document.getElementById("PanelChart "+targets);
-          var PP=element.parentNode.parentNode;// document.getElementById("panel-1");
-          this.chartElement.axis=this.chartAxis;
-          PP.chartElement.load(this.chartData);
+        else{
+          //remove any null values
+         for(var p=0; p<this.chartData.columns[0].length; p++){
+            if(this.chartData.columns[1][p]==null){
+              this.chartData.columns[1].splice(p,1);
+              this.chartData.columns[0].splice(p,1);
+            }
+          }
+          var cols=transformData(this,data);
+          //compare the last date we have on chart with the new date data
+          var date2= new Date(this.chartData.columns[0][this.chartData.columns[0].length-1]).getTime()/1000;
+          var index=0;
+          for(var i=0; i<cols.columns[0].length; i++){
+            var date1=new Date(cols.columns[0][i]).getTime()/1000;
+            if(date1==date2){
+              var index=i;
+              console.log("yes!!",i,cols.columns[1][i],this.chartData.columns[1][this.chartData.columns[0].length-1]);
+            }
+          }
+          //remove all the previous values from the new data
+          for(var j=1; j<index+1; j++){
+            cols.columns[0].splice(1,1);
+            cols.columns[1].splice(1,1);
+          }
+          //remove the frist values from previous data since new will be added
+          for(var k=1; k<cols.columns[0].length; k++){
+            if(cols.columns[1][k]!=null){
+              this.chartData.columns[0].splice(1,1);
+              this.chartData.columns[1].splice(1,1);
+            }
+          }
+          //add the new data to the old array
+          for(var v=1; v<cols.columns[1].length; v++){
+            if(cols.columns[1][v]!=null){
+              this.chartData.columns[0].push(cols.columns[0][v]);
+              this.chartData.columns[1].push(cols.columns[1][v]);
+              console.log("pushed",cols.columns[1][v],this.chartData.columns[1]);
+            }
+          }
+          //remove any null values from the new array
+          for(var p=0; p<cols.columns[0].length; p++){
+            if(cols.columns[1][p]==null){
+              cols.columns[1].splice(p,1);
+              cols.columns[0].splice(p,1);
+            }
+          }
+          console.log(cols.columns);
+          //if we have any values left in the array draw them
+          if(cols.columns[1].length>1)
+          this.chartElement.flow(cols);
         }
-
       },
 
       _computeUrl: function(datasourceUri) {
-        if(this.panel.datasource.type=="graphite"){
+        if(this.panel.datasource=="Graphite"){
+
            var targetParams = '';
            for (var i = 0; i < this.panel.targets.length; i++)
              if (this.panel.targets[i].target)
                targetParams += '&target=' + this.panel.targets[i].target;
-           return datasourceUri + '/render?format=json' + targetParams + '&from=' + this.from.replace('m','min');
+               console.log(datasourceUri);
+           return datasourceUri + '/render'; //?format=json' + targetParams + '&from=' + this.from.replace('m','min');
         }
-        else{
-        //for influxDB
-          var db='telegraf';
-          var type=[];
-          var params=[];
-          var paramsmini=[];
-          var minitag=[];
-          var tags=[];
-          var measurements=[];
-          var axis=[];
-          for (var i=0; i<this.panel.targets.length; i++){
-            for(var m=0; m<this.panel.targets[i].tags.length; m++){
-              minitag.push(this.panel.targets[i].tags[m]);
-            }
-            if(this.panel.targets[i]){
-              measurements.push(this.panel.targets[i].measurement);
-            }
-            for(var n=0; n<this.panel.targets[i].groupBy.length; n++){
-              axis.push(this.panel.targets[i].groupBy[n]);
-            }
-            tags.push(minitag);
-            for(var j=0; j<this.panel.targets[i].select.length; j++){
-                for(var k=0; k<this.panel.targets[i].select[j].length; k++){
-                  if(this.panel.targets[i].select[j][k].type){
-                    if(this.panel.targets[i].select[j][k].type!="field"){
-                      type.push(this.panel.targets[i].select[j][k].type);
-                    }
-                    for(var l=0; l<this.panel.targets[i].select[j][k].params.length; l++){
-                      if(this.panel.targets[i].select[j][k].params.length>0){
-                        paramsmini.push(this.panel.targets[i].select[j][k].params[l]);
-                        params.push(paramsmini);
-                      }
-                    }
-                  }
-                }
-            }
-          }
-          console.log(type,params,tags,axis);
-          return datasourceUri+'/query?db='+db+'&q=SELECT%20'+type[0]+'("'+params[0][0]+'")'+'%20FROM%20"'+measurements[0]+'"%20WHERE%20"'+tags[0][0].key+'"%20%3D%20%27'+tags[0][0].value+'%27%20AND%20'+axis[0].type+'%20>%20'+'now()'+'%20-%206h%20GROUP%20BY%20'+axis[0].type +'(20s)%20'+axis[1].type+'('+axis[1].params[0]+')&epoch=ms';
-      }
-
       },
 
       _isGraph: function(panel){
@@ -261,5 +297,55 @@
         return formattedTime;
       }
     });
+
+    function transformData(me,data){
+      var x = [], d = [], xs = {}, xcolumns = [], dcolumns = [], g=[];
+      for (var i = 0; i < data.detail.response.length; i++) {
+        x.push(data.detail.response[i].datapoints.map(function(point){
+          return point[1]
+        }));
+        d.push(data.detail.response[i].datapoints.map(function(point){
+          return point[0]
+        }));
+        xs[me._filterTarget(data.detail.response[i].target)] = 'x'+(i+1);
+        xcolumns.push(['x'+(i+1)].concat(x[i]));
+        dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
+      }
+      var columns = xcolumns.concat(dcolumns);
+      var test= columns;
+      // convert timestamp to date so it can be displayed correctly on the x axis of the graph
+      for(var k=0; k<columns.length; k++){
+        if(columns[k][0].charAt(0)=='x'){
+          for (var j=1; j<columns[0].length; j++){
+            columns[k][j]=new Date(columns[k][j]*1000);
+          }
+        }
+      }
+      return {xs: xs, columns: columns};
+    }
+
+    function arr_diff (a1, a2) {
+
+        var a = [], diff = [];
+
+        for (var i = 0; i < a1.length; i++) {
+            a[a1[i]] = true;
+        }
+
+        for (var i = 0; i < a2.length; i++) {
+            if (a[a2[i]]) {
+                delete a[a2[i]];
+            } else {
+                a[a2[i]] = true;
+            }
+        }
+
+        for (var k in a) {
+            diff.push(k);
+        }
+
+        return diff;
+    };
+
   </script>
 </dom-module>

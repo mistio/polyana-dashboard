@@ -1,14 +1,16 @@
 - t
-<link rel="import" href="../../bower_components/polymer-sortablejs/polymer-sortablejs.html"/>
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/timerange-picker/timerange-picker.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="dashboard-row.html">
 <dom-module id="polyana-dashboard">
     <template>
+      <style include="iron-flex"></style>
       <style>
         :host{
           /*text-align: center;*/
+          display: block;
         }
         body {
           padding: 20px;
@@ -18,40 +20,46 @@
           cursor: move;
           cursor: -webkit-grabbing;
         }
+
       </style>
       <style is="custom-style">
-    :host{
-      --primary-text-color: blue;
-      --paper-input-container-label: {
-          color:orange;
-      }
-    }
-</style>
-    <!--  <paper-button on-tap="postData">Post Data</paper-button> -->
-      <timerange-picker from="{{from}}" to="{{to}}"></timerange-picker>
+        :host{
 
-      <paper-dropdown-menu label="Select an item" placeholder="off" >
-        <paper-menu class="dropdown-content" selected="1" attr-for-selected="data-value">
-          <paper-item data-value="1">off</paper-item>
-          <paper-item data-value="2">5s</paper-item>
-          <paper-item data-value="3">10s</paper-item>
-          <paper-item data-value="4">30s</paper-item>
-        </paper-menu>
-      </paper-dropdown-menu>
+        }
+        paper-card {
+          padding: 16px;
+          margin: 16px;
+        }
+    </style>
+    <!--  <paper-button on-tap="postData">Post Data</paper-button> -->
+    <paper-card class="layout horizontal stretch">
+        <div class="flex">
+          <paper-dropdown-menu label="Select autorefresh period" placeholder="off" on-select="_autoRefresh">
+            <paper-menu id="AutoRefresh" class="dropdown-content" selected="{{refreshValue}}" attr-for-selected="data-value" >
+              <paper-item data-value="0">off</paper-item>
+              <paper-item data-value="5000">5s</paper-item>
+              <paper-item data-value="10000">10sec</paper-item>
+              <paper-item data-value="30000">30sec</paper-item>
+              <paper-item data-value="60000">1min</paper-item>
+              <paper-item data-value="300000">5min</paper-item>
+            </paper-menu>
+          </paper-dropdown-menu>
+        </div>
+        <timerange-picker from="{{from}}" to="{{to}}" ></timerange-picker>
+    </paper-card>
 
       <iron-ajax
         id="dataAjax"
         url="/api/dashboards/db"
         handle-as="json"
         method="post"
-        on-response="postComplete"
         debounce-duration="300"></iron-ajax>
-      <sortable-js>
         <template is="dom-repeat" items="{{dashboard.rows}}">
-          <dashboard-row  class="row" datasources="[[datasources]]" row="[[item]]" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="[[dashboard.time.from]]" to="[[dashboard.time.to]]" id="row-{{index}}" ></dashboard-row>
+          <dashboard-row  class="row" datasources="[[datasources]]" refresh="{{refresh}}" row="[[item]]" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
-      </sortable-js>
-      <iron-ajax auto="[[uri]]"
+      <iron-ajax
+        id='requestAjax'
+        auto="[[uri]]"
         url="/api/dashboards/[[uri]]"
         handle-as="json"
         method="GET"
@@ -83,7 +91,7 @@
               type: Object
             },
             from: {
-              type: String
+              type: String,
             },
             to: {
               type: String
@@ -92,14 +100,15 @@
                 type: Object,
                 value: {}
             },
+            refresh:{
+              type:Boolean,
+              value:false
+            }
           },
-          listeners: {
-            "timechanged": "_getData",
+         listeners: {
             'end': '_orderChanged',
           },
-
           _orderChanged: function(e){
-            console.log(this.dashboard);
             this.$.dataAjax.headers["Content-Type"] = 'application/json';
             this.$.dataAjax.body = {
               dashboard: this.dashboard,
@@ -107,42 +116,12 @@
             };
             this.$.dataAjax.generateRequest();
           },
-          autoRefresh: function (){
-            console.log("peos");
-          },
-          //postData: function(){
 
-          //},
-          //postComplete:function (){
-            //console.log("post Complete");
-          //},
-            _getData: function(e){
-
-              var from = e.detail.from;
-              var to = e.detail.to;
-              var targetParams = '';
-              for (var i = 0; i < this.targets.length; i++)
-                if (this.targets[i].target){
-                  targetParams += '&target=' + this.targets[i].target
-                }
-                var Fday=from.substr(0,2);
-                var Fmonth= from.substr(3,2);
-                var Fyear=from.substr(6,4);
-
-                var Tday=to.substr(0,2);
-                var Tmonth= to.substr(3,2);
-                var Tyear=to.substr(6,4);
-
-
-                var temp = document.querySelectorAll("dashboard-panel");
-                for(var j=0; j<temp.length; j++){
-                  temp[j].DateChange(Fyear,Fmonth,Fday,Tyear,Tmonth,Tday);
-                }
-
-            },
           _handleResponse: function (data) {
               this.meta = data.detail.response.meta;
               this.dashboard = data.detail.response.dashboard;
+              this.from=this.dashboard.time.from;
+              this.to=this.dashboard.time.to;
           },
 
           _getTargets: function (dashboard, datasources) {
@@ -170,8 +149,45 @@
               }
 
               return targets
-          }
+          },
+          _autoRefresh: function (e){
+            ClearInterval();
+            //the only point to have refresh is when "to" is "now"
+            if(this.refreshValue>0 && (this.to=="now" || this.to==Math.floor(new Date().getTime()/1000))){
+              this.refresh=true;
+              console.log(this.dashboard.refresh);
+              Refresh(this);
+            }
+            else{
+              console.log("not now");
+              this.refreshValue=0;
+              this.refresh=false;
+            }
+          },
       });
 
+      var interval;
+      var undermin=0;
+      function ClearInterval(){
+        clearTimeout(interval);
+        console.log("cleared");
+      }
+      function Refresh(me){
+        interval = setTimeout(function(){Refresh(me);},me.refreshValue);
+        //console.log(me.querySelector('#AutoRefresh').value);
+        //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
+        if(me.from.toString().search("now")>=0){
+          var d= Math.floor(new Date().getTime()/1000);
+          if(me.from.indexOf("h")>=0){
+            var t=me.from.substr(me.from.indexOf("-")+1,me.from.indexOf("h")-(me.from.indexOf("-")+1) );
+            me.from=(d-t*3600).toString();
+          }
+        }
+        else{
+          //me.to=Math.floor(new Date().getTime()/1000);
+          me.$.requestAjax.generateRequest();
+        }
+
+    };
     </script>
 </dom-module>
