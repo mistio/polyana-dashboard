@@ -1,6 +1,6 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
-<link rel="import" href="../../bower_components/polymer-sortablejs/polymer-sortablejs.html"/>
+<link rel="import" href="../../bower_components/polymer-sortablejs/polymer-sortablejs.html" />
 <link rel="import" href="dashboard-panel.html">
 <!--
   TODO: collapse row, show collapsed, edit row
@@ -27,53 +27,57 @@
         <template is="dom-if" if="[[row.showTitle]]">
           <h2 id="show">[[row.title]]</h2>
         </template>
-        <sortable-js>
-          <template is="dom-repeat" items="{{row.panels}}">
-            <dashboard-panel refresh="[[refresh]]" datasource-uri="[[_datasourceUri(datasources, item)]]" chartData.type="bar" panel="[[item]]" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
+    <sortable-js>
+        <template is="dom-repeat" items="{{row.panels}}">
+            <dashboard-panel refresh="[[refresh]]" datasource-uri="[[_datasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style=" width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
           </template>
-        </sortable-js>
-      </div>
+    </sortable-js>
+    </div>
     </template>
     <script>
-      Polymer({
-        is: 'dashboard-row',
+        Polymer({
+            is: 'dashboard-row',
 
-        properties: {
-          title: String,
-          from: String,
-          to: String,
-          datasources: Array,
-          row: Object,
-          refresh:String
-        },
-        _elementWidth: function (span) {
-          return 100*span/12 + '%';
-        },
-
-        _datasourceUri: function(datasources, panel) {
-          console.log(this.refresh);
-          if (panel && panel.datasource) {
-            var prefix = '/api/datasources/proxy/';
-            //graphite has a datasource object that has datasource.name
-            for(var i=0; i<datasources.length; i++) {
-              if(panel.datasource!=undefined){
-                var prefix = '/api/datasources/proxy/';
-                if(panel.datasource == datasources[i].name) {
-                  return datasources[i].uri || prefix + datasources[i].id;
+            properties: {
+                row: {
+                    type: Object,
+                    notify: true
+                },
+                title: String,
+                from: String,
+                to: String,
+                datasources: Array,
+                refresh: String,
+            },
+            _elementWidth: function(span) {
+                return 100 * span / 12 + '%';
+            },
+            _rowHeight: function() {
+                this.height = this.row.height;
+                console.log(this.row.height);
+                return this.row.height;
+            },
+            _datasourceUri: function(datasources, panel) {
+                if (panel && panel.datasource) {
+                    var prefix = '/api/datasources/proxy/';
+                    //graphite has a datasource object that has datasource.name
+                    for (var i = 0; i < datasources.length; i++) {
+                        if (panel.datasource != undefined) {
+                            var prefix = '/api/datasources/proxy/';
+                            if (panel.datasource == datasources[i].name) {
+                                return datasources[i].uri || prefix + datasources[i].id;
+                            }
+                        }
+                        // influx has panel.datasource for the name only
+                        else {
+                            var prefix = '/api/datasources/proxy/';
+                            if (panel.datasource == datasources[i].name) {
+                                return datasources[i].uri || prefix + datasources[i].id;
+                            }
+                        }
+                    }
                 }
-              }
-              // influx has panel.datasource for the name only
-              else{
-                var prefix = '/api/datasources/proxy/';
-                if(panel.datasource == datasources[i].name) {
-                  return datasources[i].uri || prefix + datasources[i].id;
-                }
-              }
             }
-            //console.error('Undefined datasource', panel.datasource);
-          }
-        }
-      });
-
+        });
     </script>
 </dom-module>

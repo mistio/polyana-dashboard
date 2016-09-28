@@ -45,7 +45,7 @@
             </paper-menu>
           </paper-dropdown-menu>
         </div>
-        <timerange-picker from="{{from}}" to="{{to}}" ></timerange-picker>
+        <timerange-picker from="{{from}}" to="{{to}}" on-tap="handleTap"></timerange-picker>
     </paper-card>
 
       <iron-ajax
@@ -55,139 +55,135 @@
         method="post"
         debounce-duration="300"></iron-ajax>
         <template is="dom-repeat" items="{{dashboard.rows}}">
-          <dashboard-row  class="row" datasources="[[datasources]]" refresh="{{refresh}}" row="[[item]]" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+          <dashboard-row  class="row" datasources="[[datasources]]" refresh="[[refresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
-      <iron-ajax
-        id='requestAjax'
-        auto="[[uri]]"
-        url="/api/dashboards/[[uri]]"
-        handle-as="json"
-        method="GET"
-        on-response="_handleResponse"
-        debounce-duration="300"></iron-ajax>
+    <iron-ajax id='requestAjax' auto="[[uri]]" url="/api/dashboards/[[uri]]" handle-as="json" method="GET" on-response="_handleResponse" debounce-duration="300"></iron-ajax>
     </template>
     <script>
         Polymer({
-          is: 'polyana-dashboard',
+            is: 'polyana-dashboard',
 
-          properties: {
-            uri: {
-              type: String
+            properties: {
+                uri: {
+                    type: String
+                },
+                dashboard: {
+                    type: Object
+                },
+                datasources: {
+                    type: Array
+                },
+                meta: {
+                    type: Object
+                },
+                targets: {
+                    type: Array,
+                    computed: "_getTargets(dashboard, datasources)"
+                },
+                datapoints: {
+                    type: Object
+                },
+                from: {
+                    type: String,
+                },
+                to: {
+                    type: String
+                },
+                replaceTargets: {
+                    type: Object,
+                    value: {}
+                },
+                refresh: {
+                    type: Boolean,
+                    value: false
+                }
             },
-            dashboard: {
-              type: Object
+            listeners: {
+                'end': '_orderChanged',
             },
-            datasources: {
-              type: Array
+            handleTap: function() {
+                ClearInterval(this);
             },
-            meta: {
-              type: Object
+            _orderChanged: function(e) {
+                this.$.dataAjax.headers["Content-Type"] = 'application/json';
+                this.$.dataAjax.body = {
+                    dashboard: this.dashboard,
+                    overwrite: true
+                };
+                this.$.dataAjax.generateRequest();
             },
-            targets: {
-              type: Array,
-              computed: "_getTargets(dashboard, datasources)"
-            },
-            datapoints: {
-              type: Object
-            },
-            from: {
-              type: String,
-            },
-            to: {
-              type: String
-            },
-            replaceTargets: {
-                type: Object,
-                value: {}
-            },
-            refresh:{
-              type:Boolean,
-              value:false
-            }
-          },
-         listeners: {
-            'end': '_orderChanged',
-          },
-          _orderChanged: function(e){
-            this.$.dataAjax.headers["Content-Type"] = 'application/json';
-            this.$.dataAjax.body = {
-              dashboard: this.dashboard,
-              overwrite: true
-            };
-            this.$.dataAjax.generateRequest();
-          },
 
-          _handleResponse: function (data) {
-              this.meta = data.detail.response.meta;
-              this.dashboard = data.detail.response.dashboard;
-              this.from=this.dashboard.time.from;
-              this.to=this.dashboard.time.to;
-          },
+            _handleResponse: function(data) {
+                if(this.dashboard!=null && (this.dashboard.id!=data.detail.response.dashboard.id)){
+                  ClearInterval(this);
+                }
+                this.meta = data.detail.response.meta;
+                this.dashboard = data.detail.response.dashboard;
+                this.from = this.dashboard.time.from;
+                this.to = this.dashboard.time.to;
+            },
 
-          _getTargets: function (dashboard, datasources) {
-              var targets = {};
-              for (var i=0; i<dashboard.rows.length; i++) {
-                if (dashboard.rows[i].panels)
-                  for (var j=0; j<dashboard.rows[i].panels.length; j++)
-                    if (dashboard.rows[i].panels[j] && dashboard.rows[i].panels[j].targets)
-                      for (var k=0; k < dashboard.rows[i].panels[j].targets.length; k++) {
-                        if(dashboard.rows[i].panels[j].datasource==null){
-                            for(var p=0; p<datasources.length; p++){
-                              if(datasources[p].isDefault){
-                                dashboard.rows[i].panels[j].datasource=datasources[p];
-                                //break;
-                             }
-                            }
-                          }
-                          if (dashboard.rows[i].panels[j].datasource && targets[dashboard.rows[i].panels[j].datasource] == undefined){
-                            targets[dashboard.rows[i].panels[j].datasource] = [];
-                          }
-                          if (dashboard.rows[i].panels[j].targets[k].target && targets[dashboard.rows[i].panels[j].datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target)==-1){
-                            targets[dashboard.rows[i].panels[j].datasource].push(dashboard.rows[i].panels[j].targets[k].target);
-                          }
-                      }
-              }
+            _getTargets: function(dashboard, datasources) {
+                var targets = {};
+                for (var i = 0; i < dashboard.rows.length; i++) {
+                    if (dashboard.rows[i].panels)
+                        for (var j = 0; j < dashboard.rows[i].panels.length; j++)
+                            if (dashboard.rows[i].panels[j] && dashboard.rows[i].panels[j].targets)
+                                for (var k = 0; k < dashboard.rows[i].panels[j].targets.length; k++) {
+                                    if (dashboard.rows[i].panels[j].datasource == null) {
+                                        for (var p = 0; p < datasources.length; p++) {
+                                            if (datasources[p].isDefault) {
+                                                dashboard.rows[i].panels[j].datasource = datasources[p];
+                                            }
+                                        }
+                                    }
+                                    if (dashboard.rows[i].panels[j].datasource && targets[dashboard.rows[i].panels[j].datasource] == undefined) {
+                                        targets[dashboard.rows[i].panels[j].datasource] = [];
+                                    }
+                                    if (dashboard.rows[i].panels[j].targets[k].target && targets[dashboard.rows[i].panels[j].datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target) == -1) {
+                                        targets[dashboard.rows[i].panels[j].datasource].push(dashboard.rows[i].panels[j].targets[k].target);
+                                    }
+                                }
+                }
+                return targets
+            },
+            _autoRefresh: function(e) {
+                //the only point to have refresh is when "to" is "now"
+                if (this.refreshValue > 0 && (this.to == "now" || this.to == Math.floor(new Date().getTime() / 1000))) {
+                    this.refresh = true;
+                    console.log(this.refresh);
+                    Refresh(this);
+                } else {
+                    console.log("not now");
+                    ClearInterval(this);
+                }
+            },
+        });
 
-              return targets
-          },
-          _autoRefresh: function (e){
-            ClearInterval();
-            //the only point to have refresh is when "to" is "now"
-            if(this.refreshValue>0 && (this.to=="now" || this.to==Math.floor(new Date().getTime()/1000))){
-              this.refresh=true;
-              console.log(this.dashboard.refresh);
-              Refresh(this);
-            }
-            else{
-              console.log("not now");
-              this.refreshValue=0;
-              this.refresh=false;
-            }
-          },
-      });
+        var interval;
+        var undermin = 0;
 
-      var interval;
-      var undermin=0;
-      function ClearInterval(){
-        clearTimeout(interval);
-        console.log("cleared");
-      }
-      function Refresh(me){
-        interval = setTimeout(function(){Refresh(me);},me.refreshValue);
-        //console.log(me.querySelector('#AutoRefresh').value);
-        //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
-        if(me.from.toString().search("now")>=0){
-          var d= Math.floor(new Date().getTime()/1000);
-          if(me.from.indexOf("h")>=0){
-            var t=me.from.substr(me.from.indexOf("-")+1,me.from.indexOf("h")-(me.from.indexOf("-")+1) );
-            me.from=(d-t*3600).toString();
-          }
-        }
-        else{
-          //me.to=Math.floor(new Date().getTime()/1000);
-          me.$.requestAjax.generateRequest();
+        function ClearInterval(me) {
+            me.refresh = false;
+            me.refreshValue = 0;
+            clearTimeout(interval);
+            console.log("cleared");
         }
 
-    };
+        function Refresh(me) {
+            interval = setTimeout(function() {
+                Refresh(me);
+            }, me.refreshValue);
+            //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
+            if (me.from.toString().search("now") >= 0) {
+                var d = Math.floor(new Date().getTime() / 1000);
+                if (me.from.indexOf("h") >= 0) {
+                    var t = me.from.substr(me.from.indexOf("-") + 1, me.from.indexOf("h") - (me.from.indexOf("-") + 1));
+                    me.from = (d - t * 3600).toString();
+                }
+            } else {
+                me.$.requestAjax.generateRequest();
+            }
+        };
     </script>
 </dom-module>

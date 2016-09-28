@@ -1,6 +1,5 @@
-
-
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/c3-chart/c3-chart.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
@@ -8,12 +7,17 @@
 
 
 <dom-module id="dashboard-panel">
-  <template>
+    <template>
     <style include="iron-flex"></style>
     <style>
       :host {
         float: left;
         display: inline-block;
+
+      }
+      #paper:active {
+        width: 0;
+        height: 0;
       }
       #target {
         font-weight: bold;
@@ -24,15 +28,18 @@
         padding: 16px;
         margin: 16px;
         box-sizing: border-box;
+        resize:both;
+        overflow: auto;
       }
     </style>
-    <paper-card id="paper">
+    <paper-card id="paper" on-mouseup="resizeDone">
       <div class="layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
         <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
           <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value" >
             <paper-item data-value="bar">Bar</paper-item>
             <paper-item data-value="spline">Spline</paper-item>
+            <paper-item data-value="stacked">Stacked</paper-item>
           </paper-menu>
         </paper-dropdown-menu>
       </div>
@@ -40,10 +47,10 @@
         <div>[[panel.content]]</div>
       </template>
 
-      <template is="dom-if" if="[[_isSinglestat(panel)]]">
+    <template is="dom-if" if="[[_isSinglestat(panel)]]">
         <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
       </template>
-      <template is="dom-if" if="[[_isGraph(panel)]]">
+    <template is="dom-if" if="[[_isGraph(panel)]]">
         <paper-spinner active="[[loading]]"></paper-spinner>
         <iron-ajax id="getdata"
           auto
@@ -58,294 +65,347 @@
         <c3-chart from="[[from]]" chartid="[[panel.title]]"></c3-chart>
       </template>
 
-      <template is="dom-if" if="[[_isDashlist(panel)]]">
+    <template is="dom-if" if="[[_isDashlist(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
 
-      <template is="dom-if" if="[[_isTable(panel)]]">
+    <template is="dom-if" if="[[_isTable(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
     </paper-card>
-  </template>
-  <script>
-    Polymer({
-      is: 'dashboard-panel',
+    </template>
+    <script>
+        Polymer({
+            is: 'dashboard-panel',
 
-      properties: {
-        from: {
-        type:String,
-      },
-        to: {
-          type: String,
-          value: 'now'
-        },
-        params: {
-          type: Object,
-          /*value :'{"from":"-1h", "to":"now", "targets": "carbon.agents.148f5ed73115-a.cpuUsage"}'*/
-          computed: '_computeParams(from, to,panel.targets)'
-        },
-        refresh:String,
-        panel: Object,
-        type: String,
-        loading: Boolean,
-        datasourceUri: {
-          type: String,
-          reflectToAttribute: true
-        },
-        chartData: {
-          type: Object,
-          value: {
-            xs: {},
-            columns: []
-          }
-        },
-        chartAxis: {
-          type: Object,
-          value: {
-            x: {
-              type: 'timeseries',
-              tick: {
-                format: "%H:%M",
-                fit: false
-              },
-              padding: {
-                left: 0,
-                right: 0
-              }
+            properties: {
+                from: {
+                    type: String,
+                },
+                to: {
+                    type: String,
+                    value: 'now'
+                },
+                params: {
+                    type: Object,
+                    computed: '_computeParams(from, to,panel.targets)'
+                },
+                rowh: {
+                    type: Number,
+                    notify: true,
+                },
+                refresh: String,
+                panel: {
+                    type: Object,
+                    notify: true
+                },
+                type: String,
+                loading: Boolean,
+                datasourceUri: {
+                    type: String,
+                    reflectToAttribute: true
+                },
+                chartData: {
+                    type: Object,
+                    value: {
+                        xs: {},
+                        columns: []
+                    }
+                },
+                chartAxis: {
+                    type: Object,
+                    value: {
+                        x: {
+                            type: 'timeseries',
+                            tick: {
+                                format: '%Y-%m-%d %H:%M',
+                                fit: true
+                            },
+                            padding: {
+                                left: 0,
+                                right: 0
+                            }
+                        },
+                        y: {
+                            label: {
+                                position: 'inner-top'
+                            },
+                            min: 0,
+                            padding: {
+                                bottom: 10
+                            }
+                        }
+                    },
+                },
+                chartElement: {
+                    type: Object
+                },
+                replaceTargets: {
+                    type: Object,
+                    value: {}
+                }
             },
-            y: {
-              label: {
-                position: 'inner-top'
-              },
-              min: 0,
-              padding: {
-                bottom: 10
-              }
+            resizeDone: function(e, detail, sender) {
+                if (this.chartElement != null) {
+                    this.width = this.querySelector('paper-card').clientWidth;
+                    this.height = this.querySelector('paper-card').clientHeight;
+                    this.chartElement.resize({
+                        height: this.height - 120,
+                        width: this.width - 20
+                    });
+                    this.rowh = this.height;
+                    this.panel.span = (this.width / this.offsetWidth) * this.panel.span;
+                }
+                console.log(this.rowh);
+                this.fire('end');
+            },
+            detached: function() {
+                console.warn('detaching panel');
+                if (this.chartElement)
+                    this.chartElement.destroy();
+            },
+            _changeGraph: function(panel) {
+                if (this.type == "bar") {
+                    this.panel.bars = true;
+                    this.panel.lines = false;
+                    this.panel.stack = false;
+                    this.chartElement.groups(0);
+                    this.chartElement.transform('bar');
+                } else if (this.type == "spline") {
+                    this.panel.bars = false;
+                    this.panel.lines = true;
+                    this.panel.stack = false;
+                    this.chartElement.groups(0);
+                    this.chartElement.transform('spline');
+                } else if (this.type == "stacked") {
+                    if (!this.panel.stack) {
+                        var grp = [];
+                        this.panel.stack = true;
+                        for (var i = 0; i < this.chartData.columns.length; i++) {
+                            if (this.chartData.columns[i][0].indexOf('x') < 0) {
+                                grp.push(this.chartData.columns[i][0].toString());
+                            }
+                        }
+                        this.chartElement.groups([grp]);
+                        if (!this.panel.bars) {
+                            this.chartElement.transform('area-spline');
+                        }
+                    }
+                }
+                this.fire('end');
+            },
+            _computeParams: function(from, to, targets) {
+                //some graphite versions expect 'until' paramater and others "to"
+                var ret = {
+                        'format': 'json',
+                        'from': from,
+                        'to': to,
+                        'until': to
+                    },
+                    tlist = [];
+                for (var i = 0; i < targets.length; i++) {
+                    tlist.push(targets[i].target)
+                }
+                ret['target'] = tlist;
+                return ret;
+            },
+
+            _filterTarget: function(target) {
+                var k = Object.keys(this.get('replaceTargets'));
+                for (var i = 0; i < k.length; i++) {
+                    target = target.replace(k[i], this.replaceTargets[k[i]])
+                }
+                return target;
+            },
+            _handlePanelResponse: function(data) {
+                if (this.refresh == false) {
+                    var cols = transformData(this, data);
+                    this.set('chartData', {
+                        xs: cols.xs,
+                        columns: cols.columns
+                    });
+                    //remove all the null values from drawn data so there is no gap when we draw the new ones
+                    for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
+                        for (var k = this.chartData.columns[j].length; k >= 0; k--) {
+                            if (this.chartData.columns[j][k] == null) {
+                                this.chartData.columns[j].splice(k, 1);
+                                this.chartData.columns[j - this.chartData.columns.length / 2].splice(k, 1);
+                            } else {
+                                //we need to break because if we get data from 7 ago there wont be any gaps between days
+                                break;
+                            }
+                        }
+                    }
+                    this.chartElement = this.querySelector('c3-chart');
+                    this.chartElement.destroy();
+                    this.chartElement.axis = this.chartAxis;
+                    this.chartElement.load(this.chartData);
+                    if (this.panel.bars) {
+                        this.chartData.type = "bar";
+                        this.type = "bar";
+                        this.chartElement.transform('bar');
+                    } else if (this.panel.stack) {
+                        this.type = "stacked";
+                        var grp = []
+                        for (var i = 0; i < this.panel.targets.length; i++) {
+                            grp.push(this.panel.targets[i].target);
+                        }
+                        this.chartElement.groups([grp]);
+                        this.chartElement.transform('area-spline');
+                    } else if (this.panel.lines) {
+                        this.chartData.type = "spline";
+                        this.type = "spline";
+                        this.chartElement.transform('spline');
+                    }
+                } else {
+                    var cols = transformData(this, data);
+                    //TODO if stacked==true flow the data as stacked
+                    var grp = []
+                    for (var i = 0; i < this.panel.targets.length; i++) {
+                        grp.push(this.panel.targets[i].target);
+                    }
+                    this.chartElement.groups([grp]);
+                    //remove all the null values from the data we have drawn
+                    for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
+                        for (var k = this.chartData.columns[j].length; k >= 0; k--) {
+                            if (this.chartData.columns[j][k] == null) {
+                                this.chartData.columns[j].splice(k, 1);
+                                this.chartData.columns[j - this.chartData.columns.length / 2].splice(k, 1);
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
+                    //get the last time value we have drawn in the graph
+                    var lastdrawn = new Date(this.chartData.columns[0][this.chartData.columns[0].length - 1]).getTime();
+                    //find this value in the new data
+                    var index = -1;
+                    for (var i = cols.columns[0].length - 1; i >= 0; i--) {
+                        if (lastdrawn == new Date(cols.columns[0][i]).getTime()) {
+                            index = i;
+                        }
+                    }
+                    //delete all previous data from the new data
+                    if (index > -1) {
+                        for (var j = 0; j < cols.columns.length; j++) {
+                            cols.columns[j].splice(1, index);
+                        }
+                    } else {
+                        for (var j = 0; j < cols.columns.length; j++) {
+                            cols.columns[j].splice(1, cols.columns[j].length - 1);
+                        }
+                    }
+                    console.log("new data filtered(cols)", cols.columns[0].length, index);
+                    //remove the null values from new arrays
+                    for (var j = cols.columns.length / 2; j < cols.columns.length; j++) {
+                        for (var k = cols.columns[j].length; k >= 0; k--) {
+                            if (cols.columns[j][k] == null) {
+                                cols.columns[j].splice(k, 1);
+                                cols.columns[j - cols.columns.length / 2].splice(k, 1);
+                            }
+                        }
+                    }
+                    console.log("null values removed from new data (cols)", cols.columns[0].length);
+                    //display the new data
+                    if (cols.columns[0].length > 1) {
+                        console.log("flow good", cols);
+                        this.chartElement.flow(cols);
+                    }
+                    //add the new data to the old
+                    for (var j = 0; j < cols.columns.length; j++) {
+                        for (var k = 1; k < cols.columns[j].length; k++) {
+                            this.chartData.columns[j].push(cols.columns[j][k]);
+                        }
+                    }
+                    //remove equal number of old data from the ola array (drawn data)
+                    for (var j = 0; j < cols.columns.length; j++) {
+                        this.chartData.columns[j].splice(1, cols.columns[j].length - 1);
+                    }
+                    console.log("removed old data from old array (chartdata)", this.chartData.columns[0].length, cols.columns[0].length);
+                    console.log("------------------------------------------------------------------------");
+                }
+                console.log(this.querySelector('paper-card').height = this.rowh, this.rowh);
+                this.querySelector('paper-card').height = this.rowh;
+            },
+
+            _computeUrl: function(datasourceUri) {
+                if (this.panel.datasource == "Graphite") {
+                    var targetParams = '';
+                    for (var i = 0; i < this.panel.targets.length; i++)
+                        if (this.panel.targets[i].target)
+                            targetParams += '&target=' + this.panel.targets[i].target;
+                    return datasourceUri + '/render';
+                }
+            },
+
+            _isGraph: function(panel) {
+                return panel.type == "graph"
+            },
+
+            _isDashlist: function(panel) {
+                return panel.type == "dashlist"
+            },
+
+            _isText: function(panel) {
+                return panel.type == "text"
+            },
+
+            _isSinglestat: function(panel) {
+                return panel.type == "singlestat"
+            },
+
+            _isTable: function(panel) {
+                return panel.type == "table"
+
+            },
+
+            _convertUnixtime: function(dtp) {
+                var date = new Date(dtp * 1000);
+                // Hours part from the timestamp
+                var hours = date.getHours();
+                // Minutes part from the timestamp
+                var minutes = "0" + date.getMinutes();
+                // Seconds part from the timestamp
+                var seconds = "0" + date.getSeconds();
+                // Will display time in 10:30:23 format
+                var formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+                return formattedTime;
             }
-          },
-        },
-        chartElement: {
-          type: Object
-        },
-        replaceTargets: {
-          type: Object,
-          value: {}
-        }
-      },
-      detached: function() {
-          console.warn('detaching panel');
-          if (this.chartElement)
-            this.chartElement.destroy();
-      },
-      resize: function() {
-        if (this.chartElement && this.offsetWidth)
-          this.chartElement.resize({height:'100%', width:this.offsetWidth-32});
-      },
-      _changeGraph:function (panel){
-        if(this.type=="bar"){
-          this.chartData.type='bar';
-          this.panel.bars=true;
-          this.panel.lines=false;
-        }
-        else if(this.type=="spline"){
-          this.chartData.type="spline";
-          this.panel.bars=false;
-          this.panel.lines=true;
-        }
-      this.chartElement.load(this.chartData);
-      this.fire('end');
-      },
-      _computeParams: function(from, to,targets){
-        //some graphite versions expect 'until' paramater and others "to"
-          var ret = {'format': 'json', 'from': from, 'to': to,'until':to}, tlist=[];
-          for (var i=0; i < targets.length; i++){
-            tlist.push(targets[i].target)
-          }
-          ret['target'] = tlist;
-          return ret;
-      },
+        });
 
-      _filterTarget: function(target) {
-        var k = Object.keys(this.get('replaceTargets'));
-        for (var i=0; i<k.length; i++) {
-          target = target.replace(k[i], this.replaceTargets[k[i]])
-        }
-        return target;
-      },
-      _handlePanelResponse: function(data){
-        if(this.chartData.columns.length==0 || this.refresh==null){
-          var cols=transformData(this,data);
-          /*var tc=[]
-          var d1= ['data1', -30, 200, 200, 400, -150, 250];
-          var d2= ['data2', 130, 100, -100, 200, -150, 50];
-          var d3= ['data3', -230, 200, 200, -300, 250, 250];
-          tc.push(d1);
-          tc.push(d2);
-          tc.push(d3);*/
-          //{xs: xs, columns: columns,groups:g}
-          this.set('chartData', cols);
-          if(this.panel.bars){
-            this.chartData.type="bar";
-            this.type="bar";
-          }
-          else if (this.panel.lines){
-            this.chartData.type="spline";
-            this.type="spline";
-          }
-          this.chartElement = this.querySelector('c3-chart');
-          this.chartElement.destroy();
-          this.chartElement.axis = this.chartAxis;
-          this.chartElement.load(this.chartData);
-        }
-        else{
-          //remove any null values
-         for(var p=0; p<this.chartData.columns[0].length; p++){
-            if(this.chartData.columns[1][p]==null){
-              this.chartData.columns[1].splice(p,1);
-              this.chartData.columns[0].splice(p,1);
+        function transformData(me, data) {
+            var x = [],
+                d = [],
+                xs = {},
+                xcolumns = [],
+                dcolumns = [],
+                g = [];
+            for (var i = 0; i < data.detail.response.length; i++) {
+                x.push(data.detail.response[i].datapoints.map(function(point) {
+                    return point[1]
+                }));
+                d.push(data.detail.response[i].datapoints.map(function(point) {
+                    return point[0]
+                }));
+                xs[me._filterTarget(data.detail.response[i].target)] = 'x' + (i + 1);
+                xcolumns.push(['x' + (i + 1)].concat(x[i]));
+                dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
             }
-          }
-          var cols=transformData(this,data);
-          //compare the last date we have on chart with the new date data
-          var date2= new Date(this.chartData.columns[0][this.chartData.columns[0].length-1]).getTime()/1000;
-          var index=0;
-          for(var i=0; i<cols.columns[0].length; i++){
-            var date1=new Date(cols.columns[0][i]).getTime()/1000;
-            if(date1==date2){
-              var index=i;
-              console.log("yes!!",i,cols.columns[1][i],this.chartData.columns[1][this.chartData.columns[0].length-1]);
+            var columns = xcolumns.concat(dcolumns);
+            var test = columns;
+            // convert timestamp to date so it can be displayed correctly on the x axis of the graph
+            for (var k = 0; k < columns.length; k++) {
+                if (columns[k][0].charAt(0) == 'x') {
+                    for (var j = 1; j < columns[0].length; j++) {
+                        columns[k][j] = new Date(columns[k][j] * 1000);
+                    }
+                }
             }
-          }
-          //remove all the previous values from the new data
-          for(var j=1; j<index+1; j++){
-            cols.columns[0].splice(1,1);
-            cols.columns[1].splice(1,1);
-          }
-          //remove the frist values from previous data since new will be added
-          for(var k=1; k<cols.columns[0].length; k++){
-            if(cols.columns[1][k]!=null){
-              this.chartData.columns[0].splice(1,1);
-              this.chartData.columns[1].splice(1,1);
-            }
-          }
-          //add the new data to the old array
-          for(var v=1; v<cols.columns[1].length; v++){
-            if(cols.columns[1][v]!=null){
-              this.chartData.columns[0].push(cols.columns[0][v]);
-              this.chartData.columns[1].push(cols.columns[1][v]);
-              console.log("pushed",cols.columns[1][v],this.chartData.columns[1]);
-            }
-          }
-          //remove any null values from the new array
-          for(var p=0; p<cols.columns[0].length; p++){
-            if(cols.columns[1][p]==null){
-              cols.columns[1].splice(p,1);
-              cols.columns[0].splice(p,1);
-            }
-          }
-          console.log(cols.columns);
-          //if we have any values left in the array draw them
-          if(cols.columns[1].length>1)
-          this.chartElement.flow(cols);
+            return {
+                xs: xs,
+                columns: columns
+            };
         }
-      },
-
-      _computeUrl: function(datasourceUri) {
-        if(this.panel.datasource=="Graphite"){
-
-           var targetParams = '';
-           for (var i = 0; i < this.panel.targets.length; i++)
-             if (this.panel.targets[i].target)
-               targetParams += '&target=' + this.panel.targets[i].target;
-               console.log(datasourceUri);
-           return datasourceUri + '/render'; //?format=json' + targetParams + '&from=' + this.from.replace('m','min');
-        }
-      },
-
-      _isGraph: function(panel){
-        return panel.type == "graph"
-      },
-
-      _isDashlist: function(panel){
-        return panel.type == "dashlist"
-      },
-
-      _isText: function(panel){
-        return panel.type == "text"
-      },
-
-      _isSinglestat: function(panel){
-        return panel.type == "singlestat"
-      },
-
-      _isTable: function(panel){
-        return panel.type == "table"
-
-      },
-
-      _convertUnixtime:function(dtp) {
-        var date = new Date(dtp*1000);
-        // Hours part from the timestamp
-        var hours = date.getHours();
-        // Minutes part from the timestamp
-        var minutes = "0" + date.getMinutes();
-        // Seconds part from the timestamp
-        var seconds = "0" + date.getSeconds();
-
-        // Will display time in 10:30:23 format
-        var formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
-        return formattedTime;
-      }
-    });
-
-    function transformData(me,data){
-      var x = [], d = [], xs = {}, xcolumns = [], dcolumns = [], g=[];
-      for (var i = 0; i < data.detail.response.length; i++) {
-        x.push(data.detail.response[i].datapoints.map(function(point){
-          return point[1]
-        }));
-        d.push(data.detail.response[i].datapoints.map(function(point){
-          return point[0]
-        }));
-        xs[me._filterTarget(data.detail.response[i].target)] = 'x'+(i+1);
-        xcolumns.push(['x'+(i+1)].concat(x[i]));
-        dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
-      }
-      var columns = xcolumns.concat(dcolumns);
-      var test= columns;
-      // convert timestamp to date so it can be displayed correctly on the x axis of the graph
-      for(var k=0; k<columns.length; k++){
-        if(columns[k][0].charAt(0)=='x'){
-          for (var j=1; j<columns[0].length; j++){
-            columns[k][j]=new Date(columns[k][j]*1000);
-          }
-        }
-      }
-      return {xs: xs, columns: columns};
-    }
-
-    function arr_diff (a1, a2) {
-
-        var a = [], diff = [];
-
-        for (var i = 0; i < a1.length; i++) {
-            a[a1[i]] = true;
-        }
-
-        for (var i = 0; i < a2.length; i++) {
-            if (a[a2[i]]) {
-                delete a[a2[i]];
-            } else {
-                a[a2[i]] = true;
-            }
-        }
-
-        for (var k in a) {
-            diff.push(k);
-        }
-
-        return diff;
-    };
-
-  </script>
+    </script>
 </dom-module>
