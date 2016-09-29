@@ -118,7 +118,7 @@
                         x: {
                             type: 'timeseries',
                             tick: {
-                                format: '%Y-%m-%d %H:%M',
+                                format: '%H:%M',
                                 fit: true
                             },
                             padding: {
@@ -154,10 +154,13 @@
                         width: this.width - 20
                     });
                     this.rowh = this.height;
-                    this.panel.span = (this.width / this.offsetWidth) * this.panel.span;
+                    this.panel.span = ((this.width + 30) / this.offsetWidth) * this.panel.span;
+                    if (this.panel.span > 12) {
+                        console.log(this.panel.span, this.width, this.offsetWidth);
+                        this.panel.span = 12;
+                    }
                 }
-                console.log(this.rowh);
-                this.fire('end');
+                //this.fire('end');
             },
             detached: function() {
                 console.warn('detaching panel');
@@ -218,6 +221,7 @@
                 return target;
             },
             _handlePanelResponse: function(data) {
+                //if refresh is on then we need to flow the data not to redraw them
                 if (this.refresh == false) {
                     var cols = transformData(this, data);
                     this.set('chartData', {
@@ -237,8 +241,13 @@
                         }
                     }
                     this.chartElement = this.querySelector('c3-chart');
-                    this.chartElement.destroy();
+                    //this.chartElement.destroy();
+                    this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                     this.chartElement.axis = this.chartAxis;
+                    var dimensions = [];
+                    dimensions.push(this.querySelector('paper-card').clientWidth);
+                    dimensions.push(this.rowh);
+                    this.chartData.size = dimensions;
                     this.chartElement.load(this.chartData);
                     if (this.panel.bars) {
                         this.chartData.type = "bar";
@@ -257,14 +266,20 @@
                         this.type = "spline";
                         this.chartElement.transform('spline');
                     }
-                } else {
+                    console.log(this.style.width, this.style.height);
+                }
+                // flow the new data from auto refresh
+                else {
+                    console.log("refreshing");
                     var cols = transformData(this, data);
-                    //TODO if stacked==true flow the data as stacked
-                    var grp = []
-                    for (var i = 0; i < this.panel.targets.length; i++) {
-                        grp.push(this.panel.targets[i].target);
+                    if (this.panel.stack) {
+                        var grp = []
+                        for (var i = 0; i < this.panel.targets.length; i++) {
+                            grp.push(this.panel.targets[i].target);
+                        }
+                        this.chartElement.groups([grp]);
+                        this.chartElement.transform('area-spline');
                     }
-                    this.chartElement.groups([grp]);
                     //remove all the null values from the data we have drawn
                     for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
                         for (var k = this.chartData.columns[j].length; k >= 0; k--) {
@@ -325,8 +340,6 @@
                     console.log("removed old data from old array (chartdata)", this.chartData.columns[0].length, cols.columns[0].length);
                     console.log("------------------------------------------------------------------------");
                 }
-                console.log(this.querySelector('paper-card').height = this.rowh, this.rowh);
-                this.querySelector('paper-card').height = this.rowh;
             },
 
             _computeUrl: function(datasourceUri) {
@@ -359,20 +372,42 @@
                 return panel.type == "table"
 
             },
-
-            _convertUnixtime: function(dtp) {
-                var date = new Date(dtp * 1000);
-                // Hours part from the timestamp
-                var hours = date.getHours();
-                // Minutes part from the timestamp
-                var minutes = "0" + date.getMinutes();
-                // Seconds part from the timestamp
-                var seconds = "0" + date.getSeconds();
-                // Will display time in 10:30:23 format
-                var formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
-                return formattedTime;
-            }
         });
+
+        function smartAxis(from, to, axis) {
+            //for presets
+            if (to == "now") {
+                if (from.search("y") >= 0) {
+                    axis.tick.format = "%Y-%m";
+                    axis.tick.fit = false;
+                } else if (from.search("d") >= 0) {
+                    axis.tick.format = "%m-%d";
+                    axis.tick.fit = false;
+                } else if (from.search("h") >= 0) {
+                    axis.tick.format = "%H:%M";
+                    axis.tick.fit = true;
+                } else if (from.search("m") >= 0) {
+                    axis.tick.format = "%H:%M:%S";
+                    axis.tick.fit = true;
+                }
+            }
+            //for custom time range
+            else {
+                var timelapsed = (to - from);
+                //less or equal than 2 days
+                if (timelapsed <= 86400 * 3) {
+                    axis.tick.format = "%H:%M";
+                    axis.tick.fit = true;
+                } else if (timelapsed > 86400 * 3 && timelapsed < 86400 * 365) {
+                    axis.tick.format = "%m-%d";
+                    axis.tick.fit = false;
+                } else {
+                    axis.tick.format = "%Y-%m";
+                    axis.tick.fit = false;
+                }
+            }
+            return axis;
+        }
 
         function transformData(me, data) {
             var x = [],

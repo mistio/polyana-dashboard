@@ -29,7 +29,7 @@
         </template>
     <sortable-js>
         <template is="dom-repeat" items="{{row.panels}}">
-            <dashboard-panel refresh="[[refresh]]" datasource-uri="[[_datasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style=" width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
+            <dashboard-panel refresh="[[refresh]]" datasource-uri="[[_datasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
           </template>
     </sortable-js>
     </div>
@@ -51,11 +51,6 @@
             },
             _elementWidth: function(span) {
                 return 100 * span / 12 + '%';
-            },
-            _rowHeight: function() {
-                this.height = this.row.height;
-                console.log(this.row.height);
-                return this.row.height;
             },
             _datasourceUri: function(datasources, panel) {
                 if (panel && panel.datasource) {
