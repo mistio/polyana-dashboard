@@ -4,6 +4,8 @@
 <link rel="import" href="../../bower_components/timerange-picker/timerange-picker.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="dashboard-row.html">
+<link rel="import" href="../../bower_components/panel-edit/panel-edit.html">
+
 <dom-module id="polyana-dashboard">
     <template>
       <style include="iron-flex"></style>
@@ -31,7 +33,6 @@
           margin: 16px;
         }
     </style>
-    <!--  <paper-button on-tap="postData">Post Data</paper-button> -->
     <paper-card class="layout horizontal stretch">
         <div class="flex">
           <paper-dropdown-menu label="Select autorefresh period" placeholder="off" on-select="_autoRefresh">
@@ -45,9 +46,9 @@
             </paper-menu>
           </paper-dropdown-menu>
         </div>
-        <timerange-picker from="{{from}}" to="{{to}}" on-tap="handleTap"></timerange-picker>
+        <panel-edit >ELEOS</panel-edit>
+        <timerange-picker from="{{from}}" to="{{to}}" on-tap="_handleTap"></timerange-picker>
     </paper-card>
-
       <iron-ajax
         id="dataAjax"
         url="/api/dashboards/db"
@@ -101,7 +102,7 @@
             listeners: {
                 'end': '_orderChanged',
             },
-            handleTap: function() {
+            _handleTap: function() {
                 ClearInterval(this);
             },
             _orderChanged: function(e) {
@@ -114,8 +115,8 @@
             },
 
             _handleResponse: function(data) {
-                if(this.dashboard!=null && (this.dashboard.id!=data.detail.response.dashboard.id)){
-                  ClearInterval(this);
+                if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
+                    ClearInterval(this);
                 }
                 this.meta = data.detail.response.meta;
                 this.dashboard = data.detail.response.dashboard;
@@ -152,7 +153,7 @@
                 if (this.refreshValue > 0 && (this.to == "now" || this.to == Math.floor(new Date().getTime() / 1000))) {
                     this.refresh = true;
                     console.log(this.refresh);
-                    Refresh(this);
+                    this.from = Refresh(this);
                 } else {
                     console.log("not now");
                     ClearInterval(this);
@@ -174,6 +175,7 @@
             interval = setTimeout(function() {
                 Refresh(me);
             }, me.refreshValue);
+            console.log(me.from);
             //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
             if (me.from.toString().search("now") >= 0) {
                 var d = Math.floor(new Date().getTime() / 1000);
@@ -182,8 +184,10 @@
                     me.from = (d - t * 3600).toString();
                 }
             } else {
-                me.$.requestAjax.generateRequest();
+                //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
+                me.from = Math.floor(new Date().getTime() / 1000) - 300;
             }
+            return me.from;
         };
     </script>
 </dom-module>

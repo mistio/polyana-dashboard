@@ -160,7 +160,7 @@
                         this.panel.span = 12;
                     }
                 }
-                //this.fire('end');
+                this.fire('end');
             },
             detached: function() {
                 console.warn('detaching panel');
@@ -235,7 +235,7 @@
                                 this.chartData.columns[j].splice(k, 1);
                                 this.chartData.columns[j - this.chartData.columns.length / 2].splice(k, 1);
                             } else {
-                                //we need to break because if we get data from 7 ago there wont be any gaps between days
+                                //we need to break because if we get data from 7 ago there wont be any gaps between off days/hours that has null values
                                 break;
                             }
                         }
@@ -344,10 +344,6 @@
 
             _computeUrl: function(datasourceUri) {
                 if (this.panel.datasource == "Graphite") {
-                    var targetParams = '';
-                    for (var i = 0; i < this.panel.targets.length; i++)
-                        if (this.panel.targets[i].target)
-                            targetParams += '&target=' + this.panel.targets[i].target;
                     return datasourceUri + '/render';
                 }
             },
@@ -379,16 +375,13 @@
             if (to == "now") {
                 if (from.search("y") >= 0) {
                     axis.tick.format = "%Y-%m";
-                    axis.tick.fit = false;
                 } else if (from.search("d") >= 0) {
                     axis.tick.format = "%m-%d";
-                    axis.tick.fit = false;
                 } else if (from.search("h") >= 0) {
                     axis.tick.format = "%H:%M";
                     axis.tick.fit = true;
                 } else if (from.search("m") >= 0) {
                     axis.tick.format = "%H:%M:%S";
-                    axis.tick.fit = true;
                 }
             }
             //for custom time range
@@ -397,15 +390,13 @@
                 //less or equal than 2 days
                 if (timelapsed <= 86400 * 3) {
                     axis.tick.format = "%H:%M";
-                    axis.tick.fit = true;
                 } else if (timelapsed > 86400 * 3 && timelapsed < 86400 * 365) {
                     axis.tick.format = "%m-%d";
-                    axis.tick.fit = false;
                 } else {
                     axis.tick.format = "%Y-%m";
-                    axis.tick.fit = false;
                 }
             }
+            axis.tick.fit = false;
             return axis;
         }
 
