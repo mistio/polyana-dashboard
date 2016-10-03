@@ -1,10 +1,9 @@
-- t
+
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/timerange-picker/timerange-picker.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="dashboard-row.html">
-<link rel="import" href="../../bower_components/panel-edit/panel-edit.html">
 
 <dom-module id="polyana-dashboard">
     <template>
@@ -46,7 +45,6 @@
             </paper-menu>
           </paper-dropdown-menu>
         </div>
-        <panel-edit >ELEOS</panel-edit>
         <timerange-picker from="{{from}}" to="{{to}}" on-tap="_handleTap"></timerange-picker>
     </paper-card>
       <iron-ajax

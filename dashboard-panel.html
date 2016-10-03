@@ -1,10 +1,9 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/c3-chart/c3-chart.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
-
+<link rel="import" href="../../bower_components/panel-edit/panel-edit.html">
 
 <dom-module id="dashboard-panel">
     <template>
@@ -16,7 +15,7 @@
 
       }
       #paper:active {
-        width: 0;
+        width: 80%;
         height: 0;
       }
       #target {
@@ -32,44 +31,37 @@
         overflow: auto;
       }
     </style>
+    <panel-edit panel="{{panel}}"></panel-edit>
     <paper-card id="paper" on-mouseup="resizeDone">
       <div class="layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
-        <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
-          <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value" >
-            <paper-item data-value="bar">Bar</paper-item>
-            <paper-item data-value="spline">Spline</paper-item>
-            <paper-item data-value="stacked">Stacked</paper-item>
-          </paper-menu>
-        </paper-dropdown-menu>
       </div>
       <template is="dom-if" if="[[_isText(panel)]]">
         <div>[[panel.content]]</div>
       </template>
 
-    <template is="dom-if" if="[[_isSinglestat(panel)]]">
+      <template is="dom-if" if="[[_isSinglestat(panel)]]">
         <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
-      </template>
-    <template is="dom-if" if="[[_isGraph(panel)]]">
-        <paper-spinner active="[[loading]]"></paper-spinner>
-        <iron-ajax id="getdata"
-          auto
-          params = [[params]]
-          url="{{_computeUrl(datasourceUri)}}"
-          handle-as="json"
-          method="GET"
-          loading="{{loading}}"
-          contentType="application/json"
-          on-response="_handlePanelResponse"
-          debounce-duration="300"></iron-ajax>
-        <c3-chart from="[[from]]" chartid="[[panel.title]]"></c3-chart>
-      </template>
+        </template>
+      <template is="dom-if" if="[[_isGraph(panel)]]">
+          <paper-spinner active="[[loading]]"></paper-spinner>
+          <iron-ajax id="getdata"
+            auto
+            params = [[params]]
+            url="{{_computeUrl(datasourceUri)}}"
+            handle-as="json"
+            method="GET"
+            loading="{{loading}}"
+            contentType="application/json"
+            on-response="_handlePanelResponse"
+            debounce-duration="300"></iron-ajax>
+          <c3-chart from="[[from]]" chartid="[[panel.title]]"></c3-chart>
+        </template>
 
-    <template is="dom-if" if="[[_isDashlist(panel)]]">
+        <template is="dom-if" if="[[_isDashlist(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
-
-    <template is="dom-if" if="[[_isTable(panel)]]">
+      <template is="dom-if" if="[[_isTable(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
     </paper-card>
@@ -97,9 +89,7 @@
                 refresh: String,
                 panel: {
                     type: Object,
-                    notify: true
                 },
-                type: String,
                 loading: Boolean,
                 datasourceUri: {
                     type: String,
@@ -145,12 +135,15 @@
                     value: {}
                 }
             },
+            listeners: {
+                'panelChanged': '_changeGraph'
+            },
             resizeDone: function(e, detail, sender) {
                 if (this.chartElement != null) {
                     this.width = this.querySelector('paper-card').clientWidth;
                     this.height = this.querySelector('paper-card').clientHeight;
                     this.chartElement.resize({
-                        height: this.height - 120,
+                        height: this.height - 140,
                         width: this.width - 20
                     });
                     this.rowh = this.height;
@@ -167,33 +160,27 @@
                 if (this.chartElement)
                     this.chartElement.destroy();
             },
-            _changeGraph: function(panel) {
-                if (this.type == "bar") {
-                    this.panel.bars = true;
-                    this.panel.lines = false;
-                    this.panel.stack = false;
+            _changeGraph: function() {
+                if (this.panel.bars) {
                     this.chartElement.groups(0);
                     this.chartElement.transform('bar');
-                } else if (this.type == "spline") {
-                    this.panel.bars = false;
-                    this.panel.lines = true;
-                    this.panel.stack = false;
+                } else if (this.panel.lines) {
                     this.chartElement.groups(0);
                     this.chartElement.transform('spline');
-                } else if (this.type == "stacked") {
-                    if (!this.panel.stack) {
-                        var grp = [];
-                        this.panel.stack = true;
-                        for (var i = 0; i < this.chartData.columns.length; i++) {
-                            if (this.chartData.columns[i][0].indexOf('x') < 0) {
-                                grp.push(this.chartData.columns[i][0].toString());
-                            }
-                        }
-                        this.chartElement.groups([grp]);
-                        if (!this.panel.bars) {
-                            this.chartElement.transform('area-spline');
+                }
+                if (this.panel.stack) {
+                    var grp = [];
+                    for (var i = 0; i < this.chartData.columns.length; i++) {
+                        if (this.chartData.columns[i][0].indexOf('x') < 0) {
+                            grp.push(this.chartData.columns[i][0].toString());
                         }
                     }
+                    this.chartElement.groups([grp]);
+                    if (!this.panel.bars) {
+                        this.chartElement.transform('area-spline');
+                    }
+                } else if (!this.panel.stack) {
+                    this.chartElement.groups(0);
                 }
                 this.fire('end');
             },
@@ -251,10 +238,8 @@
                     this.chartElement.load(this.chartData);
                     if (this.panel.bars) {
                         this.chartData.type = "bar";
-                        this.type = "bar";
                         this.chartElement.transform('bar');
                     } else if (this.panel.stack) {
-                        this.type = "stacked";
                         var grp = []
                         for (var i = 0; i < this.panel.targets.length; i++) {
                             grp.push(this.panel.targets[i].target);
@@ -263,7 +248,6 @@
                         this.chartElement.transform('area-spline');
                     } else if (this.panel.lines) {
                         this.chartData.type = "spline";
-                        this.type = "spline";
                         this.chartElement.transform('spline');
                     }
                     console.log(this.style.width, this.style.height);
