@@ -162,10 +162,8 @@
             },
             _changeGraph: function() {
                 if (this.panel.bars) {
-                    this.chartElement.groups(0);
                     this.chartElement.transform('bar');
                 } else if (this.panel.lines) {
-                    this.chartElement.groups(0);
                     this.chartElement.transform('spline');
                 }
                 if (this.panel.stack) {
@@ -179,7 +177,7 @@
                     if (!this.panel.bars) {
                         this.chartElement.transform('area-spline');
                     }
-                } else if (!this.panel.stack) {
+                } else{
                     this.chartElement.groups(0);
                 }
                 this.fire('end');
