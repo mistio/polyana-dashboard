@@ -40,10 +40,10 @@
         <div>[[panel.content]]</div>
       </template>
 
-      <template is="dom-if" if="[[_isSinglestat(panel)]]">
+    <template is="dom-if" if="[[_isSinglestat(panel)]]">
         <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
         </template>
-      <template is="dom-if" if="[[_isGraph(panel)]]">
+    <template is="dom-if" if="[[_isGraph(panel)]]">
           <paper-spinner active="[[loading]]"></paper-spinner>
           <iron-ajax id="getdata"
             auto
@@ -58,10 +58,10 @@
           <c3-chart from="[[from]]" chartid="[[panel.title]]"></c3-chart>
         </template>
 
-        <template is="dom-if" if="[[_isDashlist(panel)]]">
+    <template is="dom-if" if="[[_isDashlist(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
-      <template is="dom-if" if="[[_isTable(panel)]]">
+    <template is="dom-if" if="[[_isTable(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
     </paper-card>
@@ -177,7 +177,7 @@
                     if (!this.panel.bars) {
                         this.chartElement.transform('area-spline');
                     }
-                } else{
+                } else {
                     this.chartElement.groups(0);
                 }
                 this.fire('end');
@@ -237,16 +237,18 @@
                     if (this.panel.bars) {
                         this.chartData.type = "bar";
                         this.chartElement.transform('bar');
-                    } else if (this.panel.stack) {
+                    } else if (this.panel.lines) {
+                        this.chartData.type = "spline";
+                        this.chartElement.transform('spline');
+                    }
+                    if (this.panel.stack) {
                         var grp = []
                         for (var i = 0; i < this.panel.targets.length; i++) {
                             grp.push(this.panel.targets[i].target);
                         }
                         this.chartElement.groups([grp]);
-                        this.chartElement.transform('area-spline');
-                    } else if (this.panel.lines) {
-                        this.chartData.type = "spline";
-                        this.chartElement.transform('spline');
+                        if (!this.panel.bars)
+                            this.chartElement.transform('area-spline');
                     }
                     console.log(this.style.width, this.style.height);
                 }
@@ -260,7 +262,6 @@
                             grp.push(this.panel.targets[i].target);
                         }
                         this.chartElement.groups([grp]);
-                        this.chartElement.transform('area-spline');
                     }
                     //remove all the null values from the data we have drawn
                     for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {

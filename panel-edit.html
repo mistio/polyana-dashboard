@@ -1,0 +1,86 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-dialog/paper-dialog.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../paper-item/paper-item.html">
+<link rel="import" href="../paper-menu/paper-menu.html">
+  <link rel="import" href="../paper-dialog-scrollable/paper-dialog-scrollable.html">
+<dom-module id="panel-edit">
+  <template>
+  <style is="custom-style">
+    :host {
+      display: inline-block;
+    }
+    #alignedDialog {
+      margin: 0;
+    }
+  </style>
+  <paper-button raised on-tap="openDialog">Edit Graph</paper-button>
+
+  <paper-dialog id="alignedDialog" no-overlap horizontal-align="left" vertical-align="top">
+    <h2>{{dialogid}}</h2>
+    <paper-dialog-scrollable>
+      <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
+        <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value" >
+          <paper-item data-value="bar">Bar</paper-item>
+          <paper-item data-value="spline">Spline</paper-item>
+        </paper-menu>
+      </paper-dropdown-menu>
+      <div>
+      </br>
+      <paper-checkbox on-tap="_changeGraph">Stack</paper-checkbox>
+    </paper-dialog-scrollable>
+  </paper-dialog>
+  </template>
+  <script>
+    Polymer({
+      is: "panel-edit",
+      properties: {
+        panel:{
+          type:Object,
+        }
+      },
+      openDialog: function() {
+        var dialog=this.querySelector('paper-dialog');
+        dialog.positionTarget=this;
+        this._initDialog();
+        dialog.open();
+        console.log();
+      },
+      _changeGraph: function() {
+          if (this.type == "bar") {
+              this.panel.bars = true;
+              this.panel.lines = false;
+              this.panel.stack = false;
+          } else if (this.type == "spline") {
+              this.panel.bars = false;
+              this.panel.lines = true;
+              this.panel.stack = false;
+          }
+          if (this.querySelector('paper-checkbox').checked) {
+              this.panel.stack = true;
+          }
+          else{
+              this.panel.stack = false;
+          }
+          this.fire('panelChanged');
+      },
+
+      _initDialog: function(){
+        if(this.panel.bars){
+          this.type="bar";
+        }
+        else if(this.panel.lines){
+          this.type="spline";
+        }
+        if(this.panel.stack){
+          this.querySelector('paper-checkbox').checked=true;
+        }
+        else{
+          this.querySelector('paper-checkbox').checked=false;
+        }
+      }
+    });
+
+  </script>
+</dom-module>
