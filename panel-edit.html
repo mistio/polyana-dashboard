@@ -24,6 +24,7 @@
         <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value" >
           <paper-item data-value="bar">Bar</paper-item>
           <paper-item data-value="spline">Spline</paper-item>
+          <paper-item data-value="line">Line</paper-item>
         </paper-menu>
       </paper-dropdown-menu>
       <div>
@@ -56,6 +57,11 @@
               this.panel.bars = false;
               this.panel.lines = true;
               this.panel.stack = false;
+          }
+          else if(this.type=="line"){
+            this.panel.bars = false;
+            this.panel.lines = false;
+            this.panel.stack = false;
           }
           if (this.querySelector('paper-checkbox').checked) {
               this.panel.stack = true;

@@ -6,7 +6,6 @@
 
 <dom-module id="polyana-dashboard">
     <template>
-      <style include="iron-flex"></style>
       <style>
         :host{
           display: block;
@@ -14,7 +13,6 @@
         body {
           padding: 20px;
         }
-
         .list-group-item {
           cursor: move;
           cursor: -webkit-grabbing;
@@ -92,12 +90,15 @@
                 }
             },
             listeners: {
-                'end': '_orderChanged',
+                'sortingChanged': '_saveDashboard',
+                'resizeDone': '_saveDashboard',
+                'graphChanged': '_saveDashboard'
             },
             _handleTap: function() {
                 clearInterval(this);
             },
-            _orderChanged: function(e) {
+            _saveDashboard: function(e) {
+
                 this.$.dataAjax.headers["Content-Type"] = 'application/json';
                 this.$.dataAjax.body = {
                     dashboard: this.dashboard,
@@ -145,7 +146,7 @@
                 if (this.refreshValue > 0 && (this.to == "now" || this.to == Math.floor(new Date().getTime() / 1000))) {
                     this.refresh = true;
                     console.log(this.refresh);
-                    this.from = refreshMe(this);
+                    this.from = Refresh(this);
                 } else {
                     console.log("not now");
                     clearInterval(this);
@@ -155,15 +156,17 @@
 
         var interval;
         var undermin = 0;
-        function clearInterval(me) {
+
+        function ClearInterval(me) {
             me.refresh = false;
             me.refreshValue = 0;
             clearTimeout(interval);
             console.log("cleared");
         }
-        function refreshMe(me) {
+
+        function Refresh(me) {
             interval = setTimeout(function() {
-                refreshMe(me);
+                Refresh(me);
             }, me.refreshValue);
             console.log(me.from);
             //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed

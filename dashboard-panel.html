@@ -7,17 +7,16 @@
 
 <dom-module id="dashboard-panel">
     <template>
-    <style include="iron-flex"></style>
     <style>
       :host {
         float: left;
         display: inline-block;
 
       }
-      #paper:active {
-        width: 80%;
+      /*#paper:active {
+        width: 0;
         height: 0;
-      }
+      }*/
       #target {
         font-weight: bold;
         text-align: left;
@@ -27,12 +26,12 @@
         padding: 16px;
         margin: 16px;
         box-sizing: border-box;
-        resize:both;
+        /*resize:both;*/
         overflow: auto;
       }
     </style>
     <panel-edit panel="{{panel}}"></panel-edit>
-    <paper-card id="paper" on-mouseup="resizeDone">
+    <paper-card id="paper">
       <div class="layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
       </div>
@@ -138,7 +137,7 @@
             listeners: {
                 'panelChanged': '_changeGraph'
             },
-            resizeDone: function(e, detail, sender) {
+            resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
                     this.width = this.querySelector('paper-card').clientWidth;
                     this.height = this.querySelector('paper-card').clientHeight;
@@ -153,7 +152,7 @@
                         this.panel.span = 12;
                     }
                 }
-                this.fire('end');
+                this.fire('resizeDone');
             },
             detached: function() {
                 console.warn('detaching panel');
@@ -165,6 +164,8 @@
                     this.chartElement.transform('bar');
                 } else if (this.panel.lines) {
                     this.chartElement.transform('spline');
+                } else {
+                  this.chartElement.transform('line');
                 }
                 if (this.panel.stack) {
                     var grp = [];
@@ -180,7 +181,7 @@
                 } else {
                     this.chartElement.groups(0);
                 }
-                this.fire('end');
+                this.fire('graphChanged');
             },
             _computeParams: function(from, to, targets) {
                 //some graphite versions expect 'until' paramater and others "to"
@@ -373,8 +374,10 @@
                 //less or equal than 2 days
                 if (timelapsed <= 86400 * 3) {
                     axis.tick.format = "%H:%M";
+                //more than 2 days less than a year
                 } else if (timelapsed > 86400 * 3 && timelapsed < 86400 * 365) {
                     axis.tick.format = "%m-%d";
+                //more than a year
                 } else {
                     axis.tick.format = "%Y-%m";
                 }
