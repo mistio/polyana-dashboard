@@ -48,14 +48,22 @@
         <template is="dom-repeat" items="{{dashboard.rows}}">
           <dashboard-row  class="row" datasources="[[datasources]]" refresh="[[refresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
-    <iron-ajax id='requestAjax' auto="[[uri]]" url="/api/dashboards/[[uri]]" handle-as="json" method="GET" on-response="_handleResponse" debounce-duration="300"></iron-ajax>
+      <iron-ajax
+        id='requestAjax'
+        auto="[[dashboardPath]]"
+        url="/api/dashboards/[[dashboardPath]]"
+        handle-as="json"
+        method="GET"
+        on-response="_handleResponse"
+        debounce-duration="300">
+    </iron-ajax>
     </template>
     <script>
         Polymer({
             is: 'polyana-dashboard',
 
             properties: {
-                uri: {
+                dashboardPath: {
                     type: String
                 },
                 dashboard: {
@@ -80,10 +88,6 @@
                 to: {
                     type: String
                 },
-                replaceTargets: {
-                    type: Object,
-                    value: {}
-                },
                 refresh: {
                     type: Boolean,
                     value: false
@@ -98,13 +102,16 @@
                 clearInterval(this);
             },
             _saveDashboard: function(e) {
-
-                this.$.dataAjax.headers["Content-Type"] = 'application/json';
-                this.$.dataAjax.body = {
-                    dashboard: this.dashboard,
-                    overwrite: true
-                };
-                this.$.dataAjax.generateRequest();
+                if (this.dashboardPath) {
+                    this.$.dataAjax.headers["Content-Type"] = 'application/json';
+                    this.$.dataAjax.body = {
+                        dashboard: this.dashboard,
+                        overwrite: true
+                    };
+                    this.$.dataAjax.generateRequest();
+                } else {
+                    // TODO
+                }
             },
 
             _handleResponse: function(data) {
@@ -146,7 +153,7 @@
                 if (this.refreshValue > 0 && (this.to == "now" || this.to == Math.floor(new Date().getTime() / 1000))) {
                     this.refresh = true;
                     console.log(this.refresh);
-                    this.from = Refresh(this);
+                    this.from = refreshMe(this);
                 } else {
                     console.log("not now");
                     clearInterval(this);
@@ -157,16 +164,16 @@
         var interval;
         var undermin = 0;
 
-        function ClearInterval(me) {
+        function clearInterval(me) {
             me.refresh = false;
             me.refreshValue = 0;
             clearTimeout(interval);
             console.log("cleared");
         }
 
-        function Refresh(me) {
+        function refreshMe(me) {
             interval = setTimeout(function() {
-                Refresh(me);
+                refreshMe(me);
             }, me.refreshValue);
             console.log(me.from);
             //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed

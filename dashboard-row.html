@@ -11,7 +11,7 @@
           display: inline-block;
         }
         body {
-        padding: 20px;
+          padding: 20px;
         }
         .list-group-item {
           cursor: move;
@@ -25,7 +25,7 @@
     <sortable-js>
         <template is="dom-repeat" items="{{row.panels}}">
           <div>
-            <dashboard-panel refresh="[[refresh]]" datasource-uri="[[_datasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
+            <dashboard-panel refresh="[[refresh]]" datasource-uri="[[_computeDatasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
           </div>
         </template>
     </sortable-js>
@@ -37,8 +37,7 @@
 
             properties: {
                 row: {
-                    type: Object,
-                    notify: true
+                  type: Object,
                 },
                 title: String,
                 from: String,
@@ -49,23 +48,13 @@
             _elementWidth: function(span) {
                 return 100 * span / 12 + '%';
             },
-            _datasourceUri: function(datasources, panel) {
+            _computeDatasourceUri: function(datasources, panel) {
                 if (panel && panel.datasource) {
                     var prefix = '/api/datasources/proxy/';
                     //graphite has a datasource object that has datasource.name
                     for (var i = 0; i < datasources.length; i++) {
-                        if (panel.datasource != undefined) {
-                            var prefix = '/api/datasources/proxy/';
-                            if (panel.datasource == datasources[i].name) {
-                                return datasources[i].uri || prefix + datasources[i].id;
-                            }
-                        }
-                        // influx has panel.datasource for the name only
-                        else {
-                            var prefix = '/api/datasources/proxy/';
-                            if (panel.datasource == datasources[i].name) {
-                                return datasources[i].uri || prefix + datasources[i].id;
-                            }
+                        if (panel.datasource == datasources[i].name) {
+                            return datasources[i].uri || prefix + datasources[i].id;
                         }
                     }
                 }
