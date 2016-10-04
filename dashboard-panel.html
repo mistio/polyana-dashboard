@@ -2,203 +2,422 @@
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/c3-chart/c3-chart.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="panel-edit.html">
 
 <dom-module id="dashboard-panel">
-  <template>
+    <template>
     <style>
+      :host {
+        float: left;
+        display: inline-block;
+
+      }
+      /*#paper:active {
+        width: 0;
+        height: 0;
+      }*/
       #target {
         font-weight: bold;
         text-align: left;
       }
       paper-card {
-        width: 100%;
+        width: calc(100% - 32px);
         padding: 16px;
+        margin: 16px;
+        box-sizing: border-box;
+        /*resize:both;*/
+        overflow: auto;
       }
     </style>
-    <paper-card>
-      <timerange-picker from="{{from}}" to="{{to}}"></timerange-picker>
-      <h3>[[panel.title]]</h3>
-
+    <panel-edit panel="{{panel}}"></panel-edit>
+    <paper-card id="paper">
+      <div class="layout horizontal">
+        <h3 class="flex">[[panel.title]]</h3>
+      </div>
       <template is="dom-if" if="[[_isText(panel)]]">
         <div>[[panel.content]]</div>
       </template>
 
-      <template is="dom-if" if="[[_isSinglestat(panel)]]">
+    <template is="dom-if" if="[[_isSinglestat(panel)]]">
         <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
-      </template>
+        </template>
+    <template is="dom-if" if="[[_isGraph(panel)]]">
+          <paper-spinner active="[[loading]]"></paper-spinner>
+          <iron-ajax id="getdata"
+            auto
+            params = [[params]]
+            url="{{_computeUrl(datasourceUri)}}"
+            handle-as="json"
+            method="GET"
+            loading="{{loading}}"
+            contentType="application/json"
+            on-response="_handlePanelResponse"
+            debounce-duration="300"></iron-ajax>
+          <c3-chart from="[[from]]" chartid="[[panel.title]]"></c3-chart>
+        </template>
 
-      <template is="dom-if" if="[[_isGraph(panel)]]">
-        <paper-spinner active="[[loading]]"></paper-spinner>
-        <iron-ajax id="getdata" auto
-          url="{{_computeUrl(datasourceUri)}}"
-          handle-as="json"
-          method="GET"
-          loading="{{loading}}"
-          on-response="_handlePanelResponse"
-          debounce-duration="300"></iron-ajax>
-        <div id="chart"></div>
-      </template>
-
-      <template is="dom-if" if="[[_isDashlist(panel)]]">
+    <template is="dom-if" if="[[_isDashlist(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
-
-      <template is="dom-if" if="[[_isTable(panel)]]">
+    <template is="dom-if" if="[[_isTable(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
     </paper-card>
-  </template>
-  <script>
-    Polymer({
-      is: 'dashboard-panel',
+    </template>
+    <script>
+        Polymer({
+            is: 'dashboard-panel',
 
-      properties: {
-        from: String,
-        to: String,
-        panel: Object,
-        type: String,
-        loading: Boolean,
-        datasourceUri: {
-          type: String,
-          reflectToAttribute: true
-        },
-        chartData: {
-          type: Object,
-          value: {
-            xs: {},
-            columns: []
-          }
-        },
-        chartAxis: {
-          type: Object,
-          value: {
-            x: {
-              type: 'timeseries',
-              tick: {
-                format: "%H:%M",
-                fit: false
-              },
-              padding: {
-                left: 0,
-                right: 0
-              }
+            properties: {
+                from: {
+                    type: String,
+                },
+                to: {
+                    type: String,
+                    value: 'now'
+                },
+                params: {
+                    type: Object,
+                    computed: '_computeParams(from, to,panel.targets)'
+                },
+                rowh: {
+                    type: Number,
+                    notify: true,
+                },
+                refresh: String,
+                panel: {
+                    type: Object,
+                },
+                loading: Boolean,
+                datasourceUri: {
+                    type: String,
+                    reflectToAttribute: true
+                },
+                chartData: {
+                    type: Object,
+                    value: {
+                        xs: {},
+                        columns: []
+                    }
+                },
+                chartAxis: {
+                    type: Object,
+                    value: {
+                        x: {
+                            type: 'timeseries',
+                            tick: {
+                                format: '%H:%M',
+                                fit: true
+                            },
+                            padding: {
+                                left: 0,
+                                right: 0
+                            }
+                        },
+                        y: {
+                            label: {
+                                position: 'inner-top'
+                            },
+                            min: 0,
+                            padding: {
+                                bottom: 10
+                            }
+                        }
+                    },
+                },
+                chartElement: {
+                    type: Object
+                },
+                replaceTargets: {
+                    type: Object,
+                    value: {}
+                }
             },
-            y: {
-              label: {
-                position: 'inner-top'
-              },
-              min: 0,
-              padding: {
-                bottom: 10
-              }
+            listeners: {
+                'panelChanged': '_changeGraph'
+            },
+            resizeChart: function(e, detail, sender) {
+                if (this.chartElement != null) {
+                    this.width = this.querySelector('paper-card').clientWidth;
+                    this.height = this.querySelector('paper-card').clientHeight;
+                    this.chartElement.resize({
+                        height: this.height - 140,
+                        width: this.width - 20
+                    });
+                    this.rowh = this.height;
+                    this.panel.span = ((this.width + 30) / this.offsetWidth) * this.panel.span;
+                    if (this.panel.span > 12) {
+                        console.log(this.panel.span, this.width, this.offsetWidth);
+                        this.panel.span = 12;
+                    }
+                }
+                this.fire('resizeDone');
+            },
+            detached: function() {
+                console.warn('detaching panel');
+                if (this.chartElement)
+                    this.chartElement.destroy();
+            },
+            _changeGraph: function() {
+                if (this.panel.bars) {
+                    this.chartElement.transform('bar');
+                } else if (this.panel.lines) {
+                    this.chartElement.transform('spline');
+                } else {
+                  this.chartElement.transform('line');
+                }
+                if (this.panel.stack) {
+                    var grp = [];
+                    for (var i = 0; i < this.chartData.columns.length; i++) {
+                        if (this.chartData.columns[i][0].indexOf('x') < 0) {
+                            grp.push(this.chartData.columns[i][0].toString());
+                        }
+                    }
+                    this.chartElement.groups([grp]);
+                    if (!this.panel.bars) {
+                        this.chartElement.transform('area-spline');
+                    }
+                } else {
+                    this.chartElement.groups(0);
+                }
+                this.fire('graphChanged');
+            },
+            _computeParams: function(from, to, targets) {
+                //some graphite versions expect 'until' paramater and others "to"
+                var ret = {
+                        'format': 'json',
+                        'from': from,
+                        'to': to,
+                        'until': to
+                    },
+                    tlist = [];
+                for (var i = 0; i < targets.length; i++) {
+                    tlist.push(targets[i].target)
+                }
+                ret['target'] = tlist;
+                return ret;
+            },
+
+            _filterTarget: function(target) {
+                var k = Object.keys(this.get('replaceTargets'));
+                for (var i = 0; i < k.length; i++) {
+                    target = target.replace(k[i], this.replaceTargets[k[i]])
+                }
+                return target;
+            },
+            _handlePanelResponse: function(data) {
+                //if refresh is on then we need to flow the data not to redraw them
+                if (this.refresh == false) {
+                    var cols = transformData(this, data);
+                    this.set('chartData', {
+                        xs: cols.xs,
+                        columns: cols.columns
+                    });
+                    //remove all the null values from drawn data so there is no gap when we draw the new ones
+                    for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
+                        for (var k = this.chartData.columns[j].length; k >= 0; k--) {
+                            if (this.chartData.columns[j][k] == null) {
+                                this.chartData.columns[j].splice(k, 1);
+                                this.chartData.columns[j - this.chartData.columns.length / 2].splice(k, 1);
+                            } else {
+                                //we need to break because if we get data from 7 ago there wont be any gaps between off days/hours that has null values
+                                break;
+                            }
+                        }
+                    }
+                    this.chartElement = this.querySelector('c3-chart');
+                    //this.chartElement.destroy();
+                    this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
+                    this.chartElement.axis = this.chartAxis;
+                    var dimensions = [];
+                    dimensions.push(this.querySelector('paper-card').clientWidth);
+                    dimensions.push(this.rowh);
+                    this.chartData.size = dimensions;
+                    this.chartElement.load(this.chartData);
+                    if (this.panel.bars) {
+                        this.chartData.type = "bar";
+                        this.chartElement.transform('bar');
+                    } else if (this.panel.lines) {
+                        this.chartData.type = "spline";
+                        this.chartElement.transform('spline');
+                    }
+                    if (this.panel.stack) {
+                        var grp = []
+                        for (var i = 0; i < this.panel.targets.length; i++) {
+                            grp.push(this.panel.targets[i].target);
+                        }
+                        this.chartElement.groups([grp]);
+                        if (!this.panel.bars)
+                            this.chartElement.transform('area-spline');
+                    }
+                    console.log(this.style.width, this.style.height);
+                }
+                // flow the new data from auto refresh
+                else {
+                    console.log("refreshing");
+                    var cols = transformData(this, data);
+                    if (this.panel.stack) {
+                        var grp = []
+                        for (var i = 0; i < this.panel.targets.length; i++) {
+                            grp.push(this.panel.targets[i].target);
+                        }
+                        this.chartElement.groups([grp]);
+                    }
+                    //remove all the null values from the data we have drawn
+                    for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
+                        for (var k = this.chartData.columns[j].length; k >= 0; k--) {
+                            if (this.chartData.columns[j][k] == null) {
+                                this.chartData.columns[j].splice(k, 1);
+                                this.chartData.columns[j - this.chartData.columns.length / 2].splice(k, 1);
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
+                    //get the last time value we have drawn in the graph
+                    var lastdrawn = new Date(this.chartData.columns[0][this.chartData.columns[0].length - 1]).getTime();
+                    //find this value in the new data
+                    var index = -1;
+                    for (var i = cols.columns[0].length - 1; i >= 0; i--) {
+                        if (lastdrawn == new Date(cols.columns[0][i]).getTime()) {
+                            index = i;
+                        }
+                    }
+                    //delete all previous data from the new data
+                    if (index > -1) {
+                        for (var j = 0; j < cols.columns.length; j++) {
+                            cols.columns[j].splice(1, index);
+                        }
+                    } else {
+                        for (var j = 0; j < cols.columns.length; j++) {
+                            cols.columns[j].splice(1, cols.columns[j].length - 1);
+                        }
+                    }
+                    console.log("new data filtered(cols)", cols.columns[0].length, index);
+                    //remove the null values from new arrays
+                    for (var j = cols.columns.length / 2; j < cols.columns.length; j++) {
+                        for (var k = cols.columns[j].length; k >= 0; k--) {
+                            if (cols.columns[j][k] == null) {
+                                cols.columns[j].splice(k, 1);
+                                cols.columns[j - cols.columns.length / 2].splice(k, 1);
+                            }
+                        }
+                    }
+                    console.log("null values removed from new data (cols)", cols.columns[0].length);
+                    //display the new data
+                    if (cols.columns[0].length > 1) {
+                        console.log("flow good", cols);
+                        this.chartElement.flow(cols);
+                    }
+                    //add the new data to the old
+                    for (var j = 0; j < cols.columns.length; j++) {
+                        for (var k = 1; k < cols.columns[j].length; k++) {
+                            this.chartData.columns[j].push(cols.columns[j][k]);
+                        }
+                    }
+                    //remove equal number of old data from the ola array (drawn data)
+                    for (var j = 0; j < cols.columns.length; j++) {
+                        this.chartData.columns[j].splice(1, cols.columns[j].length - 1);
+                    }
+                    console.log("removed old data from old array (chartdata)", this.chartData.columns[0].length, cols.columns[0].length);
+                    console.log("------------------------------------------------------------------------");
+                }
+            },
+
+            _computeUrl: function(datasourceUri) {
+                if (this.panel.datasource == "Graphite") {
+                    return datasourceUri + '/render';
+                }
+            },
+
+            _isGraph: function(panel) {
+                return panel.type == "graph"
+            },
+
+            _isDashlist: function(panel) {
+                return panel.type == "dashlist"
+            },
+
+            _isText: function(panel) {
+                return panel.type == "text"
+            },
+
+            _isSinglestat: function(panel) {
+                return panel.type == "singlestat"
+            },
+
+            _isTable: function(panel) {
+                return panel.type == "table"
+
+            },
+        });
+
+        function smartAxis(from, to, axis) {
+            //for presets
+            if (to == "now") {
+                if (from.search("y") >= 0) {
+                    axis.tick.format = "%Y-%m";
+                } else if (from.search("d") >= 0) {
+                    axis.tick.format = "%m-%d";
+                } else if (from.search("h") >= 0) {
+                    axis.tick.format = "%H:%M";
+                    axis.tick.fit = true;
+                } else if (from.search("m") >= 0) {
+                    axis.tick.format = "%H:%M:%S";
+                }
             }
-          },
-        },
-        chartElement: {
-          type: Object
-        },
-        replaceTargets: {
-          type: Object,
-          value: {}
+            //for custom time range
+            else {
+                var timelapsed = (to - from);
+                //less or equal than 2 days
+                if (timelapsed <= 86400 * 3) {
+                    axis.tick.format = "%H:%M";
+                //more than 2 days less than a year
+                } else if (timelapsed > 86400 * 3 && timelapsed < 86400 * 365) {
+                    axis.tick.format = "%m-%d";
+                //more than a year
+                } else {
+                    axis.tick.format = "%Y-%m";
+                }
+            }
+            axis.tick.fit = false;
+            return axis;
         }
-      },
-      listeners: {
-        "timechanged": "_getData"
-      },
-      resize: function() {
-        if (this.chartElement && this.offsetWidth)
-          this.chartElement.resize({height:'100%', width:this.offsetWidth-32});
-      },
 
-      _filterTarget: function(target) {
-        var k = Object.keys(this.get('replaceTargets'));
-        for (var i=0; i<k.length; i++) {
-          target = target.replace(k[i], this.replaceTargets[k[i]])
+        function transformData(me, data) {
+            var x = [],
+                d = [],
+                xs = {},
+                xcolumns = [],
+                dcolumns = [],
+                g = [];
+            for (var i = 0; i < data.detail.response.length; i++) {
+                x.push(data.detail.response[i].datapoints.map(function(point) {
+                    return point[1]
+                }));
+                d.push(data.detail.response[i].datapoints.map(function(point) {
+                    return point[0]
+                }));
+                xs[me._filterTarget(data.detail.response[i].target)] = 'x' + (i + 1);
+                xcolumns.push(['x' + (i + 1)].concat(x[i]));
+                dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
+            }
+            var columns = xcolumns.concat(dcolumns);
+            var test = columns;
+            // convert timestamp to date so it can be displayed correctly on the x axis of the graph
+            for (var k = 0; k < columns.length; k++) {
+                if (columns[k][0].charAt(0) == 'x') {
+                    for (var j = 1; j < columns[0].length; j++) {
+                        columns[k][j] = new Date(columns[k][j] * 1000);
+                    }
+                }
+            }
+            return {
+                xs: xs,
+                columns: columns
+            };
         }
-        return target;
-      },
-
-      _handlePanelResponse: function(data){
-        console.info(data);
-        var x = [], d = [], xs = {}, xcolumns = [], dcolumns = [];
-        for (var i = 0; i < data.detail.response.length; i++) {
-          x.push(data.detail.response[i].datapoints.map(function(point){
-            return point[1]
-          }));
-          d.push(data.detail.response[i].datapoints.map(function(point){
-            return point[0]
-          }));
-          xs[this._filterTarget(data.detail.response[i].target)] = 'x'+(i+1);
-          xcolumns.push(['x'+(i+1)].concat(x[i]));
-          dcolumns.push([this._filterTarget(data.detail.response[i].target)].concat(d[i]));
-        }
-        var columns = xcolumns.concat(dcolumns);
-        this.set('chartData', {xs: xs, columns: columns});
-
-        this.chartElement = document.createElement("c3-chart");
-        this.chartElement.axis = this.chartAxis;
-        this.querySelector('paper-card div#chart').appendChild(this.chartElement);
-        this.chartElement.load(this.chartData);
-      },
-
-      _computeUrl: function(datasourceUri) {
-        var targetParams = '';
-        for (var i = 0; i < this.panel.targets.length; i++)
-          if (this.panel.targets[i].target)
-            targetParams += '&target=' + this.panel.targets[i].target
-
-        console.warn(datasourceUri + 'render?format=json' + targetParams + '&from=' + this.from.replace('m','min') + '&to=' + this.to.replace('m','min'));
-        return datasourceUri + 'render?format=json' + targetParams + '&from=' + this.from.replace('m','min') + '&to=' + this.to.replace('m','min');
-
-      },
-      _getData: function(e){
-        var from = e.detail.from;
-        var to = e.detail.to;
-
-        var targetParams = '';
-        for (var i = 0; i < this.panel.targets.length; i++)
-          if (this.panel.targets[i].target)
-            targetParams += '&target=' + this.panel.targets[i].target
-          var targeturl = this.datasourceUri + 'render?format=json' + targetParams + '&from=' + this.from.replace('m','min') + '&to=' + this.to.replace('m','min');
-        //re compute url
-        console.log(e.detail);
-          document.querySelector('#getdata').setAttribute("url", targeturl);
-        //generate request
-        document.querySelector('#getdata').generateRequest();
-      },
-      _isGraph: function(panel){
-        return panel.type == "graph"
-      },
-
-      _isDashlist: function(panel){
-        return panel.type == "dashlist"
-      },
-
-      _isText: function(panel){
-        return panel.type == "text"
-      },
-
-      _isSinglestat: function(panel){
-        return panel.type == "singlestat"
-      },
-
-      _isTable: function(panel){
-        return panel.type == "table"
-      },
-
-      _convertUnixtime:function(dtp) {
-        var date = new Date(dtp*1000);
-        // Hours part from the timestamp
-        var hours = date.getHours();
-        // Minutes part from the timestamp
-        var minutes = "0" + date.getMinutes();
-        // Seconds part from the timestamp
-        var seconds = "0" + date.getSeconds();
-
-        // Will display time in 10:30:23 format
-        var formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
-        return formattedTime;
-      }
-    });
-  </script>
+    </script>
 </dom-module>

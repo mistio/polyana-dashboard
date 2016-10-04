@@ -1,81 +1,193 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/timerange-picker/timerange-picker.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="dashboard-row.html">
+
 <dom-module id="polyana-dashboard">
     <template>
       <style>
         :host{
-          /*text-align: center;*/
+          display: block;
+        }
+        body {
+          padding: 20px;
+        }
+        .list-group-item {
+          cursor: move;
+          cursor: -webkit-grabbing;
         }
       </style>
-      <template is="dom-repeat" items="{{dashboard.rows}}">
-        <dashboard-row class="row" datasources="[[datasources]]" row="[[item]]" replace-targets="[[replaceTargets]]" style="height: [[item.height]]; clear: both; display: block" from="[[dashboard.time.from]]" to="[[dashboard.time.to]]" id="row-{{index}}"></dashboard-row>
-      </template>
-      <iron-ajax auto="[[uri]]"
-        url="/api/dashboards/[[uri]]"
+      <style is="custom-style">
+        paper-card {
+          padding: 16px;
+          margin: 16px;
+        }
+    </style>
+    <paper-card class="layout horizontal stretch">
+        <div class="flex">
+          <paper-dropdown-menu label="Select autorefresh period" placeholder="off" on-select="_autoRefresh">
+            <paper-menu id="AutoRefresh" class="dropdown-content" selected="{{refreshValue}}" attr-for-selected="data-value" >
+              <paper-item data-value="0">off</paper-item>
+              <paper-item data-value="5000">5s</paper-item>
+              <paper-item data-value="10000">10sec</paper-item>
+              <paper-item data-value="30000">30sec</paper-item>
+              <paper-item data-value="60000">1min</paper-item>
+              <paper-item data-value="300000">5min</paper-item>
+            </paper-menu>
+          </paper-dropdown-menu>
+        </div>
+        <timerange-picker from="{{from}}" to="{{to}}" on-tap="_handleTap"></timerange-picker>
+    </paper-card>
+      <iron-ajax
+        id="dataAjax"
+        url="/api/dashboards/db"
+        handle-as="json"
+        method="post"
+        debounce-duration="300"></iron-ajax>
+        <template is="dom-repeat" items="{{dashboard.rows}}">
+          <dashboard-row  class="row" datasources="[[datasources]]" refresh="[[refresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+        </template>
+      <iron-ajax
+        id='requestAjax'
+        auto="[[dashboardPath]]"
+        url="/api/dashboards/[[dashboardPath]]"
         handle-as="json"
         method="GET"
         on-response="_handleResponse"
-        debounce-duration="300"></iron-ajax>
+        debounce-duration="300">
+    </iron-ajax>
     </template>
     <script>
         Polymer({
-          is: 'polyana-dashboard',
+            is: 'polyana-dashboard',
 
-          properties: {
-            uri: {
-              type: String
+            properties: {
+                dashboardPath: {
+                    type: String
+                },
+                dashboard: {
+                    type: Object
+                },
+                datasources: {
+                    type: Array
+                },
+                meta: {
+                    type: Object
+                },
+                targets: {
+                    type: Array,
+                    computed: "_getTargets(dashboard, datasources)"
+                },
+                datapoints: {
+                    type: Object
+                },
+                from: {
+                    type: String,
+                },
+                to: {
+                    type: String
+                },
+                refresh: {
+                    type: Boolean,
+                    value: false
+                }
             },
-            dashboard: {
-              type: Object
+            listeners: {
+                'end': '_saveDashboard',
+                'resizeDone': '_saveDashboard',
+                'graphChanged': '_saveDashboard'
             },
-            datasources: {
-              type: Array
+            _handleTap: function() {
+                clearInterval(this);
             },
-            meta: {
-              type: Object
+            _saveDashboard: function(e) {
+                if (this.dashboardPath) {
+                    this.$.dataAjax.headers["Content-Type"] = 'application/json';
+                    this.$.dataAjax.body = {
+                        dashboard: this.dashboard,
+                        overwrite: true
+                    };
+                    this.$.dataAjax.generateRequest();
+                } else {
+                    // TODO
+                }
             },
-            targets: {
-              type: Array,
-              computed: "_getTargets(dashboard, datasources)"
+
+            _handleResponse: function(data) {
+                if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
+                    clearInterval(this);
+                }
+                this.meta = data.detail.response.meta;
+                this.dashboard = data.detail.response.dashboard;
+                this.from = this.dashboard.time.from;
+                this.to = this.dashboard.time.to;
             },
-            datapoints: {
-              type: Object
+
+            _getTargets: function(dashboard, datasources) {
+                var targets = {};
+                for (var i = 0; i < dashboard.rows.length; i++) {
+                    if (dashboard.rows[i].panels)
+                        for (var j = 0; j < dashboard.rows[i].panels.length; j++)
+                            if (dashboard.rows[i].panels[j] && dashboard.rows[i].panels[j].targets)
+                                for (var k = 0; k < dashboard.rows[i].panels[j].targets.length; k++) {
+                                    if (dashboard.rows[i].panels[j].datasource == null) {
+                                        for (var p = 0; p < datasources.length; p++) {
+                                            if (datasources[p].isDefault) {
+                                                dashboard.rows[i].panels[j].datasource = datasources[p];
+                                            }
+                                        }
+                                    }
+                                    if (dashboard.rows[i].panels[j].datasource && targets[dashboard.rows[i].panels[j].datasource] == undefined) {
+                                        targets[dashboard.rows[i].panels[j].datasource] = [];
+                                    }
+                                    if (dashboard.rows[i].panels[j].targets[k].target && targets[dashboard.rows[i].panels[j].datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target) == -1) {
+                                        targets[dashboard.rows[i].panels[j].datasource].push(dashboard.rows[i].panels[j].targets[k].target);
+                                    }
+                                }
+                }
+                return targets
             },
-            from: {
-              type: String
+            _autoRefresh: function(e) {
+                //the only point to have refresh is when "to" is "now"
+                if (this.refreshValue > 0 && (this.to == "now" || this.to == Math.floor(new Date().getTime() / 1000))) {
+                    this.refresh = true;
+                    console.log(this.refresh);
+                    this.from = refreshMe(this);
+                } else {
+                    console.log("not now");
+                    clearInterval(this);
+                }
             },
-            to: {
-              type: String
-            },
-            replaceTargets: {
-                type: Object,
-                value: {}
+        });
+
+        var interval;
+        var undermin = 0;
+
+        function clearInterval(me) {
+            me.refresh = false;
+            me.refreshValue = 0;
+            clearTimeout(interval);
+            console.log("cleared");
+        }
+
+        function refreshMe(me) {
+            interval = setTimeout(function() {
+                refreshMe(me);
+            }, me.refreshValue);
+            console.log(me.from);
+            //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
+            if (me.from.toString().search("now") >= 0) {
+                var d = Math.floor(new Date().getTime() / 1000);
+                if (me.from.indexOf("h") >= 0) {
+                    var t = me.from.substr(me.from.indexOf("-") + 1, me.from.indexOf("h") - (me.from.indexOf("-") + 1));
+                    me.from = (d - t * 3600).toString();
+                }
+            } else {
+                //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
+                me.from = Math.floor(new Date().getTime() / 1000) - 300;
             }
-          },
-
-          _handleResponse: function (data) {
-              this.meta = data.detail.response.meta;
-              this.dashboard = data.detail.response.dashboard;
-          },
-
-          _getTargets: function (dashboard, datasources) {
-              var targets = {};
-              for (var i=0; i<dashboard.rows.length; i++) {
-                if (dashboard.rows[i].panels)
-                  for (var j=0; j<dashboard.rows[i].panels.length; j++)
-                    if (dashboard.rows[i].panels[j] && dashboard.rows[i].panels[j].targets)
-                      for (var k=0; k < dashboard.rows[i].panels[j].targets.length; k++) {
-                          if (dashboard.rows[i].panels[j].datasource && targets[dashboard.rows[i].panels[j].datasource] == undefined)
-                            targets[dashboard.rows[i].panels[j].datasource] = [];
-                          if (dashboard.rows[i].panels[j].targets[k].target && targets[dashboard.rows[i].panels[j].datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target)==-1)
-                            targets[dashboard.rows[i].panels[j].datasource].push(dashboard.rows[i].panels[j].targets[k].target)
-                      }
-              }
-              return targets
-          }
-      });
-
+            return me.from;
+        };
     </script>
 </dom-module>
