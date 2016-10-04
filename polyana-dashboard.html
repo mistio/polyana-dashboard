@@ -1,4 +1,3 @@
-
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/timerange-picker/timerange-picker.html">
@@ -10,7 +9,6 @@
       <style include="iron-flex"></style>
       <style>
         :host{
-          /*text-align: center;*/
           display: block;
         }
         body {
@@ -21,12 +19,8 @@
           cursor: move;
           cursor: -webkit-grabbing;
         }
-
       </style>
       <style is="custom-style">
-        :host{
-
-        }
         paper-card {
           padding: 16px;
           margin: 16px;
@@ -101,7 +95,7 @@
                 'end': '_orderChanged',
             },
             _handleTap: function() {
-                ClearInterval(this);
+                clearInterval(this);
             },
             _orderChanged: function(e) {
                 this.$.dataAjax.headers["Content-Type"] = 'application/json';
@@ -114,7 +108,7 @@
 
             _handleResponse: function(data) {
                 if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
-                    ClearInterval(this);
+                    clearInterval(this);
                 }
                 this.meta = data.detail.response.meta;
                 this.dashboard = data.detail.response.dashboard;
@@ -151,27 +145,25 @@
                 if (this.refreshValue > 0 && (this.to == "now" || this.to == Math.floor(new Date().getTime() / 1000))) {
                     this.refresh = true;
                     console.log(this.refresh);
-                    this.from = Refresh(this);
+                    this.from = refreshMe(this);
                 } else {
                     console.log("not now");
-                    ClearInterval(this);
+                    clearInterval(this);
                 }
             },
         });
 
         var interval;
         var undermin = 0;
-
-        function ClearInterval(me) {
+        function clearInterval(me) {
             me.refresh = false;
             me.refreshValue = 0;
             clearTimeout(interval);
             console.log("cleared");
         }
-
-        function Refresh(me) {
+        function refreshMe(me) {
             interval = setTimeout(function() {
-                Refresh(me);
+                refreshMe(me);
             }, me.refreshValue);
             console.log(me.from);
             //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed

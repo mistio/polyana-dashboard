@@ -2,26 +2,21 @@
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/polymer-sortablejs/polymer-sortablejs.html" />
 <link rel="import" href="dashboard-panel.html">
-<!--
-  TODO: collapse row, show collapsed, edit row
--->
 <dom-module id="dashboard-row">
     <template>
       <style>
         :host{
           border-collapse: collapse;
           width: 100%;
-          /*text-align: center;*/
           display: inline-block;
         }
         body {
-  padding: 20px;
-}
-
-.list-group-item {
-  cursor: move;
-  cursor: -webkit-grabbing;
-}
+        padding: 20px;
+        }
+        .list-group-item {
+          cursor: move;
+          cursor: -webkit-grabbing;
+        }
       </style>
       <div>
         <template is="dom-if" if="[[row.showTitle]]">
@@ -29,8 +24,10 @@
         </template>
     <sortable-js>
         <template is="dom-repeat" items="{{row.panels}}">
+          <div>
             <dashboard-panel refresh="[[refresh]]" datasource-uri="[[_datasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
-          </template>
+          </div>
+        </template>
     </sortable-js>
     </div>
     </template>
