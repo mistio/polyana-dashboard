@@ -22,9 +22,8 @@
         text-align: left;
       }
       paper-card {
-        width: calc(100% - 32px);
+        width: 100%;
         padding: 16px;
-        margin: 16px;
         box-sizing: border-box;
         /*resize:both;*/
         overflow: auto;
@@ -44,16 +43,16 @@
         </template>
     <template is="dom-if" if="[[_isGraph(panel)]]">
           <paper-spinner active="[[loading]]"></paper-spinner>
-          <iron-ajax id="getdata"
-            auto
-            params = [[params]]
-            url="{{_computeUrl(datasourceUri)}}"
-            handle-as="json"
-            method="GET"
-            loading="{{loading}}"
-            contentType="application/json"
-            on-response="_handlePanelResponse"
-            debounce-duration="300"></iron-ajax>
+            <iron-ajax id="getdata"
+              auto
+              params = [[params]]
+              url = "[[_computeUrl(datasourceUri)]]"
+              handle-as="json"
+              method="GET"
+              loading="{{loading}}"
+              contentType="application/json"
+              on-response="_handlePanelResponse"
+              debounce-duration="300"></iron-ajax>
           <c3-chart from="[[from]]" chartid="[[panel.title]]"></c3-chart>
         </template>
 
@@ -79,7 +78,7 @@
                 },
                 params: {
                     type: Object,
-                    computed: '_computeParams(from, to,panel.targets)'
+                    computed: '_computeParams(from, to, panel.targets)'
                 },
                 rowh: {
                     type: Number,
@@ -132,10 +131,16 @@
                 replaceTargets: {
                     type: Object,
                     value: {}
-                }
+                },
+                machines: Array
             },
             listeners: {
                 'panelChanged': '_changeGraph'
+            },
+            attached:function(){
+              console.log('machines', this.machines);
+              this.to=Math.floor(new Date().getTime()/1000).toString();
+              this.from=(this.to-600).toString();
             },
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
@@ -184,6 +189,8 @@
                 this.fire('graphChanged');
             },
             _computeParams: function(from, to, targets) {
+              console.log('targets',targets);
+              if (this.panel.datasource == "graphite") {
                 //some graphite versions expect 'until' paramater and others "to"
                 var ret = {
                         'format': 'json',
@@ -197,6 +204,19 @@
                 }
                 ret['target'] = tlist;
                 return ret;
+              }
+              else if (this.panel.datasource == "mistphite") {
+                var ret = {
+                        'start': from,
+                        'stop': to
+                    },
+                    tlist = [];
+                for (var i = 0; i < targets.length; i++) {
+                    tlist.push(targets[i].target)
+                }
+                ret['metrics'] = tlist;
+                return ret;
+              }
             },
 
             _filterTarget: function(target) {
@@ -207,6 +227,7 @@
                 return target;
             },
             _handlePanelResponse: function(data) {
+              console.log("malaka data!!!",data.detail.response);
                 //if refresh is on then we need to flow the data not to redraw them
                 if (this.refresh == false) {
                     var cols = transformData(this, data);
@@ -228,7 +249,7 @@
                     }
                     this.chartElement = this.querySelector('c3-chart');
                     //this.chartElement.destroy();
-                    this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
+                    //sthis.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                     this.chartElement.axis = this.chartAxis;
                     var dimensions = [];
                     dimensions.push(this.querySelector('paper-card').clientWidth);
@@ -251,7 +272,6 @@
                         if (!this.panel.bars)
                             this.chartElement.transform('area-spline');
                     }
-                    console.log(this.style.width, this.style.height);
                 }
                 // flow the new data from auto refresh
                 else {
@@ -327,9 +347,12 @@
             },
 
             _computeUrl: function(datasourceUri) {
-                if (this.panel.datasource == "Graphite") {
-                    return datasourceUri + '/render';
-                }
+              if (this.panel.datasource == 'mistphite') {
+                  return '/api/v1/clouds/'+this.machines[0].cloud.id+'/machines/'+this.machines[0].id+'/stats';
+              }
+              else if (this.panel.datasource == "Graphite") {
+                  return datasourceUri + '/render';
+              }
             },
 
             _isGraph: function(panel) {
@@ -393,31 +416,38 @@
                 xcolumns = [],
                 dcolumns = [],
                 g = [];
-            for (var i = 0; i < data.detail.response.length; i++) {
-                x.push(data.detail.response[i].datapoints.map(function(point) {
-                    return point[1]
-                }));
-                d.push(data.detail.response[i].datapoints.map(function(point) {
-                    return point[0]
-                }));
-                xs[me._filterTarget(data.detail.response[i].target)] = 'x' + (i + 1);
-                xcolumns.push(['x' + (i + 1)].concat(x[i]));
-                dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
+            //for (var i = 0; i < data.detail.response.length; i++) {
+            if (data.detail.response["asPercent(user, total)"]) {
+              for(var i=0; i<data.detail.response["asPercent(user, total)"].datapoints.length; i++){
+                  x.push(data.detail.response["asPercent(user, total)"].datapoints[i][1]);
+                  d.push(data.detail.response["asPercent(user, total)"].datapoints[i][0]);
+                  if(i==0)
+                  xs[me._filterTarget(data.detail.response["asPercent(nice, total)"]._target)] = 'x' + (i + 1);
+                  //xcolumns.push(['x' + (i + 1)].concat(x[i]));
+                  //dcolumns.push([me._filterTarget(data.detail.response["asPercent(nice, total)"].target)].concat(d[i]));
+              }
+              x.unshift("x1");
+              d.unshift(data.detail.response["asPercent(nice, total)"]._target);
+              var columns=[];
+              columns.push(x);//xcolumns.concat(dcolumns);
+              columns.push(d);
+              var test = columns;
+
+              console.log('cols',xs);
+              // convert timestamp to date so it can be displayed correctly on the x axis of the graph
+              //for (var k = 0; k < columns.length; k++) {
+                  //if (columns[k][0].charAt(0) == 'x') {
+                      for (var j = 1; j < x.length; j++) {
+                          x[j] = new Date(x[j] * 1000);
+                      }
+                  //}
+              //}
+
+              return {
+                  xs: xs,
+                  columns: columns
+              };
             }
-            var columns = xcolumns.concat(dcolumns);
-            var test = columns;
-            // convert timestamp to date so it can be displayed correctly on the x axis of the graph
-            for (var k = 0; k < columns.length; k++) {
-                if (columns[k][0].charAt(0) == 'x') {
-                    for (var j = 1; j < columns[0].length; j++) {
-                        columns[k][j] = new Date(columns[k][j] * 1000);
-                    }
-                }
-            }
-            return {
-                xs: xs,
-                columns: columns
-            };
         }
     </script>
 </dom-module>

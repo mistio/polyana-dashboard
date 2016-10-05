@@ -21,7 +21,6 @@
       <style is="custom-style">
         paper-card {
           padding: 16px;
-          margin: 16px;
         }
     </style>
     <paper-card class="layout horizontal stretch">
@@ -46,17 +45,17 @@
         method="post"
         debounce-duration="300"></iron-ajax>
         <template is="dom-repeat" items="{{dashboard.rows}}">
-          <dashboard-row  class="row" datasources="[[datasources]]" refresh="[[refresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+          <dashboard-row  class="row" machines="[[machines]]" datasources="[[datasources]]" refresh="[[refresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
-      <iron-ajax
+      <!-- <iron-ajax
         id='requestAjax'
         auto="[[dashboardPath]]"
         url="/api/dashboards/[[dashboardPath]]"
         handle-as="json"
         method="GET"
         on-response="_handleResponse"
-        debounce-duration="300">
-    </iron-ajax>
+        debounce-duration="300"> -->
+    <!-- </iron-ajax> -->
     </template>
     <script>
         Polymer({
@@ -84,19 +83,24 @@
                 },
                 from: {
                     type: String,
+                    value: '1475601786'
                 },
                 to: {
-                    type: String
+                    type: String,
+                    value: ''
                 },
                 refresh: {
                     type: Boolean,
                     value: false
-                }
+                },
+                machines: Array
             },
             listeners: {
                 'end': '_saveDashboard',
                 'resizeDone': '_saveDashboard',
                 'graphChanged': '_saveDashboard'
+            },
+            attached:function(){
             },
             _handleTap: function() {
                 clearRefresh(this);
@@ -118,6 +122,7 @@
                 if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
                     clearRefresh(this);
                 }
+                console.log("hey motherfucer",this.dashboard);
                 this.meta = data.detail.response.meta;
                 this.dashboard = data.detail.response.dashboard;
                 this.from = this.dashboard.time.from;
