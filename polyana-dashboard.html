@@ -99,7 +99,7 @@
                 'graphChanged': '_saveDashboard'
             },
             _handleTap: function() {
-                clearInterval(this);
+                clearRefresh(this);
             },
             _saveDashboard: function(e) {
                 if (this.dashboardPath) {
@@ -116,7 +116,7 @@
 
             _handleResponse: function(data) {
                 if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
-                    clearInterval(this);
+                    clearRefresh(this);
                 }
                 this.meta = data.detail.response.meta;
                 this.dashboard = data.detail.response.dashboard;
@@ -156,7 +156,7 @@
                     this.from = refreshMe(this);
                 } else {
                     console.log("not now");
-                    clearInterval(this);
+                    clearRefresh(this);
                 }
             },
         });
@@ -164,7 +164,7 @@
         var interval;
         var undermin = 0;
 
-        function clearInterval(me) {
+        function clearRefresh(me) {
             me.refresh = false;
             me.refreshValue = 0;
             clearTimeout(interval);
