@@ -25,7 +25,7 @@
     <sortable-js>
         <template is="dom-repeat" items="{{row.panels}}">
           <div>
-            <dashboard-panel refresh="[[refresh]]" machines="[[machines]]"  datasource-uri="[[_computeDatasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
+            <dashboard-panel dasrefresh="[[dasrefresh]]" machines="[[machines]]"  datasource-uri="[[_computeDatasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
           </div>
         </template>
     </sortable-js>
@@ -43,7 +43,7 @@
                 from: String,
                 to: String,
                 datasources: Array,
-                refresh: String,
+                dasrefresh: Boolean,
                 machines: Array
             },
             _elementWidth: function(span) {

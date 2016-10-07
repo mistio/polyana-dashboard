@@ -44,7 +44,6 @@
     <template is="dom-if" if="[[_isGraph(panel)]]">
           <paper-spinner active="[[loading]]"></paper-spinner>
             <iron-ajax id="getdata"
-              auto
               params = [[params]]
               url = "[[_computeUrl(datasourceUri)]]"
               handle-as="json"
@@ -71,10 +70,10 @@
             properties: {
                 from: {
                     type: String,
+                    observer:"_generateReq"
                 },
                 to: {
                     type: String,
-                    value: 'now'
                 },
                 params: {
                     type: Object,
@@ -84,9 +83,10 @@
                     type: Number,
                     notify: true,
                 },
-                refresh: String,
+                dasrefresh: Boolean,
                 panel: {
                     type: Object,
+                    observer:'_panelUpdate'
                 },
                 loading: Boolean,
                 datasourceUri: {
@@ -107,7 +107,7 @@
                             type: 'timeseries',
                             tick: {
                                 format: '%H:%M',
-                                fit: true
+                                fit: false
                             },
                             padding: {
                                 left: 0,
@@ -132,15 +132,26 @@
                     type: Object,
                     value: {}
                 },
-                machines: Array
+                machines: {
+                  type:Array,
+                }
             },
             listeners: {
                 'panelChanged': '_changeGraph'
             },
-            attached:function(){
-              console.log('machines', this.machines);
-              this.to=Math.floor(new Date().getTime()/1000).toString();
-              this.from=(this.to-600).toString();
+            _generateReq:function (){
+              //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to trach changes in "from" value in order to generate the request again
+              if(this.querySelector("#getdata")!=null){
+                this.querySelector("#getdata").generateRequest();
+              }
+            },
+            _panelUpdate:function(){
+              // we need to make the request on demand because machines are constanly updated thus generating the request because the machines array changes
+              //here we make the first request
+              if(this.querySelector("#getdata")!=null && this.chartData.columns.length==0){
+                this.querySelector("#getdata").generateRequest();
+                console.log("request")
+              }
             },
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
@@ -189,7 +200,6 @@
                 this.fire('graphChanged');
             },
             _computeParams: function(from, to, targets) {
-              console.log('targets',targets);
               if (this.panel.datasource == "graphite") {
                 //some graphite versions expect 'until' paramater and others "to"
                 var ret = {
@@ -227,9 +237,9 @@
                 return target;
             },
             _handlePanelResponse: function(data) {
-              console.log("malaka data!!!",data.detail.response);
+              console.log("malaka data!!!");
                 //if refresh is on then we need to flow the data not to redraw them
-                if (this.refresh == false) {
+                if (!this.dasrefresh) {
                     var cols = transformData(this, data);
                     this.set('chartData', {
                         xs: cols.xs,
@@ -249,7 +259,7 @@
                     }
                     this.chartElement = this.querySelector('c3-chart');
                     //this.chartElement.destroy();
-                    //sthis.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
+                    this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                     this.chartElement.axis = this.chartAxis;
                     var dimensions = [];
                     dimensions.push(this.querySelector('paper-card').clientWidth);
@@ -274,8 +284,7 @@
                     }
                 }
                 // flow the new data from auto refresh
-                else {
-                    console.log("refreshing");
+                else if(this.dasrefresh) {
                     var cols = transformData(this, data);
                     if (this.panel.stack) {
                         var grp = []
@@ -329,6 +338,7 @@
                     //display the new data
                     if (cols.columns[0].length > 1) {
                         console.log("flow good", cols);
+                        this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                         this.chartElement.flow(cols);
                     }
                     //add the new data to the old
@@ -410,44 +420,64 @@
         }
 
         function transformData(me, data) {
+          //TODO probably works for 1 target, we need to make it for multiple
+          if(me.panel.datasource == "mistphite"){
             var x = [],
                 d = [],
                 xs = {},
                 xcolumns = [],
                 dcolumns = [],
                 g = [];
-            //for (var i = 0; i < data.detail.response.length; i++) {
-            if (data.detail.response["asPercent(user, total)"]) {
-              for(var i=0; i<data.detail.response["asPercent(user, total)"].datapoints.length; i++){
-                  x.push(data.detail.response["asPercent(user, total)"].datapoints[i][1]);
-                  d.push(data.detail.response["asPercent(user, total)"].datapoints[i][0]);
+            if (data.detail.response["asPercent(nice, total)"]) {
+              for(var i=0; i<data.detail.response["asPercent(nice, total)"].datapoints.length; i++){
+                  x.push(data.detail.response["asPercent(nice, total)"].datapoints[i][1]);
+                  d.push(data.detail.response["asPercent(nice, total)"].datapoints[i][0]);
                   if(i==0)
                   xs[me._filterTarget(data.detail.response["asPercent(nice, total)"]._target)] = 'x' + (i + 1);
-                  //xcolumns.push(['x' + (i + 1)].concat(x[i]));
-                  //dcolumns.push([me._filterTarget(data.detail.response["asPercent(nice, total)"].target)].concat(d[i]));
               }
               x.unshift("x1");
               d.unshift(data.detail.response["asPercent(nice, total)"]._target);
               var columns=[];
-              columns.push(x);//xcolumns.concat(dcolumns);
+              columns.push(x);
               columns.push(d);
-              var test = columns;
-
-              console.log('cols',xs);
-              // convert timestamp to date so it can be displayed correctly on the x axis of the graph
-              //for (var k = 0; k < columns.length; k++) {
-                  //if (columns[k][0].charAt(0) == 'x') {
-                      for (var j = 1; j < x.length; j++) {
-                          x[j] = new Date(x[j] * 1000);
-                      }
-                  //}
-              //}
-
+              var test = columns;;
+              for (var j = 1; j < x.length; j++) {
+                  x[j] = new Date(x[j] * 1000);
+              }
               return {
                   xs: xs,
                   columns: columns
               };
             }
+          }
+          //for graphite
+          else{
+            for (var i = 0; i < data.detail.response.length; i++) {
+                x.push(data.detail.response[i].datapoints.map(function(point) {
+                    return point[1]
+                }));
+                d.push(data.detail.response[i].datapoints.map(function(point) {
+                    return point[0]
+                }));
+                xs[me._filterTarget(data.detail.response[i].target)] = 'x' + (i + 1);
+                xcolumns.push(['x' + (i + 1)].concat(x[i]));
+                dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
+            }
+            var columns = xcolumns.concat(dcolumns);
+            var test = columns;
+            // convert timestamp to date so it can be displayed correctly on the x axis of the graph
+            for (var k = 0; k < columns.length; k++) {
+                if (columns[k][0].charAt(0) == 'x') {
+                    for (var j = 1; j < columns[0].length; j++) {
+                        columns[k][j] = new Date(columns[k][j] * 1000);
+                    }
+                }
+            }
+            return {
+                xs: xs,
+                columns: columns
+            };
+          }
         }
     </script>
 </dom-module>

@@ -21,6 +21,7 @@
       <style is="custom-style">
         paper-card {
           padding: 16px;
+          margin: 16px;
         }
     </style>
     <paper-card class="layout horizontal stretch">
@@ -45,7 +46,7 @@
         method="post"
         debounce-duration="300"></iron-ajax>
         <template is="dom-repeat" items="{{dashboard.rows}}">
-          <dashboard-row  class="row" machines="[[machines]]" datasources="[[datasources]]" refresh="[[refresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+          <dashboard-row  class="row" machines="[[machines]]" datasources="[[datasources]]" dasrefresh="[[dasrefresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
       <!-- <iron-ajax
         id='requestAjax'
@@ -83,24 +84,24 @@
                 },
                 from: {
                     type: String,
-                    value: '1475601786'
+                    value:(Math.floor(new Date().getTime()/1000)-600).toString()
                 },
                 to: {
                     type: String,
-                    value: ''
+                    value:Math.floor(new Date().getTime()/1000).toString()
                 },
-                refresh: {
+                dasrefresh: {
                     type: Boolean,
                     value: false
                 },
-                machines: Array
+                machines: {
+                    type:Array,
+               }
             },
             listeners: {
                 'end': '_saveDashboard',
                 'resizeDone': '_saveDashboard',
                 'graphChanged': '_saveDashboard'
-            },
-            attached:function(){
             },
             _handleTap: function() {
                 clearRefresh(this);
@@ -155,9 +156,8 @@
             },
             _autoRefresh: function(e) {
                 //the only point to have refresh is when "to" is "now"
-                if (this.refreshValue > 0 && (this.to == "now" || this.to == Math.floor(new Date().getTime() / 1000))) {
-                    this.refresh = true;
-                    console.log(this.refresh);
+                if (this.refreshValue > 0 && (this.to == "now" || this.to >= Math.floor(new Date().getTime() / 1000) -6000)) {
+                    this.dasrefresh = true;
                     this.from = refreshMe(this);
                 } else {
                     console.log("not now");
@@ -170,7 +170,7 @@
         var undermin = 0;
 
         function clearRefresh(me) {
-            me.refresh = false;
+            me.dasrefresh = false;
             me.refreshValue = 0;
             clearTimeout(interval);
             console.log("cleared");
@@ -180,7 +180,6 @@
             interval = setTimeout(function() {
                 refreshMe(me);
             }, me.refreshValue);
-            console.log(me.from);
             //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
             if (me.from.toString().search("now") >= 0) {
                 var d = Math.floor(new Date().getTime() / 1000);
@@ -190,6 +189,7 @@
                 }
             } else {
                 //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
+                me.to=Math.floor(new Date().getTime() / 1000);
                 me.from = Math.floor(new Date().getTime() / 1000) - 300;
             }
             return me.from;
