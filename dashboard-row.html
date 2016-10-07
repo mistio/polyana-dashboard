@@ -37,7 +37,7 @@
 
             properties: {
                 row: {
-                  type: Object,
+                    type: Object,
                 },
                 title: String,
                 from: String,
@@ -52,8 +52,8 @@
             _computeDatasourceUri: function(datasources, panel) {
                 if (panel && panel.datasource) {
                     var prefix = '';
-                    if(this.machines)
-                      return prefix;
+                    if (this.machines)
+                        return prefix;
                     //graphite has a datasource object that has datasource.name
                     for (var i = 0; i < datasources.length; i++) {
                         if (panel.datasource == datasources[i].name) {

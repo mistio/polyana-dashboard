@@ -48,7 +48,7 @@
         <template is="dom-repeat" items="{{dashboard.rows}}">
           <dashboard-row  class="row" machines="[[machines]]" datasources="[[datasources]]" dasrefresh="[[dasrefresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
-      <!-- <iron-ajax
+    <!-- <iron-ajax
         id='requestAjax'
         auto="[[dashboardPath]]"
         url="/api/dashboards/[[dashboardPath]]"
@@ -84,19 +84,19 @@
                 },
                 from: {
                     type: String,
-                    value:(Math.floor(new Date().getTime()/1000)-600).toString()
+                    value: (Math.floor(new Date().getTime() / 1000) - 600).toString()
                 },
                 to: {
                     type: String,
-                    value:Math.floor(new Date().getTime()/1000).toString()
+                    value: Math.floor(new Date().getTime() / 1000).toString()
                 },
                 dasrefresh: {
                     type: Boolean,
                     value: false
                 },
                 machines: {
-                    type:Array,
-               }
+                    type: Array,
+                }
             },
             listeners: {
                 'end': '_saveDashboard',
@@ -123,7 +123,7 @@
                 if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
                     clearRefresh(this);
                 }
-                console.log("hey motherfucer",this.dashboard);
+                console.log("hey motherfucer", this.dashboard);
                 this.meta = data.detail.response.meta;
                 this.dashboard = data.detail.response.dashboard;
                 this.from = this.dashboard.time.from;
@@ -156,7 +156,7 @@
             },
             _autoRefresh: function(e) {
                 //the only point to have refresh is when "to" is "now"
-                if (this.refreshValue > 0 && (this.to == "now" || this.to >= Math.floor(new Date().getTime() / 1000) -6000)) {
+                if (this.refreshValue > 0 && (this.to == "now" || this.to >= Math.floor(new Date().getTime() / 1000) - 6000)) {
                     this.dasrefresh = true;
                     this.from = refreshMe(this);
                 } else {
@@ -189,7 +189,7 @@
                 }
             } else {
                 //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
-                me.to=Math.floor(new Date().getTime() / 1000);
+                me.to = Math.floor(new Date().getTime() / 1000);
                 me.from = Math.floor(new Date().getTime() / 1000) - 300;
             }
             return me.from;
