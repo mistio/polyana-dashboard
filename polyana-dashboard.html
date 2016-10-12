@@ -26,8 +26,8 @@
     </style>
     <paper-card class="layout horizontal stretch">
         <div class="flex">
-          <paper-dropdown-menu label="Select autorefresh period" placeholder="off" on-select="_autoRefresh">
-            <paper-menu id="AutoRefresh" class="dropdown-content" selected="{{refreshValue}}" attr-for-selected="data-value" >
+          <paper-dropdown-menu id="refreshDropDown" label="Select autorefresh period" placeholder="off" on-select="_autoRefresh">
+            <paper-menu id="autoRefreshList" class="dropdown-content" selected="{{refreshValue}}" attr-for-selected="data-value" >
               <paper-item data-value="0">off</paper-item>
               <paper-item data-value="5000">5s</paper-item>
               <paper-item data-value="10000">10sec</paper-item>
@@ -37,7 +37,7 @@
             </paper-menu>
           </paper-dropdown-menu>
         </div>
-        <timerange-picker from="{{from}}" to="{{to}}" on-tap="_handleTap"></timerange-picker>
+        <timerange-picker from="{{from}}" to="{{to}}" auto-refresh={{autoRefresh}} on-tap="_handleTap"></timerange-picker>
     </paper-card>
       <iron-ajax
         id="dataAjax"
@@ -46,7 +46,7 @@
         method="post"
         debounce-duration="300"></iron-ajax>
         <template is="dom-repeat" items="{{dashboard.rows}}">
-          <dashboard-row  class="row" machines="[[machines]]" datasources="[[datasources]]" dasrefresh="[[dasrefresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+          <dashboard-row  class="row" machines="[[machines]]" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
     <!-- <iron-ajax
         id='requestAjax'
@@ -84,13 +84,14 @@
                 },
                 from: {
                     type: String,
-                    value: (Math.floor(new Date().getTime() / 1000) - 600).toString()
+                    value: "-10min",
                 },
                 to: {
                     type: String,
-                    value: Math.floor(new Date().getTime() / 1000).toString()
+                    value: "now",
+                    observer: '_timeChanged'
                 },
-                dasrefresh: {
+                autoRefresh: {
                     type: Boolean,
                     value: false
                 },
@@ -105,6 +106,15 @@
             },
             _handleTap: function() {
                 clearRefresh(this);
+            },
+            _timeChanged: function() {
+                if (this.to != "now" || this.to < Math.floor((new Date().getTime() / 1000) - 30)) {
+                    console.log("Tooooo", this.to, Math.floor((new Date().getTime() / 1000) - 30));
+                    this.querySelector('#refreshDropDown').setAttribute('disabled', 'true');
+                } else {
+                    console.log("TO", this.to);
+                    this.querySelector('#refreshDropDown').removeAttribute("disabled");
+                }
             },
             _saveDashboard: function(e) {
                 if (this.dashboardPath) {
@@ -123,7 +133,6 @@
                 if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
                     clearRefresh(this);
                 }
-                console.log("hey motherfucer", this.dashboard);
                 this.meta = data.detail.response.meta;
                 this.dashboard = data.detail.response.dashboard;
                 this.from = this.dashboard.time.from;
@@ -156,8 +165,8 @@
             },
             _autoRefresh: function(e) {
                 //the only point to have refresh is when "to" is "now"
-                if (this.refreshValue > 0 && (this.to == "now" || this.to >= Math.floor(new Date().getTime() / 1000) - 6000)) {
-                    this.dasrefresh = true;
+                if (this.refreshValue > 0) {
+                    me.autoRefresh = true;
                     this.from = refreshMe(this);
                 } else {
                     console.log("not now");
@@ -170,18 +179,15 @@
         var undermin = 0;
 
         function clearRefresh(me) {
-            me.dasrefresh = false;
+            me.autoRefresh = false;
             me.refreshValue = 0;
             clearTimeout(interval);
             console.log("cleared");
         }
 
         function refreshMe(me) {
-            interval = setTimeout(function() {
-                refreshMe(me);
-            }, me.refreshValue);
             //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
-            if (me.from.toString().search("now") >= 0) {
+            if (me.from.toString().indexOf("now") >= 0) {
                 var d = Math.floor(new Date().getTime() / 1000);
                 if (me.from.indexOf("h") >= 0) {
                     var t = me.from.substr(me.from.indexOf("-") + 1, me.from.indexOf("h") - (me.from.indexOf("-") + 1));
@@ -189,9 +195,13 @@
                 }
             } else {
                 //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
-                me.to = Math.floor(new Date().getTime() / 1000);
+                // here 300 is 5 mins our max autorefresh option
+                me.to = 'now';
                 me.from = Math.floor(new Date().getTime() / 1000) - 300;
             }
+            interval = setTimeout(function() {
+                refreshMe(me);
+            }, me.refreshValue);
             return me.from;
         };
     </script>
