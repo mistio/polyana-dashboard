@@ -23,6 +23,7 @@
       }
       paper-material {
         margin: 16px;
+        padding-bottom: 16px;
         box-sizing: border-box;
         position: relative;
         background-color: #eee;
@@ -172,7 +173,7 @@
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
                     this.width = this.querySelector('paper-material').clientWidth-32;
-                    this.height = this.querySelector('paper-material').clientHeight-16;
+                    this.height = this.querySelector('paper-material').clientHeight-32;
                     this.chartElement.resize({
                         height: this.height - 140,
                         width: this.width - 20
