@@ -149,6 +149,7 @@
                 }
             },
             _panelUpdate: function() {
+              console.log("hello",this.querySelector("#getdata"),this.chartData.columns.length);
                 // we need to make the request on demand because machines are constanly updated thus generating the request because the machines array changes
                 //here we make the first request
                 if (this.querySelector("#getdata") != null && this.chartData.columns.length == 0) {
@@ -241,7 +242,7 @@
             },
             _handlePanelResponse: function(data) {
                 console.log("malaka data!!!");
-                console.log(this.autoRefresh);
+                console.log(data);
                 //if refresh is on then we need to flow the data not to redraw them
                 if (!this.autoRefresh) {
                     var cols = transformData(this, data);
@@ -362,7 +363,8 @@
 
             _computeUrl: function(datasourceUri) {
                 if (this.panel.datasource == 'mistphite') {
-                    return '/api/v1/clouds/' + this.machines[0].cloud.id + '/machines/' + this.machines[0].id + '/stats';
+                    console.log(this.machines);
+                    return '/api/v1/clouds/' + this.machines[2].cloud.id + '/machines/' + this.machines[2].id + '/stats';
                 } else if (this.panel.datasource == "Graphite") {
                     return datasourceUri + '/render';
                 }

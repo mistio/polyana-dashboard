@@ -109,10 +109,8 @@
             },
             _timeChanged: function() {
                 if (this.to != "now" || this.to < Math.floor((new Date().getTime() / 1000) - 30)) {
-                    console.log("Tooooo", this.to, Math.floor((new Date().getTime() / 1000) - 30));
                     this.querySelector('#refreshDropDown').setAttribute('disabled', 'true');
                 } else {
-                    console.log("TO", this.to);
                     this.querySelector('#refreshDropDown').removeAttribute("disabled");
                 }
             },
