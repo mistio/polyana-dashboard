@@ -18,6 +18,16 @@
     paper-icon-button::content iron-icon {
       opacity: 0.32;
     }
+    .setting-input {
+      margin: 16px 0;
+    }
+    h3 {
+      text-transform: none;
+      margin-bottom: 0;
+    }
+    paper-dialog-scrollable {
+      margin-top: 0;
+    }
   </style>
   <paper-icon-button icon="icons:settings" on-tap="openDialog">Edit Graph</paper-icon-button>
   <paper-dialog id="alignedDialog" horizontal-align="right" vertical-align="top"  with-backdrop>
@@ -30,9 +40,9 @@
           <paper-item data-value="line">Line</paper-item>
         </paper-menu>
       </paper-dropdown-menu>
-      <div>
-      </br>
-      <paper-checkbox on-tap="_changeGraph">Stack</paper-checkbox>
+      <div class="setting-input">
+        <paper-checkbox on-tap="_changeGraph">Stack</paper-checkbox>
+      </div>
     </paper-dialog-scrollable>
   </paper-dialog>
   </template>
