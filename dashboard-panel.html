@@ -364,7 +364,7 @@
             _computeUrl: function(datasourceUri) {
                 if (this.panel.datasource == 'mistphite') {
                     console.log(this.machines);
-                    return '/api/v1/clouds/' + this.machines[2].cloud.id + '/machines/' + this.machines[2].id + '/stats';
+                    return '/api/v1/clouds/' + this.machines[0].cloud.id + '/machines/' + this.machines[0].id + '/stats';
                 } else if (this.panel.datasource == "Graphite") {
                     return datasourceUri + '/render';
                 }
