@@ -19,12 +19,11 @@
         }
       </style>
       <style is="custom-style">
-        paper-card {
+        paper-material {
           padding: 16px;
-          margin: 16px;
         }
     </style>
-    <paper-card class="layout horizontal stretch">
+    <paper-material class="layout horizontal stretch" elevation="0">
         <div class="flex">
           <paper-dropdown-menu id="refreshDropDown" label="Select autorefresh period" placeholder="off" on-select="_autoRefresh">
             <paper-menu id="autoRefreshList" class="dropdown-content" selected="{{refreshValue}}" attr-for-selected="data-value" >
@@ -38,7 +37,7 @@
           </paper-dropdown-menu>
         </div>
         <timerange-picker from="{{from}}" to="{{to}}" auto-refresh={{autoRefresh}} on-tap="_handleTap"></timerange-picker>
-    </paper-card>
+    </paper-material>
       <iron-ajax
         id="dataAjax"
         url="/api/dashboards/db"
