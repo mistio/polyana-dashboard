@@ -1,10 +1,11 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-dialog/paper-dialog.html">
 <link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../paper-checkbox/paper-checkbox.html">
 <link rel="import" href="../paper-item/paper-item.html">
 <link rel="import" href="../paper-menu/paper-menu.html">
-  <link rel="import" href="../paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import" href="../paper-dialog-scrollable/paper-dialog-scrollable.html">
 <dom-module id="panel-edit">
   <template>
   <style is="custom-style">
@@ -14,11 +15,13 @@
     #alignedDialog {
       margin: 0;
     }
+    paper-icon-button::content iron-icon {
+      opacity: 0.32;
+    }
   </style>
-  <paper-button raised on-tap="openDialog">Edit Graph</paper-button>
-
-  <paper-dialog id="alignedDialog" no-overlap horizontal-align="left" vertical-align="top">
-    <h2>{{dialogid}}</h2>
+  <paper-icon-button icon="icons:settings" on-tap="openDialog">Edit Graph</paper-icon-button>
+  <paper-dialog id="alignedDialog" horizontal-align="right" vertical-align="top"  with-backdrop>
+    <h3>Graph settings</h3>
     <paper-dialog-scrollable>
       <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
         <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value" >
