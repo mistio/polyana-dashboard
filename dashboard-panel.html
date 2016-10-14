@@ -44,6 +44,7 @@
     <template is="dom-if" if="[[_isGraph(panel)]]">
           <paper-spinner active="[[loading]]"></paper-spinner>
             <iron-ajax id="getdata"
+              auto
               params = [[params]]
               url = "[[_computeUrl(datasourceUri)]]"
               handle-as="json"
@@ -148,15 +149,6 @@
                     this.querySelector("#getdata").generateRequest();
                 }
             },
-            _panelUpdate: function() {
-              console.log("hello",this.querySelector("#getdata"),this.chartData.columns.length);
-                // we need to make the request on demand because machines are constanly updated thus generating the request because the machines array changes
-                //here we make the first request
-                if (this.querySelector("#getdata") != null && this.chartData.columns.length == 0) {
-                    this.querySelector("#getdata").generateRequest();
-                    console.log("request")
-                }
-            },
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
                     this.width = this.querySelector('paper-card').clientWidth;
@@ -241,8 +233,10 @@
                 return target;
             },
             _handlePanelResponse: function(data) {
-                console.log("malaka data!!!");
-                console.log(data);
+                //when we get the first real response we should stop the auto attribut because machines are updated constantly
+                if (data.detail.response != null) {
+                    this.querySelector('#getdata').removeAttribute("auto");
+                }
                 //if refresh is on then we need to flow the data not to redraw them
                 if (!this.autoRefresh) {
                     var cols = transformData(this, data);
@@ -250,6 +244,7 @@
                         xs: cols.xs,
                         columns: cols.columns
                     });
+                    console.log(this.chartData);
                     //remove all the null values from drawn data so there is no gap when we draw the new ones
                     for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
                         for (var k = this.chartData.columns[j].length; k >= 0; k--) {
@@ -363,8 +358,14 @@
 
             _computeUrl: function(datasourceUri) {
                 if (this.panel.datasource == 'mistphite') {
-                    console.log(this.machines);
-                    return '/api/v1/clouds/' + this.machines[2].cloud.id + '/machines/' + this.machines[2].id + '/stats';
+                    if (this.machines[0] == null) {
+                        for (var mach in this.machines) {
+                            console.log(mach);
+                            return '/api/v1/clouds/' + this.machines[mach].cloud_id + '/machines/' + this.machines[mach].machine_id + '/stats';
+                        }
+                    } else {
+                        return '/api/v1/clouds/' + this.machines[0].cloud.id + '/machines/' + this.machines[0].id + '/stats';
+                    }
                 } else if (this.panel.datasource == "Graphite") {
                     return datasourceUri + '/render';
                 }
@@ -443,12 +444,6 @@
                                 d.push(data.detail.response[metr].datapoints[i][0]);
                                 xs[me._filterTarget(data.detail.response[metr].name)] = 'x' + (k + 1);
                             }
-                            // for (var i = 0; i < data.detail.response["load.longterm"].datapoints.length; i++) {
-                            //     x.push(data.detail.response["load.longterm"].datapoints[i][1]);
-                            //     d.push(data.detail.response["load.longterm"].datapoints[i][0]);
-                            //     if (i == 0)
-                            //         xs[me._filterTarget(data.detail.response["load.longterm"]._target)] = 'x' + (i + 1);
-                            // }
                             x.unshift("x" + (k + 1));
                             d.unshift(data.detail.response[metr].name);
                             columns.splice(k, 0, x);
