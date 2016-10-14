@@ -21,18 +21,30 @@
         font-weight: bold;
         text-align: left;
       }
-      paper-card {
-        width: 100%;
-        padding: 16px;
+      paper-material {
+        margin: 16px;
         box-sizing: border-box;
-        /*resize:both;*/
+        position: relative;
+        background-color: #eee;
         overflow: auto;
       }
+      h3 {
+        margin-top: 0;
+        padding: 8px 16px;
+      }
+      paper-spinner {
+        display: block;
+        /* margin: 0 auto; */
+        position: absolute;
+        height: 28px;
+        top: 32px;
+        left: calc(50% - 14px);
+      }
     </style>
-    <panel-edit panel="{{panel}}"></panel-edit>
-    <paper-card id="paper">
+    <paper-material id="paper" elevation="0">
       <div class="layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
+        <panel-edit panel="{{panel}}"></panel-edit>
       </div>
       <template is="dom-if" if="[[_isText(panel)]]">
         <div>[[panel.content]]</div>
@@ -61,7 +73,7 @@
     <template is="dom-if" if="[[_isTable(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
-    </paper-card>
+    </paper-material>
     </template>
     <script>
         Polymer({
@@ -149,7 +161,7 @@
                 }
             },
             _panelUpdate: function() {
-              console.log("hello",this.querySelector("#getdata"),this.chartData.columns.length);
+              // console.log("hello",this.querySelector("#getdata"),this.chartData.columns.length);
                 // we need to make the request on demand because machines are constanly updated thus generating the request because the machines array changes
                 //here we make the first request
                 if (this.querySelector("#getdata") != null && this.chartData.columns.length == 0) {
@@ -159,8 +171,8 @@
             },
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
-                    this.width = this.querySelector('paper-card').clientWidth;
-                    this.height = this.querySelector('paper-card').clientHeight;
+                    this.width = this.querySelector('paper-material').clientWidth-32;
+                    this.height = this.querySelector('paper-material').clientHeight-16;
                     this.chartElement.resize({
                         height: this.height - 140,
                         width: this.width - 20
@@ -267,7 +279,7 @@
                     this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                     this.chartElement.axis = this.chartAxis;
                     var dimensions = [];
-                    dimensions.push(this.querySelector('paper-card').clientWidth);
+                    dimensions.push(this.querySelector('paper-material').clientWidth);
                     dimensions.push(this.rowh);
                     this.chartData.size = dimensions;
                     this.chartElement.load(this.chartData);
