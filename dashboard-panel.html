@@ -282,7 +282,10 @@
                     this.chartElement.axis = this.chartAxis;
                     var dimensions = [];
                     dimensions.push(this.querySelector('paper-material').clientWidth-32);
-                    dimensions.push(this.rowh);
+                    if (this.rowh)
+                        dimensions.push(this.rowh);
+                    else
+                        dimensions.push(400);
                     this.chartData.size = dimensions;
                     this.chartElement.load(this.chartData);
                     if (this.panel.bars) {
