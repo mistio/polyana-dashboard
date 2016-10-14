@@ -166,7 +166,7 @@
             _autoRefresh: function(e) {
                 //the only point to have refresh is when "to" is "now"
                 if (this.refreshValue > 0) {
-                    me.autoRefresh = true;
+                    this.autoRefresh = true;
                     this.from = refreshMe(this);
                 } else {
                     console.log("not now");
