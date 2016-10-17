@@ -90,7 +90,6 @@
                 autoRefresh: Boolean,
                 panel: {
                     type: Object,
-                    observer: '_panelUpdate'
                 },
                 loading: Boolean,
                 datasourceUri: {
@@ -136,9 +135,6 @@
                     type: Object,
                     value: {}
                 },
-                machines: {
-                    type: Array,
-                }
             },
             listeners: {
                 'panelChanged': '_changeGraph'
@@ -357,15 +353,11 @@
             },
 
             _computeUrl: function(datasourceUri) {
+                var socket = document.querySelector('app-socket');
+                console.log(socket.send('msg', 'main', 'stats'));
+                socket.send('msg', 'main');
                 if (this.panel.datasource == 'mistphite') {
-                    if (this.machines[0] == null) {
-                        for (var mach in this.machines) {
-                            console.log(mach);
-                            return '/api/v1/clouds/' + this.machines[mach].cloud_id + '/machines/' + this.machines[mach].machine_id + '/stats';
-                        }
-                    } else {
-                        return '/api/v1/clouds/' + this.machines[0].cloud.id + '/machines/' + this.machines[0].id + '/stats';
-                    }
+                    return this.panel.urlPrefix;
                 } else if (this.panel.datasource == "Graphite") {
                     return datasourceUri + '/render';
                 }

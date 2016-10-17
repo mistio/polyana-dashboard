@@ -46,7 +46,7 @@
         method="post"
         debounce-duration="300"></iron-ajax>
         <template is="dom-repeat" items="{{dashboard.rows}}">
-          <dashboard-row  class="row" machines="[[machines]]" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+          <dashboard-row  class="row" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
     <!-- <iron-ajax
         id='requestAjax'
