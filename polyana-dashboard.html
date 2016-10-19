@@ -48,15 +48,8 @@
         <template is="dom-repeat" items="{{dashboard.rows}}">
           <dashboard-row  class="row" machines="[[machines]]" datasources="[[datasources]]" dasrefresh="[[dasrefresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
-    <!-- <iron-ajax
-        id='requestAjax'
-        auto="[[dashboardPath]]"
-        url="/api/dashboards/[[dashboardPath]]"
-        handle-as="json"
-        method="GET"
-        on-response="_handleResponse"
-        debounce-duration="300"> -->
-    <!-- </iron-ajax> -->
+    <iron-ajax id='requestAjax' auto="[[dashboardPath]]" url="/api/v1/dashboards/[[dashboardPath]]" handle-as="json" method="GET" on-response="_handleResponse" debounce-duration="300">
+    </iron-ajax>
     </template>
     <script>
         Polymer({
@@ -94,9 +87,6 @@
                     type: Boolean,
                     value: false
                 },
-                machines: {
-                    type: Array,
-                }
             },
             listeners: {
                 'end': '_saveDashboard',
@@ -120,6 +110,7 @@
             },
 
             _handleResponse: function(data) {
+                console.log("Handle_Response", data);
                 if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
                     clearRefresh(this);
                 }
@@ -156,8 +147,7 @@
             },
             _autoRefresh: function(e) {
                 //the only point to have refresh is when "to" is "now"
-                if (this.refreshValue > 0 && (this.to == "now" || this.to >= Math.floor(new Date().getTime() / 1000) - 6000)) {
-                    this.dasrefresh = true;
+                if (this.refreshValue > 0) {
                     this.from = refreshMe(this);
                 } else {
                     console.log("not now");
@@ -187,6 +177,12 @@
                     var t = me.from.substr(me.from.indexOf("-") + 1, me.from.indexOf("h") - (me.from.indexOf("-") + 1));
                     me.from = (d - t * 3600).toString();
                 }
+            }
+            //in case he has picked a value -10min to now and autorefresh is off for more than that period
+            else if (!me.autoRefresh) {
+                me.autoRefresh = true;
+                me.to = "now";
+                me.from = me.from + 1;
             } else {
                 //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
                 me.to = Math.floor(new Date().getTime() / 1000);

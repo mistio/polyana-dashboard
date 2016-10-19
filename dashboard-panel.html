@@ -70,10 +70,12 @@
             properties: {
                 from: {
                     type: String,
+                    value: "-10min",
                     observer: "_generateReq"
                 },
                 to: {
                     type: String,
+                    value: "now"
                 },
                 params: {
                     type: Object,
@@ -140,9 +142,14 @@
                 'panelChanged': '_changeGraph'
             },
             _generateReq: function() {
-                //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to trach changes in "from" value in order to generate the request again
-                if (this.querySelector("#getdata") != null) {
-                    this.querySelector("#getdata").generateRequest();
+                //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
+                //uncomment for http calls
+                // if (this.querySelector("#getdata") != null) {
+                //     this.querySelector("#getdata").generateRequest();
+                // }
+                if (this.panel != null) {
+                    console.log("!", this.panel);
+                    this._computeUrl();
                 }
             },
             _panelUpdate: function() {
@@ -236,7 +243,11 @@
                 return target;
             },
             _handlePanelResponse: function(data) {
-                console.log("malaka data!!!");
+                console.log(this.panel, data);
+                //when we get the first real response we should stop the auto attribut because machines are updated constantly
+                if (data.metrics != null || data.detail.response != null) {
+                    this.querySelector('#getdata').removeAttribute("auto");
+                }
                 //if refresh is on then we need to flow the data not to redraw them
                 if (!this.dasrefresh) {
                     var cols = transformData(this, data);
@@ -357,7 +368,16 @@
 
             _computeUrl: function(datasourceUri) {
                 if (this.panel.datasource == 'mistphite') {
-                    return '/api/v1/clouds/' + this.machines[0].cloud.id + '/machines/' + this.machines[0].id + '/stats';
+                    //uncomment this for http calls
+                    //return '/api/v1/clouds/' + this.panel.cloudIds[0] + '/machines/' + this.panel.machineIds[0] + '/stats';
+                    var targets = [];
+                    for (var i = 0; i < this.panel.targets.length; i++) {
+                        targets.push(this.panel.targets[i].target);
+                    }
+                    var socket = document.querySelector('app-socket');
+                    console.log(this.panel);
+                    dt = [this.panel.cloudIds[0], this.panel.machineIds[0], this.from, this.to, "10sec", 0, targets];
+                    socket.getStats(dt, this._handlePanelResponse.bind(this));
                 } else if (this.panel.datasource == "Graphite") {
                     return datasourceUri + '/render';
                 }
@@ -420,6 +440,42 @@
         function transformData(me, data) {
             //TODO probably works for 1 target, we need to make it for multiple
             if (me.panel.datasource == "mistphite") {
+                var response;
+                if (data.detail != null) {
+                    response = data.detail.response;
+                } else {
+                    response = data.metrics;
+                }
+                var xs = {};
+                var columns = [];
+                var k = 0;
+                for (var metr in response) {
+                    var x = [],
+                        d = [];
+                    if (response[metr] != null) {
+                        for (var i = 0; i < response[metr].datapoints.length; i++) {
+                            x.push(response[metr].datapoints[i][1]);
+                            d.push(response[metr].datapoints[i][0]);
+                            xs[me._filterTarget(response[metr].name)] = 'x' + (k + 1);
+                        }
+                        x.unshift("x" + (k + 1));
+                        d.unshift(response[metr].name);
+                        columns.splice(k, 0, x);
+                        columns.push(d);
+                        k++;
+                        for (var j = 1; j < x.length; j++) {
+                            x[j] = new Date(x[j] * 1000);
+                        }
+                    }
+                }
+
+                return {
+                    xs: xs,
+                    columns: columns
+                };
+            }
+            //for graphite
+            else {
                 var x = [],
                     d = [],
                     xs = {},
