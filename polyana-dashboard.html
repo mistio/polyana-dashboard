@@ -37,16 +37,16 @@
             </paper-menu>
           </paper-dropdown-menu>
         </div>
-        <timerange-picker from="{{from}}" to="{{to}}" on-tap="_handleTap"></timerange-picker>
+        <timerange-picker from="{{from}}" to="{{to}}" step="{{step}}" time-span={{timeSpan}} on-tap="_handleTap"></timerange-picker>
     </paper-card>
       <iron-ajax
         id="dataAjax"
-        url="/api/dashboards/db"
+        url="/api/v1/dashboards/db"
         handle-as="json"
         method="post"
         debounce-duration="300"></iron-ajax>
         <template is="dom-repeat" items="{{dashboard.rows}}">
-          <dashboard-row  class="row" machines="[[machines]]" datasources="[[datasources]]" dasrefresh="[[dasrefresh]]" row="{{item}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+          <dashboard-row  class="row" step="{{step}}" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
     <iron-ajax id='requestAjax' auto="[[dashboardPath]]" url="/api/v1/dashboards/[[dashboardPath]]" handle-as="json" method="GET" on-response="_handleResponse" debounce-duration="300">
     </iron-ajax>
@@ -83,7 +83,15 @@
                     type: String,
                     value: Math.floor(new Date().getTime() / 1000).toString()
                 },
-                dasrefresh: {
+                step: {
+                    type: String,
+                    value: "10sec"
+                },
+                timeSpan: {
+                    type: Number,
+                    value: 3600
+                },
+                autoRefresh: {
                     type: Boolean,
                     value: false
                 },
@@ -160,7 +168,7 @@
         var undermin = 0;
 
         function clearRefresh(me) {
-            me.dasrefresh = false;
+            me.autoRefresh = false;
             me.refreshValue = 0;
             clearTimeout(interval);
             console.log("cleared");
@@ -180,9 +188,10 @@
             }
             //in case he has picked a value -10min to now and autorefresh is off for more than that period
             else if (!me.autoRefresh) {
+                console.log("reseting panel", me.timespan);
                 me.autoRefresh = true;
                 me.to = "now";
-                me.from = me.from + 1;
+                me.from = Math.floor(new Date().getTime() / 1000) - me.timeSpan;
             } else {
                 //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
                 me.to = Math.floor(new Date().getTime() / 1000);

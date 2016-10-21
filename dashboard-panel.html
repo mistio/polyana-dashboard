@@ -52,7 +52,7 @@
               contentType="application/json"
               on-response="_handlePanelResponse"
               debounce-duration="300"></iron-ajax>
-          <c3-chart from="[[from]]" chartid="[[panel.title]]"></c3-chart>
+          <c3-chart id="Panel[[panel.title]]" from="[[from]]" chartid="[[panel.title]]"></c3-chart>
         </template>
 
     <template is="dom-if" if="[[_isDashlist(panel)]]">
@@ -77,15 +77,16 @@
                     type: String,
                     value: "now"
                 },
+                step: String,
                 params: {
                     type: Object,
                     computed: '_computeParams(from, to, panel.targets)'
                 },
                 rowh: {
                     type: Number,
-                    notify: true,
+                    notify: true
                 },
-                dasrefresh: Boolean,
+                autoRefresh: Boolean,
                 panel: {
                     type: Object,
                     observer: '_panelUpdate'
@@ -134,31 +135,20 @@
                     type: Object,
                     value: {}
                 },
-                machines: {
-                    type: Array,
-                }
             },
             listeners: {
                 'panelChanged': '_changeGraph'
             },
             _generateReq: function() {
                 //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
-                //uncomment for http calls
-                // if (this.querySelector("#getdata") != null) {
-                //     this.querySelector("#getdata").generateRequest();
-                // }
                 if (this.panel != null) {
-                    console.log("!", this.panel);
+                    //uncomment for http calls
+                    //this.querySelector("#getdata").generateRequest();
                     this._computeUrl();
                 }
             },
             _panelUpdate: function() {
-                // we need to make the request on demand because machines are constanly updated thus generating the request because the machines array changes
-                //here we make the first request
-                if (this.querySelector("#getdata") != null && this.chartData.columns.length == 0) {
-                    this.querySelector("#getdata").generateRequest();
-                    console.log("request")
-                }
+                this._computeUrl();
             },
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
@@ -176,11 +166,6 @@
                     }
                 }
                 this.fire('resizeDone');
-            },
-            detached: function() {
-                console.warn('detaching panel');
-                if (this.chartElement)
-                    this.chartElement.destroy();
             },
             _changeGraph: function() {
                 if (this.panel.bars) {
@@ -243,13 +228,12 @@
                 return target;
             },
             _handlePanelResponse: function(data) {
-                console.log(this.panel, data);
                 //when we get the first real response we should stop the auto attribut because machines are updated constantly
                 if (data.metrics != null || data.detail.response != null) {
                     this.querySelector('#getdata').removeAttribute("auto");
                 }
                 //if refresh is on then we need to flow the data not to redraw them
-                if (!this.dasrefresh) {
+                if (!this.autoRefresh) {
                     var cols = transformData(this, data);
                     this.set('chartData', {
                         xs: cols.xs,
@@ -267,7 +251,7 @@
                             }
                         }
                     }
-                    this.chartElement = this.querySelector('c3-chart');
+                    this.chartElement = this.querySelector('#Panel' + this.panel.title);
                     //this.chartElement.destroy();
                     this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                     this.chartElement.axis = this.chartAxis;
@@ -275,6 +259,7 @@
                     dimensions.push(this.querySelector('paper-card').clientWidth);
                     dimensions.push(this.rowh);
                     this.chartData.size = dimensions;
+                    console.log(this.chartData);
                     this.chartElement.load(this.chartData);
                     if (this.panel.bars) {
                         this.chartData.type = "bar";
@@ -294,7 +279,7 @@
                     }
                 }
                 // flow the new data from auto refresh
-                else if (this.dasrefresh) {
+                else {
                     var cols = transformData(this, data);
                     if (this.panel.stack) {
                         var grp = []
@@ -375,9 +360,10 @@
                         targets.push(this.panel.targets[i].target);
                     }
                     var socket = document.querySelector('app-socket');
-                    console.log(this.panel);
-                    dt = [this.panel.cloudIds[0], this.panel.machineIds[0], this.from, this.to, "10sec", 0, targets];
-                    socket.getStats(dt, this._handlePanelResponse.bind(this));
+                    for (var i = 0; i < this.panel.machineArray.length; i++) {
+                        var dt = [this.panel.machineArray[i][0], this.panel.machineArray[i][1], this.from, this.to, this.step, 0, targets];
+                        socket.getStats(dt, this._handlePanelResponse.bind(this));
+                    }
                 } else if (this.panel.datasource == "Graphite") {
                     return datasourceUri + '/render';
                 }
@@ -407,7 +393,7 @@
 
         function smartAxis(from, to, axis) {
             //for presets
-            if (to == "now") {
+            if (to == "now" && typeof from == "string") {
                 if (from.search("y") >= 0) {
                     axis.tick.format = "%Y-%m";
                 } else if (from.search("d") >= 0) {
@@ -415,12 +401,17 @@
                 } else if (from.search("h") >= 0) {
                     axis.tick.format = "%H:%M";
                     axis.tick.fit = true;
-                } else if (from.search("m") >= 0) {
-                    axis.tick.format = "%H:%M:%S";
+                } else if (from.search("month") >= 0) {
+                    axis.tick.format = "%m-%d %H:%M";
+                } else if (from.search("min") >= 0) {
+                    axis.tick.format = "%H:%M";
                 }
             }
             //for custom time range
             else {
+                if (to == "now") {
+                    to = Math.floor(new Date().getTime() / 1000);
+                }
                 var timelapsed = (to - from);
                 //less or equal than 2 days
                 if (timelapsed <= 86400 * 3) {
@@ -438,9 +429,9 @@
         }
 
         function transformData(me, data) {
-            //TODO probably works for 1 target, we need to make it for multiple
             if (me.panel.datasource == "mistphite") {
                 var response;
+                //for http
                 if (data.detail != null) {
                     response = data.detail.response;
                 } else {
@@ -473,36 +464,6 @@
                     xs: xs,
                     columns: columns
                 };
-            }
-            //for graphite
-            else {
-                var x = [],
-                    d = [],
-                    xs = {},
-                    xcolumns = [],
-                    dcolumns = [],
-                    g = [];
-                if (data.detail.response["asPercent(nice, total)"]) {
-                    for (var i = 0; i < data.detail.response["asPercent(nice, total)"].datapoints.length; i++) {
-                        x.push(data.detail.response["asPercent(nice, total)"].datapoints[i][1]);
-                        d.push(data.detail.response["asPercent(nice, total)"].datapoints[i][0]);
-                        if (i == 0)
-                            xs[me._filterTarget(data.detail.response["asPercent(nice, total)"]._target)] = 'x' + (i + 1);
-                    }
-                    x.unshift("x1");
-                    d.unshift(data.detail.response["asPercent(nice, total)"]._target);
-                    var columns = [];
-                    columns.push(x);
-                    columns.push(d);
-                    var test = columns;;
-                    for (var j = 1; j < x.length; j++) {
-                        x[j] = new Date(x[j] * 1000);
-                    }
-                    return {
-                        xs: xs,
-                        columns: columns
-                    };
-                }
             }
             //for graphite
             else {

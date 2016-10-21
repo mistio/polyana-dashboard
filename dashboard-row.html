@@ -25,7 +25,7 @@
     <sortable-js>
         <template is="dom-repeat" items="{{row.panels}}">
           <div>
-            <dashboard-panel dasrefresh="[[dasrefresh]]" machines="[[machines]]"  datasource-uri="[[_computeDatasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
+            <dashboard-panel auto-refresh="[[autoRefresh]]" step="{{step}}"  datasource-uri="[[_computeDatasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
           </div>
         </template>
     </sortable-js>
@@ -42,9 +42,8 @@
                 title: String,
                 from: String,
                 to: String,
-                datasources: Array,
-                dasrefresh: Boolean,
-                machines: Array
+                step: String,
+                autoRefresh: Boolean,
             },
             _elementWidth: function(span) {
                 return 100 * span / 12 + '%';
