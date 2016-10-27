@@ -29,7 +29,7 @@
         overflow: auto;
       }
     </style>
-    <panel-edit panel="{{panel}}"></panel-edit>
+    <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
     <paper-card id="paper">
       <div class="layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
@@ -42,18 +42,18 @@
         <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
         </template>
     <template is="dom-if" if="[[_isGraph(panel)]]">
-          <paper-spinner active="[[loading]]"></paper-spinner>
-            <iron-ajax id="getdata"
-              params = [[params]]
-              url = "[[_computeUrl(datasourceUri)]]"
-              handle-as="json"
-              method="GET"
-              loading="{{loading}}"
-              contentType="application/json"
-              on-response="_handlePanelResponse"
-              debounce-duration="300"></iron-ajax>
-          <c3-chart id="Panel[[panel.title]]" from="[[from]]" chartid="[[panel.title]]"></c3-chart>
-        </template>
+        <paper-spinner active="[[loading]]"></paper-spinner>
+          <iron-ajax id="getdata"
+            params = [[params]]
+            url = "[[_computeUrl(datasourceUri)]]"
+            handle-as="json"
+            method="GET"
+            loading="{{loading}}"
+            contentType="application/json"
+            on-response="_handlePanelResponse"
+            debounce-duration="300"></iron-ajax>
+        <c3-chart id="Panel[[panel.title]]" from="[[from]]" chartid="[[panel.title]]"></c3-chart>
+      </template>
 
     <template is="dom-if" if="[[_isDashlist(panel)]]">
         <div><!-- TODO -->...</div>
@@ -77,7 +77,9 @@
                     type: String,
                     value: "now"
                 },
-                step: String,
+                step: {
+                    type: String,
+                },
                 params: {
                     type: Object,
                     computed: '_computeParams(from, to, panel.targets)'
@@ -143,8 +145,11 @@
                 //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
                 if (this.panel != null) {
                     //uncomment for http calls
-                    //this.querySelector("#getdata").generateRequest();
-                    this._computeUrl();
+                    if (this.panel.datasource != "mistphite") {
+                        this.querySelector("#getdata").generateRequest();
+                    } else {
+                        this._computeUrl();
+                    }
                 }
             },
             _panelUpdate: function() {
@@ -167,7 +172,13 @@
                 }
                 this.fire('resizeDone');
             },
-            _changeGraph: function() {
+            _changeGraph: function(e) {
+                if (e.detail == "step") {
+                    console.log(this.step, e.detail);
+                    this._computeUrl();
+                } else if (e.detail == "dateFormat") {
+                    this.chartElement.load(this.chartData);
+                }
                 if (this.panel.bars) {
                     this.chartElement.transform('bar');
                 } else if (this.panel.lines) {
@@ -360,10 +371,8 @@
                         targets.push(this.panel.targets[i].target);
                     }
                     var socket = document.querySelector('app-socket');
-                    for (var i = 0; i < this.panel.machineArray.length; i++) {
-                        var dt = [this.panel.machineArray[i][0], this.panel.machineArray[i][1], this.from, this.to, this.step, 0, targets];
-                        socket.getStats(dt, this._handlePanelResponse.bind(this));
-                    }
+                    var dt = [this.panel.machineArray[0][0], this.panel.machineArray[0][1], this.from, this.to, this.step, 0, targets];
+                    socket.getStats(dt, this._handlePanelResponse.bind(this));
                 } else if (this.panel.datasource == "Graphite") {
                     return datasourceUri + '/render';
                 }

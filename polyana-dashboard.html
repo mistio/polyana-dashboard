@@ -37,7 +37,7 @@
             </paper-menu>
           </paper-dropdown-menu>
         </div>
-        <timerange-picker from="{{from}}" to="{{to}}" step="{{step}}" time-span={{timeSpan}} on-tap="_handleTap"></timerange-picker>
+        <timerange-picker from="{{from}}" to="{{to}}" step="{{step}}" on-tap="_handleTap"></timerange-picker>
     </paper-card>
       <iron-ajax
         id="dataAjax"
@@ -48,7 +48,7 @@
         <template is="dom-repeat" items="{{dashboard.rows}}">
           <dashboard-row  class="row" step="{{step}}" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
-    <iron-ajax id='requestAjax' auto="[[dashboardPath]]" url="/api/v1/dashboards/[[dashboardPath]]" handle-as="json" method="GET" on-response="_handleResponse" debounce-duration="300">
+    <iron-ajax id='requestAjax' auto="[[dashboardPath]]" url="[[_computeUrl(dashboardPath)]]" handle-as="json" method="GET" on-response="_handleResponse" debounce-duration="300">
     </iron-ajax>
     </template>
     <script>
@@ -87,10 +87,6 @@
                     type: String,
                     value: "10sec"
                 },
-                timeSpan: {
-                    type: Number,
-                    value: 3600
-                },
                 autoRefresh: {
                     type: Boolean,
                     value: false
@@ -103,6 +99,12 @@
             },
             _handleTap: function() {
                 clearRefresh(this);
+            },
+            _computeUrl: function(dashboardPath) {
+                //for graphite
+                if (dashboardPath != "mist") {
+                    return "/api/dashboards/" + dashboardPath;
+                }
             },
             _saveDashboard: function(e) {
                 if (this.dashboardPath) {
@@ -118,11 +120,9 @@
             },
 
             _handleResponse: function(data) {
-                console.log("Handle_Response", data);
                 if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
                     clearRefresh(this);
                 }
-                console.log("hey motherfucer", this.dashboard);
                 this.meta = data.detail.response.meta;
                 this.dashboard = data.detail.response.dashboard;
                 this.from = this.dashboard.time.from;
@@ -171,7 +171,7 @@
             me.autoRefresh = false;
             me.refreshValue = 0;
             clearTimeout(interval);
-            console.log("cleared");
+            console.log("refresh cleared");
         }
 
         function refreshMe(me) {
@@ -188,10 +188,10 @@
             }
             //in case he has picked a value -10min to now and autorefresh is off for more than that period
             else if (!me.autoRefresh) {
-                console.log("reseting panel", me.timespan);
+                console.log("reseting panel", me.from);
+                //step should be equal to refresh value
                 me.autoRefresh = true;
-                me.to = "now";
-                me.from = Math.floor(new Date().getTime() / 1000) - me.timeSpan;
+                me.from = Math.floor(new Date().getTime() / 1000) - (me.to - me.from);
             } else {
                 //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
                 me.to = Math.floor(new Date().getTime() / 1000);
