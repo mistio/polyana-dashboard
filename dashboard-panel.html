@@ -371,8 +371,10 @@
                         targets.push(this.panel.targets[i].target);
                     }
                     var socket = document.querySelector('app-socket');
-                    var dt = [this.panel.machineArray[0][0], this.panel.machineArray[0][1], this.from, this.to, this.step, 0, targets];
-                    socket.getStats(dt, this._handlePanelResponse.bind(this));
+                    if(this.panel.machineArray.length>0){
+                      var dt = [this.panel.machineArray[0][0], this.panel.machineArray[0][1], this.from, this.to, this.step, 0, targets];
+                      socket.getStats(dt, this._handlePanelResponse.bind(this));
+                    }
                 } else if (this.panel.datasource == "Graphite") {
                     return datasourceUri + '/render';
                 }
