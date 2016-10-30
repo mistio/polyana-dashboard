@@ -1,7 +1,7 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/paper-styles/typography.html">
-<link rel="import" href="../../bower_components/timerange-picker/timerange-picker.html">
-<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-styles/typography.html">
+<link rel="import" href="../timerange-picker/timerange-picker.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="dashboard-row.html">
 
 <dom-module id="polyana-dashboard">
@@ -39,17 +39,24 @@
         </div>
         <timerange-picker from="{{from}}" to="{{to}}" step="{{step}}" on-tap="_handleTap"></timerange-picker>
     </paper-card>
-      <iron-ajax
-        id="dataAjax"
-        url="/api/v1/dashboards/db"
-        handle-as="json"
-        method="post"
-        debounce-duration="300"></iron-ajax>
+        <iron-ajax
+            id="dataAjax"
+            url="/api/v1/dashboards/db"
+            handle-as="json"
+            method="post"
+            debounce-duration="300"></iron-ajax>
         <template is="dom-repeat" items="{{dashboard.rows}}">
-          <dashboard-row  class="row" step="{{step}}" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+            <dashboard-row  class="row" step="{{step}}" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
-    <iron-ajax id='requestAjax' auto="[[dashboardPath]]" url="[[_computeUrl(dashboardPath)]]" handle-as="json" method="GET" on-response="_handleResponse" debounce-duration="300">
-    </iron-ajax>
+        <iron-ajax
+            id='requestAjax'
+            auto="[[uri]]"
+            url="[[uri]]"
+            handle-as="json"
+            method="GET"
+            on-response="_handleResponse"
+            debounce-duration="300">
+        </iron-ajax>
     </template>
     <script>
         Polymer({
@@ -99,12 +106,6 @@
             },
             _handleTap: function() {
                 clearRefresh(this);
-            },
-            _computeUrl: function(dashboardPath) {
-                //for graphite
-                if (dashboardPath != "mist") {
-                    return "/api/dashboards/" + dashboardPath;
-                }
             },
             _saveDashboard: function(e) {
                 if (this.dashboardPath) {
