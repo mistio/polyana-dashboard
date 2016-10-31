@@ -37,7 +37,7 @@
             </paper-menu>
           </paper-dropdown-menu>
         </div>
-        <timerange-picker from="{{from}}" to="{{to}}" step="{{step}}" on-tap="_handleTap"></timerange-picker>
+        <timerange-picker from="{{from}}" to="{{to}}" on-tap="_handleTap"></timerange-picker>
     </paper-card>
         <iron-ajax
             id="dataAjax"
@@ -46,7 +46,7 @@
             method="post"
             debounce-duration="300"></iron-ajax>
         <template is="dom-repeat" items="{{dashboard.rows}}">
-            <dashboard-row  class="row" step="{{step}}" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+            <dashboard-row  class="row" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
         </template>
         <iron-ajax
             id='requestAjax'
@@ -67,7 +67,8 @@
                     type: String
                 },
                 dashboard: {
-                    type: Object
+                    type: Object,
+                    observer: '_dashboardUpdated'
                 },
                 datasources: {
                     type: Array
@@ -89,10 +90,6 @@
                 to: {
                     type: String,
                     value: Math.floor(new Date().getTime() / 1000).toString()
-                },
-                step: {
-                    type: String,
-                    value: "10sec"
                 },
                 autoRefresh: {
                     type: Boolean,
@@ -126,12 +123,15 @@
                 }
                 this.meta = data.detail.response.meta;
                 this.dashboard = data.detail.response.dashboard;
+            },
+
+            _dashboardUpdated: function(){
                 this.from = this.dashboard.time.from;
                 this.to = this.dashboard.time.to;
             },
 
             _getTargets: function(dashboard, datasources) {
-                var targets = {};
+                var targets = {}, defaultDatasource;
                 for (var i = 0; i < dashboard.rows.length; i++) {
                     if (dashboard.rows[i].panels)
                         for (var j = 0; j < dashboard.rows[i].panels.length; j++)
@@ -140,15 +140,19 @@
                                     if (dashboard.rows[i].panels[j].datasource == null) {
                                         for (var p = 0; p < datasources.length; p++) {
                                             if (datasources[p].isDefault) {
-                                                dashboard.rows[i].panels[j].datasource = datasources[p];
+                                                defaultDatasource = datasources[p].name;
                                             }
                                         }
                                     }
                                     if (dashboard.rows[i].panels[j].datasource && targets[dashboard.rows[i].panels[j].datasource] == undefined) {
                                         targets[dashboard.rows[i].panels[j].datasource] = [];
                                     }
-                                    if (dashboard.rows[i].panels[j].targets[k].target && targets[dashboard.rows[i].panels[j].datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target) == -1) {
-                                        targets[dashboard.rows[i].panels[j].datasource].push(dashboard.rows[i].panels[j].targets[k].target);
+                                    if (!dashboard.rows[i].panels[j].datasource && targets[defaultDatasource] == undefined) {
+                                        targets[defaultDatasource] = [];
+                                    }
+                                    var datasource = dashboard.rows[i].panels[j].datasource || defaultDatasource;
+                                    if (dashboard.rows[i].panels[j].targets[k].target && targets[datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target) == -1) {
+                                        targets[datasource].push(dashboard.rows[i].panels[j].targets[k].target);
                                     }
                                 }
                 }
@@ -190,7 +194,6 @@
             //in case he has picked a value -10min to now and autorefresh is off for more than that period
             else if (!me.autoRefresh) {
                 console.log("reseting panel", me.from);
-                //step should be equal to refresh value
                 me.autoRefresh = true;
                 me.from = Math.floor(new Date().getTime() / 1000) - (me.to - me.from);
             } else {
