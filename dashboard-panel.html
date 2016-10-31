@@ -243,6 +243,9 @@
             },
 
             _computeGraphiteTimestamp: function(timestamp) {
+                if (typeof timestamp != 'string')
+                    return timestamp;
+
                 var ret = timestamp.replace('now-', '-');
                 if (ret.search('min') == -1)
                     ret = ret.replace('m', 'min');
