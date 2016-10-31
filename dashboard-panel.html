@@ -1,8 +1,10 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/paper-styles/typography.html">
-<link rel="import" href="../../bower_components/c3-chart/c3-chart.html">
-<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
-<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-styles/typography.html">
+<link rel="import" href="../paper-spinner/paper-spinner.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../c3-chart/c3-chart.html">
+
 <link rel="import" href="panel-edit.html">
 
 <dom-module id="dashboard-panel">
@@ -13,24 +15,30 @@
         display: inline-block;
 
       }
-      /*#paper:active {
-        width: 0;
-        height: 0;
-      }*/
       #target {
         font-weight: bold;
         text-align: left;
       }
       paper-card {
-        width: calc(100% - 32px);
+        width: 100%;
         padding: 16px;
-        margin: 16px;
         box-sizing: border-box;
         /*resize:both;*/
         overflow: auto;
       }
     </style>
-    <panel-edit panel="{{panel}}"></panel-edit>
+    <iron-ajax
+      id="dataRequest"
+      params="[[params]]"
+      url="[[_computeUrl(datasourceUri)]]"
+      handle-as="json"
+      method="GET"
+      loading="{{loading}}"
+      contentType="application/json"
+      on-response="_handlePanelResponse"
+      debounce-duration="300"></iron-ajax>
+
+    <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
     <paper-card id="paper">
       <div class="layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
@@ -38,29 +46,17 @@
       <template is="dom-if" if="[[_isText(panel)]]">
         <div>[[panel.content]]</div>
       </template>
-
-    <template is="dom-if" if="[[_isSinglestat(panel)]]">
+      <template is="dom-if" if="[[_isSinglestat(panel)]]">
         <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
-        </template>
-    <template is="dom-if" if="[[_isGraph(panel)]]">
-          <paper-spinner active="[[loading]]"></paper-spinner>
-          <iron-ajax id="getdata"
-            auto
-            params = [[params]]
-            url="{{_computeUrl(datasourceUri)}}"
-            handle-as="json"
-            method="GET"
-            loading="{{loading}}"
-            contentType="application/json"
-            on-response="_handlePanelResponse"
-            debounce-duration="300"></iron-ajax>
-          <c3-chart from="[[from]]" chartid="[[panel.title]]"></c3-chart>
-        </template>
-
-    <template is="dom-if" if="[[_isDashlist(panel)]]">
+      </template>
+      <template is="dom-if" if="[[_isGraph(panel)]]">
+        <paper-spinner active="[[loading]]"></paper-spinner>
+        <c3-chart id="Panel[[panel.title]]" from="[[from]]" chartid="[[panel.title]]"></c3-chart>
+      </template>
+      <template is="dom-if" if="[[_isDashlist(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
-    <template is="dom-if" if="[[_isTable(panel)]]">
+      <template is="dom-if" if="[[_isTable(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
     </paper-card>
@@ -71,23 +67,26 @@
 
             properties: {
                 from: {
-                    type: String,
+                    type: String
                 },
                 to: {
+                    type: String
+                },
+                step: {
                     type: String,
-                    value: 'now'
                 },
                 params: {
                     type: Object,
-                    computed: '_computeParams(from, to,panel.targets)'
+                    computed: '_computeParams(from, to, panel.targets, datasourceType)',
                 },
                 rowh: {
                     type: Number,
-                    notify: true,
+                    notify: true
                 },
-                refresh: String,
+                autoRefresh: Boolean,
                 panel: {
                     type: Object,
+                    observer: '_generateDataRequest'
                 },
                 loading: Boolean,
                 datasourceUri: {
@@ -108,7 +107,7 @@
                             type: 'timeseries',
                             tick: {
                                 format: '%H:%M',
-                                fit: true
+                                fit: false
                             },
                             padding: {
                                 left: 0,
@@ -132,11 +131,127 @@
                 replaceTargets: {
                     type: Object,
                     value: {}
-                }
+                },
             },
             listeners: {
                 'panelChanged': '_changeGraph'
             },
+            observers: [
+                '_updateStep(from, to, datasourceType)'
+            ],
+            _updateStep: function(from, to) {
+                console.warn('from/to updated', this.datasourceType);
+                if (this.datasourceType != 'mist.monitor')
+                    return; // step is needed only for mist.monitor datasource
+
+                // We need to calculate "from" and "to" in seconds in order to
+                // subtract them
+                var fromInSeconds, toInSeconds, parsedDigits,
+                    now = Math.floor(new Date().getTime()/1000);
+                if (typeof from === "string") {
+                    // get digits in string
+                    parsedDigits = parseInt(from.match(/\d+/g));
+                    if (from.search("y") >= 0) { // time in years
+                        fromInSeconds = now - parsedDigits *  31556952;
+                    } else if (from.search("month") >= 0) { // time in months
+                        fromInSeconds = now - parsedDigits * 2629746;
+                    } else if (from.search("d") >= 0) { // time in days
+                        fromInSeconds = now - parsedDigits * 86400;
+                    } else if (from.search("h") >= 0) { // time in hours
+                        fromInSeconds = now - parsedDigits * 3600;
+                    } else if (from.search("m") >= 0) { // time in mins
+                        fromInSeconds = now - parsedDigits * 60;
+                    } else { // time in secs
+                        fromInSeconds = parsedDigits;
+                    }
+                    console.warn('fromInSeconds string', fromInSeconds);
+                } else if (typeof from === 'number') {
+                    fromInSeconds = from;
+                } else {
+                    console.error('Unsupported type for "from"', typeof from);
+                    return;
+                }
+                if (typeof to === "string") {
+                    if (to == 'now') {
+                        toInSeconds = now;
+                    } else {
+                        // get digits in string
+                        parsedDigits = parseInt(to.match(/\d+/g));
+                        if (!parsedDigits || parsedDigits === NaN) {
+                            console.error('Invalid value for "to"', to);
+                            return;
+                        }
+                        if (to.search("y") >= 0) { // time in years
+                            toInSeconds = now - parsedDigits *  31556952;
+                        } else if (to.search("month") >= 0) { // time in months
+                            toInSeconds = now - parsedDigits * 2629746;
+                        } else if (to.search("d") >= 0) { // time in days
+                            toInSeconds = now - parsedDigits * 86400;
+                        } else if (to.search("h") >= 0) { // time in hours
+                            toInSeconds = now - parsedDigits * 3600;
+                        } else if (to.search("m") >= 0) { // time in mins
+                            toInSeconds = now - parsedDigits * 60;
+                        } else { // time in secs
+                            toInSeconds = now - parsedDigits;
+                        }
+                    }
+                } else if (typeof to === 'number') {
+                    toInSeconds = to;
+                } else {
+                    console.error('Unsupported type for "to"', typeof to);
+                    return;
+                }
+                console.warn('toInSeconds', toInSeconds);
+                var timeDelta = toInSeconds - fromInSeconds;
+                if (timeDelta <= 3600) { //less than an  hour
+                    this.step = "10sec";
+                } else if (timeDelta < 86400) { //less than a day
+                    this.step = "1min";
+                } else if (timeDelta <= 2629746) { //less than a month
+                    this.step = "30min";
+                } else if (timeDelta <= 2629746 * 6) { //less than 6 months
+                    this.step = "1h";
+                } else if (timeDelta <= 31556952) { //less than year
+                    this.step = "5d";
+                } else { //more than year
+                    this.step = "1month";
+                }
+
+                console.warn('calculated step', this.step);
+            },
+            _generateDataRequest: function() {
+                //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
+                if (this.panel != null && this.querySelector("iron-ajax")) {
+                    this.async(function(){
+                        if (this.datasourceType == 'graphite')
+                            this.querySelector("iron-ajax").generateRequest()
+                        else if (this.datasourceType == 'mist.monitor') {
+                            //uncomment this for http calls
+                            //return '/api/v1/clouds/' + this.panel.cloudIds[0] + '/machines/' + this.panel.machineIds[0] + '/stats';
+                            var targets = [];
+                            for (var i = 0; i < this.panel.targets.length; i++) {
+                                targets.push(this.panel.targets[i].target);
+                            }
+                            var socket = document.querySelector('mist-socket');
+                            if(this.panel.machineArray.length>0){
+                              var payload = [this.panel.machineArray[0][0], this.panel.machineArray[0][1], this._computeGraphiteTimestamp(this.from), this._computeGraphiteTimestamp(this.to), this.step, 0, targets];
+                              socket.getStats(payload, this._handlePanelResponse.bind(this));
+                            }
+                        }
+                    }, 100);
+                }
+            },
+
+            _computeGraphiteTimestamp: function(timestamp) {
+                if (typeof timestamp != 'string')
+                    return timestamp;
+
+                var ret = timestamp.replace('now-', '-');
+                if (ret.search('min') == -1)
+                    ret = ret.replace('m', 'min');
+                return ret;
+            },
+
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
                     this.width = this.querySelector('paper-card').clientWidth;
@@ -154,18 +269,19 @@
                 }
                 this.fire('resizeDone');
             },
-            detached: function() {
-                console.warn('detaching panel');
-                if (this.chartElement)
-                    this.chartElement.destroy();
-            },
-            _changeGraph: function() {
+            _changeGraph: function(e) {
+                if (e.detail == "step") {
+                    console.log(this.step, e.detail);
+                    this._generateDataRequest();
+                } else if (e.detail == "dateFormat") {
+                    this.chartElement.load(this.chartData);
+                }
                 if (this.panel.bars) {
                     this.chartElement.transform('bar');
                 } else if (this.panel.lines) {
                     this.chartElement.transform('spline');
                 } else {
-                  this.chartElement.transform('line');
+                    this.chartElement.transform('line');
                 }
                 if (this.panel.stack) {
                     var grp = [];
@@ -183,20 +299,33 @@
                 }
                 this.fire('graphChanged');
             },
-            _computeParams: function(from, to, targets) {
-                //some graphite versions expect 'until' paramater and others "to"
-                var ret = {
-                        'format': 'json',
-                        'from': from,
-                        'to': to,
-                        'until': to
-                    },
-                    tlist = [];
-                for (var i = 0; i < targets.length; i++) {
-                    tlist.push(targets[i].target)
+            _computeParams: function(from, to, targets, datasourceType) {
+                if (this.datasourceType == "graphite") {
+                    //some graphite versions expect 'until' paramater and others "to"
+                    var ret = {
+                            'format': 'json',
+                            'from': this._computeGraphiteTimestamp(from),
+                            'to': this._computeGraphiteTimestamp(to),
+                            'until': this._computeGraphiteTimestamp(to)
+                        },
+                        tlist = [];
+                    for (var i = 0; i < targets.length; i++) {
+                        tlist.push(targets[i].target)
+                    }
+                    ret['target'] = tlist;
+                    return ret;
+                } else if (this.datasourceType == "mist.monitor") {
+                    var ret = {
+                            'start': this._computeGraphiteTimestamp(from),
+                            'stop': this._computeGraphiteTimestamp(to)
+                        },
+                        tlist = [];
+                    for (var i = 0; i < targets.length; i++) {
+                        tlist.push(targets[i].target)
+                    }
+                    ret['metrics'] = tlist;
+                    return ret;
                 }
-                ret['target'] = tlist;
-                return ret;
             },
 
             _filterTarget: function(target) {
@@ -207,8 +336,12 @@
                 return target;
             },
             _handlePanelResponse: function(data) {
+                //when we get the first real response we should stop the auto attribut because machines are updated constantly
+                if (data.metrics != null || data.detail.response != null) {
+                    this.querySelector('#dataRequest').removeAttribute("auto");
+                }
                 //if refresh is on then we need to flow the data not to redraw them
-                if (this.refresh == false) {
+                if (!this.autoRefresh) {
                     var cols = transformData(this, data);
                     this.set('chartData', {
                         xs: cols.xs,
@@ -227,7 +360,6 @@
                         }
                     }
                     this.chartElement = this.querySelector('c3-chart');
-                    //this.chartElement.destroy();
                     this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                     this.chartElement.axis = this.chartAxis;
                     var dimensions = [];
@@ -251,11 +383,9 @@
                         if (!this.panel.bars)
                             this.chartElement.transform('area-spline');
                     }
-                    console.log(this.style.width, this.style.height);
                 }
                 // flow the new data from auto refresh
                 else {
-                    console.log("refreshing");
                     var cols = transformData(this, data);
                     if (this.panel.stack) {
                         var grp = []
@@ -309,6 +439,7 @@
                     //display the new data
                     if (cols.columns[0].length > 1) {
                         console.log("flow good", cols);
+                        this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                         this.chartElement.flow(cols);
                     }
                     //add the new data to the old
@@ -327,9 +458,7 @@
             },
 
             _computeUrl: function(datasourceUri) {
-                if (this.panel.datasource == "Graphite") {
-                    return datasourceUri + '/render';
-                }
+                return this.datasourceUri + '/render';
             },
 
             _isGraph: function(panel) {
@@ -356,7 +485,7 @@
 
         function smartAxis(from, to, axis) {
             //for presets
-            if (to == "now") {
+            if (to == "now" && typeof from == "string") {
                 if (from.search("y") >= 0) {
                     axis.tick.format = "%Y-%m";
                 } else if (from.search("d") >= 0) {
@@ -364,20 +493,25 @@
                 } else if (from.search("h") >= 0) {
                     axis.tick.format = "%H:%M";
                     axis.tick.fit = true;
-                } else if (from.search("m") >= 0) {
-                    axis.tick.format = "%H:%M:%S";
+                } else if (from.search("month") >= 0) {
+                    axis.tick.format = "%m-%d %H:%M";
+                } else if (from.search("min") >= 0) {
+                    axis.tick.format = "%H:%M";
                 }
             }
             //for custom time range
             else {
+                if (to == "now") {
+                    to = Math.floor(new Date().getTime() / 1000);
+                }
                 var timelapsed = (to - from);
                 //less or equal than 2 days
                 if (timelapsed <= 86400 * 3) {
                     axis.tick.format = "%H:%M";
-                //more than 2 days less than a year
+                    //more than 2 days less than a year
                 } else if (timelapsed > 86400 * 3 && timelapsed < 86400 * 365) {
                     axis.tick.format = "%m-%d";
-                //more than a year
+                    //more than a year
                 } else {
                     axis.tick.format = "%Y-%m";
                 }
@@ -387,37 +521,72 @@
         }
 
         function transformData(me, data) {
-            var x = [],
-                d = [],
-                xs = {},
-                xcolumns = [],
-                dcolumns = [],
-                g = [];
-            for (var i = 0; i < data.detail.response.length; i++) {
-                x.push(data.detail.response[i].datapoints.map(function(point) {
-                    return point[1]
-                }));
-                d.push(data.detail.response[i].datapoints.map(function(point) {
-                    return point[0]
-                }));
-                xs[me._filterTarget(data.detail.response[i].target)] = 'x' + (i + 1);
-                xcolumns.push(['x' + (i + 1)].concat(x[i]));
-                dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
-            }
-            var columns = xcolumns.concat(dcolumns);
-            var test = columns;
-            // convert timestamp to date so it can be displayed correctly on the x axis of the graph
-            for (var k = 0; k < columns.length; k++) {
-                if (columns[k][0].charAt(0) == 'x') {
-                    for (var j = 1; j < columns[0].length; j++) {
-                        columns[k][j] = new Date(columns[k][j] * 1000);
+            var columns = [],
+                xs = {}, x = [], d = [];
+            if (me.datasourceType == "mist.monitor") {
+                var response;
+                //for http
+                if (data.detail != null) {
+                    response = data.detail.response;
+                } else {
+                    response = data.metrics;
+                }
+                var k = 0;
+                for (var metr in response) {
+                    x = [];
+                    d = [];
+                    if (response[metr] != null) {
+                        for (var i = 0; i < response[metr].datapoints.length; i++) {
+                            x.push(response[metr].datapoints[i][1]);
+                            d.push(response[metr].datapoints[i][0]);
+                            xs[me._filterTarget(response[metr].name)] = 'x' + (k + 1);
+                        }
+                        x.unshift("x" + (k + 1));
+                        d.unshift(response[metr].name);
+                        columns.splice(k, 0, x);
+                        columns.push(d);
+                        k++;
+                        for (var j = 1; j < x.length; j++) {
+                            x[j] = new Date(x[j] * 1000);
+                        }
                     }
                 }
+
+                return {
+                    xs: xs,
+                    columns: columns
+                };
             }
-            return {
-                xs: xs,
-                columns: columns
-            };
+            //for graphite
+            else {
+                var xcolumns = [],
+                    dcolumns = [];
+                for (var i = 0; i < data.detail.response.length; i++) {
+                  x.push(data.detail.response[i].datapoints.map(function(point) {
+                      return point[1]
+                  }));
+                  d.push(data.detail.response[i].datapoints.map(function(point) {
+                      return point[0]
+                  }));
+                  xs[me._filterTarget(data.detail.response[i].target)] = 'x' + (i + 1);
+                  xcolumns.push(['x' + (i + 1)].concat(x[i]));
+                  dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
+                }
+                columns = xcolumns.concat(dcolumns);
+                var test = columns;
+                // convert timestamp to date so it can be displayed correctly on the x axis of the graph
+                for (var k = 0; k < columns.length; k++) {
+                  if (columns[k][0].charAt(0) == 'x') {
+                      for (var j = 1; j < columns[0].length; j++) {
+                          columns[k][j] = new Date(columns[k][j] * 1000);
+                      }
+                  }
+                }
+                return {
+                  xs: xs,
+                  columns: columns
+                };
+            }
         }
     </script>
 </dom-module>

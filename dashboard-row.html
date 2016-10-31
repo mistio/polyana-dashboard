@@ -25,7 +25,16 @@
     <sortable-js>
         <template is="dom-repeat" items="{{row.panels}}">
           <div>
-            <dashboard-panel refresh="[[refresh]]" datasource-uri="[[_computeDatasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
+            <dashboard-panel
+              auto-refresh="[[autoRefresh]]"
+              datasource-uri="[[_computeDatasourceUri(datasources, item)]]"
+              datasource-type="[[_computeDatasourceType(datasources, item)]]"
+              rowh="{{row.height}}"
+              panel="[[item]]"
+              from="[[from]]"
+              to="[[to]]"
+              id="panel-[[item.id]]"
+              style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
           </div>
         </template>
     </sortable-js>
@@ -37,27 +46,38 @@
 
             properties: {
                 row: {
-                  type: Object,
+                    type: Object,
                 },
                 title: String,
                 from: String,
                 to: String,
-                datasources: Array,
-                refresh: String,
+                autoRefresh: Boolean,
             },
             _elementWidth: function(span) {
                 return 100 * span / 12 + '%';
             },
-            _computeDatasourceUri: function(datasources, panel) {
-                if (panel && panel.datasource) {
-                    var prefix = '/api/datasources/proxy/';
-                    //graphite has a datasource object that has datasource.name
-                    for (var i = 0; i < datasources.length; i++) {
-                        if (panel.datasource == datasources[i].name) {
-                            return datasources[i].uri || prefix + datasources[i].id;
-                        }
-                    }
+            _computeDatasource: function(datasources, panel) {
+                if (!panel)
+                    return
+                for (var i = 0; i < datasources.length; i++) {
+                    if (!panel.datasource && datasources[i].isDefault)
+                        return datasources[i];
+                    if (panel.datasource == datasources[i].name)
+                        return datasources[i];
                 }
+            },
+            _computeDatasourceUri: function(datasources, panel) {
+                var datasource = this._computeDatasource(datasources, panel);
+                if (!datasource)
+                    return;
+                var prefix = '/api/datasources/proxy/';
+                return datasource.uri || prefix + datasource.id;
+            },
+            _computeDatasourceType: function(datasources, panel) {
+                var datasource = this._computeDatasource(datasources, panel);
+                if (!datasource)
+                    return
+                return datasource.type;
             }
         });
     </script>
