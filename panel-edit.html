@@ -22,9 +22,7 @@
 
   <paper-dialog id="alignedDialog" no-overlap horizontal-align="left" vertical-align="top">
     <paper-dialog-scrollable>
-      <paper-header-panel>
-        <div class="paper-header">Data display</div>
-      </paper-header-panel>
+      <h2>Data display</h2>
       <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
         <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value" >
           <paper-item data-value="bar">Bar</paper-item>
@@ -32,13 +30,9 @@
           <paper-item data-value="line">Line</paper-item>
         </paper-menu>
       </paper-dropdown-menu>
-      <div>
-      <p>
-        <paper-checkbox id="step" on-tap="_changeGraph">Stack</paper-checkbox>
-      </p>
-      <paper-header-panel>
-        <div class="paper-header">Step</div>
-      </paper-header-panel>
+      <paper-checkbox id="step" on-tap="_changeGraph">Stack</paper-checkbox>
+
+      <h2>Step</h2>
       <paper-input  type="number" on-input="_clearDropDown" value="{{validInput}}" label="Enter step number"></paper-input>
       <paper-dropdown-menu label="Select Step Interval" placeholder="Step interval in" on-select="_changeStep">
         <paper-menu class="dropdown-content" selected="{{stepType}}" attr-for-selected="data-value" >
@@ -49,17 +43,14 @@
           <paper-item data-value="y">year</paper-item>
         </paper-menu>
       </paper-dropdown-menu>
-      <paper-header-panel>
-        <div class="paper-header">X-axis</div>
-      </paper-header-panel>
-      <p>
-        <paper-checkbox id="year" on-tap="_dateFormat">Years</paper-checkbox>
-        <paper-checkbox id="month" on-tap="_dateFormat">Months</paper-checkbox>
-        <paper-checkbox id="day" on-tap="_dateFormat">Days</paper-checkbox>
-        <paper-checkbox id="hour" on-tap="_dateFormat">Hours</paper-checkbox>
-        <paper-checkbox id="minute" on-tap="_dateFormat">Mins</paper-checkbox>
-        <paper-checkbox id="second" on-tap="_dateFormat">Secs</paper-checkbox>
-      </p>
+
+      <h2>X-axis</h2>
+      <paper-checkbox id="year" on-tap="_dateFormat">Years</paper-checkbox>
+      <paper-checkbox id="month" on-tap="_dateFormat">Months</paper-checkbox>
+      <paper-checkbox id="day" on-tap="_dateFormat">Days</paper-checkbox>
+      <paper-checkbox id="hour" on-tap="_dateFormat">Hours</paper-checkbox>
+      <paper-checkbox id="minute" on-tap="_dateFormat">Mins</paper-checkbox>
+      <paper-checkbox id="second" on-tap="_dateFormat">Secs</paper-checkbox>
     </paper-dialog-scrollable>
   </paper-dialog>
   </template>
