@@ -1,11 +1,11 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/paper-styles/typography.html">
-<link rel="import" href="../../bower_components/timerange-picker/timerange-picker.html">
-<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-styles/typography.html">
+<link rel="import" href="../timerange-picker/timerange-picker.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="dashboard-row.html">
 
 <dom-module id="polyana-dashboard">
-  <template>
+    <template>
       <style>
         :host{
           display: block;
@@ -39,167 +39,166 @@
         </div>
         <timerange-picker from="{{from}}" to="{{to}}" step="{{step}}" on-tap="_handleTap"></timerange-picker>
     </paper-card>
-    <iron-ajax
-      id="dataAjax"
-      url="/api/v1/dashboards/db"
-      handle-as="json"
-      method="post"
-      debounce-duration="300"></iron-ajax>
-    <template is="dom-repeat" items="{{dashboard.rows}}">
-      <dashboard-row  class="row" step="{{step}}" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+        <iron-ajax
+            id="dataAjax"
+            url="/api/v1/dashboards/db"
+            handle-as="json"
+            method="post"
+            debounce-duration="300"></iron-ajax>
+        <template is="dom-repeat" items="{{dashboard.rows}}">
+            <dashboard-row  class="row" step="{{step}}" datasources="[[datasources]]" auto-refresh="[[autoRefresh]]" row="{{item}}" style="height: [[item.height]]*2; clear: both; display: block" from="{{from}}" to="{{to}}" id="row-{{index}}" ></dashboard-row>
+        </template>
+        <iron-ajax
+            id='requestAjax'
+            auto="[[uri]]"
+            url="[[uri]]"
+            handle-as="json"
+            method="GET"
+            on-response="_handleResponse"
+            debounce-duration="300">
+        </iron-ajax>
     </template>
-    <iron-ajax id='requestAjax' auto="[[dashboardPath]]" url="[[_computeUrl(dashboardPath)]]" handle-as="json" method="GET" on-response="_handleResponse" debounce-duration="300">
-    </iron-ajax>
-  </template>
-  <script>
-      Polymer({
-          is: 'polyana-dashboard',
+    <script>
+        Polymer({
+            is: 'polyana-dashboard',
 
-          properties: {
-              dashboardPath: {
-                  type: String
-              },
-              dashboard: {
-                  type: Object
-              },
-              datasources: {
-                  type: Array
-              },
-              meta: {
-                  type: Object
-              },
-              targets: {
-                  type: Array,
-                  computed: "_getTargets(dashboard, datasources)"
-              },
-              datapoints: {
-                  type: Object
-              },
-              from: {
-                  type: String,
-                  value: (Math.floor(new Date().getTime() / 1000) - 600).toString()
-              },
-              to: {
-                  type: String,
-                  value: Math.floor(new Date().getTime() / 1000).toString()
-              },
-              step: {
-                  type: String,
-                  value: "10sec"
-              },
-              autoRefresh: {
-                  type: Boolean,
-                  value: false
-              },
-          },
-          listeners: {
-              'end': '_saveDashboard',
-              'resizeDone': '_saveDashboard',
-              'graphChanged': '_saveDashboard',
-              'clearAutorefresh':'_handleTap'
-          },
-          _handleTap: function() {
-              clearRefresh(this);
-          },
-          _computeUrl: function(dashboardPath) {
-              //for graphite
-              if (dashboardPath != "mist") {
-                  return "/api/dashboards/" + dashboardPath;
-              }
-          },
-          _saveDashboard: function(e) {
-              if (this.dashboardPath) {
-                  this.$.dataAjax.headers["Content-Type"] = 'application/json';
-                  this.$.dataAjax.body = {
-                      dashboard: this.dashboard,
-                      overwrite: true
-                  };
-                  this.$.dataAjax.generateRequest();
-              } else {
-                  // TODO
-              }
-          },
+            properties: {
+                dashboardPath: {
+                    type: String
+                },
+                dashboard: {
+                    type: Object
+                },
+                datasources: {
+                    type: Array
+                },
+                meta: {
+                    type: Object
+                },
+                targets: {
+                    type: Array,
+                    computed: "_getTargets(dashboard, datasources)"
+                },
+                datapoints: {
+                    type: Object
+                },
+                from: {
+                    type: String,
+                    value: (Math.floor(new Date().getTime() / 1000) - 600).toString()
+                },
+                to: {
+                    type: String,
+                    value: Math.floor(new Date().getTime() / 1000).toString()
+                },
+                step: {
+                    type: String,
+                    value: "10sec"
+                },
+                autoRefresh: {
+                    type: Boolean,
+                    value: false
+                },
+            },
+            listeners: {
+                'end': '_saveDashboard',
+                'resizeDone': '_saveDashboard',
+                'graphChanged': '_saveDashboard'
+            },
+            _handleTap: function() {
+                clearRefresh(this);
+            },
+            _saveDashboard: function(e) {
+                if (this.dashboardPath) {
+                    this.$.dataAjax.headers["Content-Type"] = 'application/json';
+                    this.$.dataAjax.body = {
+                        dashboard: this.dashboard,
+                        overwrite: true
+                    };
+                    this.$.dataAjax.generateRequest();
+                } else {
+                    // TODO
+                }
+            },
 
-          _handleResponse: function(data) {
-              if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
-                  clearRefresh(this);
-              }
-              this.meta = data.detail.response.meta;
-              this.dashboard = data.detail.response.dashboard;
-              this.from = this.dashboard.time.from;
-              this.to = this.dashboard.time.to;
-          },
+            _handleResponse: function(data) {
+                if (this.dashboard != null && (this.dashboard.id != data.detail.response.dashboard.id)) {
+                    clearRefresh(this);
+                }
+                this.meta = data.detail.response.meta;
+                this.dashboard = data.detail.response.dashboard;
+                this.from = this.dashboard.time.from;
+                this.to = this.dashboard.time.to;
+            },
 
-          _getTargets: function(dashboard, datasources) {
-              var targets = {};
-              for (var i = 0; i < dashboard.rows.length; i++) {
-                  if (dashboard.rows[i].panels)
-                      for (var j = 0; j < dashboard.rows[i].panels.length; j++)
-                          if (dashboard.rows[i].panels[j] && dashboard.rows[i].panels[j].targets)
-                              for (var k = 0; k < dashboard.rows[i].panels[j].targets.length; k++) {
-                                  if (dashboard.rows[i].panels[j].datasource == null) {
-                                      for (var p = 0; p < datasources.length; p++) {
-                                          if (datasources[p].isDefault) {
-                                              dashboard.rows[i].panels[j].datasource = datasources[p];
-                                          }
-                                      }
-                                  }
-                                  if (dashboard.rows[i].panels[j].datasource && targets[dashboard.rows[i].panels[j].datasource] == undefined) {
-                                      targets[dashboard.rows[i].panels[j].datasource] = [];
-                                  }
-                                  if (dashboard.rows[i].panels[j].targets[k].target && targets[dashboard.rows[i].panels[j].datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target) == -1) {
-                                      targets[dashboard.rows[i].panels[j].datasource].push(dashboard.rows[i].panels[j].targets[k].target);
-                                  }
-                              }
-              }
-              return targets
-          },
-          _autoRefresh: function(e) {
-              //the only point to have refresh is when "to" is "now"
-              if (this.refreshValue > 0) {
-                  this.from = refreshMe(this);
-              } else {
-                  console.log("not now");
-                  clearRefresh(this);
-              }
-          },
-      });
+            _getTargets: function(dashboard, datasources) {
+                var targets = {};
+                for (var i = 0; i < dashboard.rows.length; i++) {
+                    if (dashboard.rows[i].panels)
+                        for (var j = 0; j < dashboard.rows[i].panels.length; j++)
+                            if (dashboard.rows[i].panels[j] && dashboard.rows[i].panels[j].targets)
+                                for (var k = 0; k < dashboard.rows[i].panels[j].targets.length; k++) {
+                                    if (dashboard.rows[i].panels[j].datasource == null) {
+                                        for (var p = 0; p < datasources.length; p++) {
+                                            if (datasources[p].isDefault) {
+                                                dashboard.rows[i].panels[j].datasource = datasources[p];
+                                            }
+                                        }
+                                    }
+                                    if (dashboard.rows[i].panels[j].datasource && targets[dashboard.rows[i].panels[j].datasource] == undefined) {
+                                        targets[dashboard.rows[i].panels[j].datasource] = [];
+                                    }
+                                    if (dashboard.rows[i].panels[j].targets[k].target && targets[dashboard.rows[i].panels[j].datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target) == -1) {
+                                        targets[dashboard.rows[i].panels[j].datasource].push(dashboard.rows[i].panels[j].targets[k].target);
+                                    }
+                                }
+                }
+                return targets
+            },
+            _autoRefresh: function(e) {
+                //the only point to have refresh is when "to" is "now"
+                if (this.refreshValue > 0) {
+                    this.from = refreshMe(this);
+                } else {
+                    console.log("not now");
+                    clearRefresh(this);
+                }
+            },
+        });
 
-      var interval;
-      var undermin = 0;
+        var interval;
+        var undermin = 0;
 
-      function clearRefresh(me) {
-          console.log(me);
-          me.autoRefresh = false;
-          me.refreshValue = 0;
-          clearTimeout(interval);
-          console.log("refresh cleared");
-      }
+        function clearRefresh(me) {
+            me.autoRefresh = false;
+            me.refreshValue = 0;
+            clearTimeout(interval);
+            console.log("refresh cleared");
+        }
 
-      function refreshMe(me) {
-          interval = setTimeout(function() {
-              refreshMe(me);
-          }, me.refreshValue);
-          //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
-          if (me.from.toString().search("now") >= 0) {
-              var d = Math.floor(new Date().getTime() / 1000);
-              if (me.from.indexOf("h") >= 0) {
-                  var t = me.from.substr(me.from.indexOf("-") + 1, me.from.indexOf("h") - (me.from.indexOf("-") + 1));
-                  me.from = (d - t * 3600).toString();
-              }
-          }
-          //in case he has picked a value -10min to now and autorefresh is off for more than that period
-          else if (!me.autoRefresh) {
-              console.log("reseting panel", me.from);
-              //step should be equal to refresh value
-              me.autoRefresh = true;
-              me.from = Math.floor(new Date().getTime() / 1000) - (me.to - me.from);
-          } else {
-              //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
-              me.to = Math.floor(new Date().getTime() / 1000);
-              me.from = Math.floor(new Date().getTime() / 1000) - 300;
-          }
-          return me.from;
-      };
-  </script>
+        function refreshMe(me) {
+            interval = setTimeout(function() {
+                refreshMe(me);
+            }, me.refreshValue);
+            //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
+            if (me.from.toString().search("now") >= 0) {
+                var d = Math.floor(new Date().getTime() / 1000);
+                if (me.from.indexOf("h") >= 0) {
+                    var t = me.from.substr(me.from.indexOf("-") + 1, me.from.indexOf("h") - (me.from.indexOf("-") + 1));
+                    me.from = (d - t * 3600).toString();
+                }
+            }
+            //in case he has picked a value -10min to now and autorefresh is off for more than that period
+            else if (!me.autoRefresh) {
+                console.log("reseting panel", me.from);
+                //step should be equal to refresh value
+                me.autoRefresh = true;
+                me.from = Math.floor(new Date().getTime() / 1000) - (me.to - me.from);
+            } else {
+                //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
+                me.to = Math.floor(new Date().getTime() / 1000);
+                me.from = Math.floor(new Date().getTime() / 1000) - 300;
+            }
+            return me.from;
+        };
+    </script>
 </dom-module>

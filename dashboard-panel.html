@@ -13,10 +13,6 @@
         display: inline-block;
 
       }
-      /*#paper:active {
-        width: 0;
-        height: 0;
-      }*/
       #target {
         font-weight: bold;
         text-align: left;
@@ -29,7 +25,18 @@
         overflow: auto;
       }
     </style>
-    <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}" on-tap="_clearRefresh"></panel-edit>
+    <iron-ajax
+      id="dataRequest"
+      params="[[params]]"
+      url="[[_computeUrl(datasourceUri)]]"
+      handle-as="json"
+      method="GET"
+      loading="{{loading}}"
+      contentType="application/json"
+      on-response="_handlePanelResponse"
+      debounce-duration="300"></iron-ajax>
+
+    <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
     <paper-card id="paper">
       <div class="layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
@@ -38,25 +45,15 @@
         <div>[[panel.content]]</div>
       </template>
       <template is="dom-if" if="[[_isSinglestat(panel)]]">
-          <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
+        <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
       </template>
       <template is="dom-if" if="[[_isGraph(panel)]]">
-          <paper-spinner active="[[loading]]"></paper-spinner>
-            <iron-ajax id="getdata"
-              params = [[params]]
-              url = "[[_computeUrl(datasourceUri)]]"
-              handle-as="json"
-              method="GET"
-              loading="{{loading}}"
-              contentType="application/json"
-              on-response="_handlePanelResponse"
-              debounce-duration="300"></iron-ajax>
-          <c3-chart id="Panel[[panel.title]]" from="[[from]]" chart-id="[[panel.title]]"></c3-chart>
-        </template>
-
+        <paper-spinner active="[[loading]]"></paper-spinner>
+        <c3-chart id="Panel[[panel.title]]" from="[[from]]" chartid="[[panel.title]]"></c3-chart>
+      </template>
       <template is="dom-if" if="[[_isDashlist(panel)]]">
-          <div><!-- TODO -->...</div>
-        </template>
+        <div><!-- TODO -->...</div>
+      </template>
       <template is="dom-if" if="[[_isTable(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
@@ -70,7 +67,6 @@
                 from: {
                     type: String,
                     value: "-10min",
-                    observer: "_generateReq"
                 },
                 to: {
                     type: String,
@@ -81,7 +77,7 @@
                 },
                 params: {
                     type: Object,
-                    computed: '_computeParams(from, to, panel.targets)'
+                    computed: '_computeParams(from, to, panel.targets, datasourceType)',
                 },
                 rowh: {
                     type: Number,
@@ -90,7 +86,7 @@
                 autoRefresh: Boolean,
                 panel: {
                     type: Object,
-                    observer: '_panelUpdate'
+                    observer: '_generateDataRequest'
                 },
                 loading: Boolean,
                 datasourceUri: {
@@ -138,28 +134,30 @@
                 },
             },
             listeners: {
-                'panelChanged': '_changeGraph',
-                'panelUpdate':'_panelUpdate'
+                'panelChanged': '_changeGraph'
             },
-            observers: [
-              '_panelUpdate(panel.*)'
-            ],
-            _clearRefresh:function(){
-              this.fire("clearAutorefresh");
-            },
-            _generateReq: function() {
+            _generateDataRequest: function() {
                 //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
-                if (this.panel != null) {
-                    //uncomment for http calls
-                    if (this.panel.datasource != "mistphite") {
-                        this.querySelector("#getdata").generateRequest();
-                    } else {
-                        this._computeUrl();
-                    }
+                if (this.panel != null && this.querySelector("iron-ajax")) {
+                    this.async(function(){
+                        console.warn('generating data request', this.datasourceType, this.querySelector("iron-ajax").url);
+                        if (this.datasourceType == 'graphite')
+                            this.querySelector("iron-ajax").generateRequest()
+                        else if (this.datasourceType == 'mist.monitor') {
+                            //uncomment this for http calls
+                            //return '/api/v1/clouds/' + this.panel.cloudIds[0] + '/machines/' + this.panel.machineIds[0] + '/stats';
+                            var targets = [];
+                            for (var i = 0; i < this.panel.targets.length; i++) {
+                                targets.push(this.panel.targets[i].target);
+                            }
+                            var socket = document.querySelector('app-socket');
+                            if(this.panel.machineArray.length>0){
+                              var dt = [this.panel.machineArray[0][0], this.panel.machineArray[0][1], this.from, this.to, this.step, 0, targets];
+                              socket.getStats(dt, this._handlePanelResponse.bind(this));
+                            }
+                        }
+                    }, 100);
                 }
-            },
-            _panelUpdate: function() {
-                this._computeUrl();
             },
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
@@ -181,7 +179,7 @@
             _changeGraph: function(e) {
                 if (e.detail == "step") {
                     console.log(this.step, e.detail);
-                    this._computeUrl();
+                    this._generateDataRequest();
                 } else if (e.detail == "dateFormat") {
                     this.chartElement.load(this.chartData);
                 }
@@ -208,8 +206,8 @@
                 }
                 this.fire('graphChanged');
             },
-            _computeParams: function(from, to, targets) {
-                if (this.panel.datasource == "graphite") {
+            _computeParams: function(from, to, targets, datasourceType) {
+                if (this.datasourceType == "graphite") {
                     //some graphite versions expect 'until' paramater and others "to"
                     var ret = {
                             'format': 'json',
@@ -223,7 +221,7 @@
                     }
                     ret['target'] = tlist;
                     return ret;
-                } else if (this.panel.datasource == "mistphite") {
+                } else if (this.datasourceType == "mist.monitor") {
                     var ret = {
                             'start': from,
                             'stop': to
@@ -247,7 +245,7 @@
             _handlePanelResponse: function(data) {
                 //when we get the first real response we should stop the auto attribut because machines are updated constantly
                 if (data.metrics != null || data.detail.response != null) {
-                    this.querySelector('#getdata').removeAttribute("auto");
+                    this.querySelector('#dataRequest').removeAttribute("auto");
                 }
                 //if refresh is on then we need to flow the data not to redraw them
                 if (!this.autoRefresh) {
@@ -268,7 +266,7 @@
                             }
                         }
                     }
-                    this.chartElement = this.querySelector('#Panel' + this.panel.title);
+                    this.chartElement = this.querySelector('c3-chart');
                     //this.chartElement.destroy();
                     this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                     this.chartElement.axis = this.chartAxis;
@@ -276,6 +274,7 @@
                     dimensions.push(this.querySelector('paper-card').clientWidth);
                     dimensions.push(this.rowh);
                     this.chartData.size = dimensions;
+                    console.log(this.chartData);
                     this.chartElement.load(this.chartData);
                     if (this.panel.bars) {
                         this.chartData.type = "bar";
@@ -368,21 +367,7 @@
             },
 
             _computeUrl: function(datasourceUri) {
-                if (this.panel.datasource == 'mistphite') {
-                    //uncomment this for http calls
-                    //return '/api/v1/clouds/' + this.panel.cloudIds[0] + '/machines/' + this.panel.machineIds[0] + '/stats';
-                    var targets = [];
-                    for (var i = 0; i < this.panel.targets.length; i++) {
-                        targets.push(this.panel.targets[i].target);
-                    }
-                    var socket = document.querySelector('mist-socket');
-                    if(this.panel.machineArray.length>0){
-                      var dt = [this.panel.machineArray[0][0], this.panel.machineArray[0][1], this.from, this.to, this.step, 0, targets];
-                      socket.getStats(dt, this._handlePanelResponse.bind(this));
-                    }
-                } else if (this.panel.datasource == "Graphite") {
-                    return datasourceUri + '/render';
-                }
+                return this.datasourceUri + '/render';
             },
 
             _isGraph: function(panel) {
@@ -445,7 +430,7 @@
         }
 
         function transformData(me, data) {
-            if (me.panel.datasource == "mistphite") {
+            if (me.datasourceType == "mist.monitor") {
                 var response;
                 //for http
                 if (data.detail != null) {
@@ -483,30 +468,36 @@
             }
             //for graphite
             else {
+              var x = [],
+                  d = [],
+                  xs = {},
+                  xcolumns = [],
+                  dcolumns = [],
+                  g = [];
                 for (var i = 0; i < data.detail.response.length; i++) {
-                    x.push(data.detail.response[i].datapoints.map(function(point) {
-                        return point[1]
-                    }));
-                    d.push(data.detail.response[i].datapoints.map(function(point) {
-                        return point[0]
-                    }));
-                    xs[me._filterTarget(data.detail.response[i].target)] = 'x' + (i + 1);
-                    xcolumns.push(['x' + (i + 1)].concat(x[i]));
-                    dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
+                  x.push(data.detail.response[i].datapoints.map(function(point) {
+                      return point[1]
+                  }));
+                  d.push(data.detail.response[i].datapoints.map(function(point) {
+                      return point[0]
+                  }));
+                  xs[me._filterTarget(data.detail.response[i].target)] = 'x' + (i + 1);
+                  xcolumns.push(['x' + (i + 1)].concat(x[i]));
+                  dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
                 }
                 var columns = xcolumns.concat(dcolumns);
                 var test = columns;
                 // convert timestamp to date so it can be displayed correctly on the x axis of the graph
                 for (var k = 0; k < columns.length; k++) {
-                    if (columns[k][0].charAt(0) == 'x') {
-                        for (var j = 1; j < columns[0].length; j++) {
-                            columns[k][j] = new Date(columns[k][j] * 1000);
-                        }
-                    }
+                  if (columns[k][0].charAt(0) == 'x') {
+                      for (var j = 1; j < columns[0].length; j++) {
+                          columns[k][j] = new Date(columns[k][j] * 1000);
+                      }
+                  }
                 }
                 return {
-                    xs: xs,
-                    columns: columns
+                  xs: xs,
+                  columns: columns
                 };
             }
         }

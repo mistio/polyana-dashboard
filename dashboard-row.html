@@ -22,14 +22,14 @@
         <template is="dom-if" if="[[row.showTitle]]">
           <h2 id="show">[[row.title]]</h2>
         </template>
-        <sortable-js>
-            <template is="dom-repeat" items="{{row.panels}}">
-              <div>
-                <dashboard-panel auto-refresh="[[autoRefresh]]" step="{{step}}"  datasource-uri="[[_computeDatasourceUri(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
-              </div>
-            </template>
-        </sortable-js>
-      </div>
+    <sortable-js>
+        <template is="dom-repeat" items="{{row.panels}}">
+          <div>
+            <dashboard-panel auto-refresh="[[autoRefresh]]" step="{{step}}"  datasource-uri="[[_computeDatasourceUri(datasources, item)]]" datasource-type="[[_computeDatasourceType(datasources, item)]]" rowh="{{row.height}}" panel="{{item}}" from="[[from]]" to="[[to]]" id="panel-[[item.id]]" style="width: [[_elementWidth(item.span)]]; display: block;"></dashboard-panel>
+          </div>
+        </template>
+    </sortable-js>
+    </div>
     </template>
     <script>
         Polymer({
@@ -58,6 +58,16 @@
                         }
                     }
                 }
+            },
+            _computeDatasourceType: function(datasources, panel) {
+              if (panel && panel.datasource) {
+                  //graphite has a datasource object that has datasource.name
+                  for (var i = 0; i < datasources.length; i++) {
+                      if (panel.datasource == datasources[i].name) {
+                          return datasources[i].type;
+                      }
+                  }
+              }
             }
         });
     </script>

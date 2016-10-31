@@ -6,7 +6,7 @@
 <link rel="import" href="../paper-menu/paper-menu.html">
 <link rel="import" href="../paper-dialog-scrollable/paper-dialog-scrollable.html">
 <dom-module id="panel-edit">
-<template>
+    <template>
   <style is="custom-style">
     :host {
       display: inline-block;
@@ -19,6 +19,7 @@
     }
   </style>
   <paper-button raised on-tap="openDialog">Edit Graph</paper-button>
+
   <paper-dialog id="alignedDialog" no-overlap horizontal-align="left" vertical-align="top">
     <paper-dialog-scrollable>
       <paper-header-panel>
@@ -31,6 +32,7 @@
           <paper-item data-value="line">Line</paper-item>
         </paper-menu>
       </paper-dropdown-menu>
+      <div>
       <p>
         <paper-checkbox id="step" on-tap="_changeGraph">Stack</paper-checkbox>
       </p>
@@ -60,7 +62,7 @@
       </p>
     </paper-dialog-scrollable>
   </paper-dialog>
-</template>
+  </template>
     <script>
         Polymer({
             is: "panel-edit",
