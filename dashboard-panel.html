@@ -313,8 +313,8 @@
                     return ret;
                 } else if (this.datasourceType == "mist.monitor") {
                     var ret = {
-                            'start': from,
-                            'stop': to
+                            'start': this._computeGraphiteTimestamp(from),
+                            'stop': this._computeGraphiteTimestamp(to)
                         },
                         tlist = [];
                     for (var i = 0; i < targets.length; i++) {
@@ -357,14 +357,12 @@
                         }
                     }
                     this.chartElement = this.querySelector('c3-chart');
-                    //this.chartElement.destroy();
                     this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                     this.chartElement.axis = this.chartAxis;
                     var dimensions = [];
                     dimensions.push(this.querySelector('paper-card').clientWidth);
                     dimensions.push(this.rowh);
                     this.chartData.size = dimensions;
-                    console.log(this.chartData);
                     this.chartElement.load(this.chartData);
                     if (this.panel.bars) {
                         this.chartData.type = "bar";
