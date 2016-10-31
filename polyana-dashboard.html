@@ -27,7 +27,7 @@
     <paper-card class="layout horizontal stretch">
         <div class="flex">
           <paper-dropdown-menu label="Select autorefresh period" placeholder="off" on-select="_autoRefresh">
-            <paper-menu id="AutoRefresh" class="dropdown-content" selected="{{refreshValue}}" attr-for-selected="data-value" >
+            <paper-menu id="AutoRefresh" class="dropdown-content" selected="{{refreshInterval}}" attr-for-selected="data-value" >
               <paper-item data-value="0">off</paper-item>
               <paper-item data-value="5000">5s</paper-item>
               <paper-item data-value="10000">10sec</paper-item>
@@ -84,12 +84,10 @@
                     type: Object
                 },
                 from: {
-                    type: String,
-                    value: (Math.floor(new Date().getTime() / 1000) - 600).toString()
+                    type: String
                 },
                 to: {
-                    type: String,
-                    value: Math.floor(new Date().getTime() / 1000).toString()
+                    type: String
                 },
                 autoRefresh: {
                     type: Boolean,
@@ -159,8 +157,7 @@
                 return targets
             },
             _autoRefresh: function(e) {
-                //the only point to have refresh is when "to" is "now"
-                if (this.refreshValue > 0) {
+                if (this.refreshInterval > 0) {
                     this.from = refreshMe(this);
                 } else {
                     console.log("not now");
@@ -174,7 +171,7 @@
 
         function clearRefresh(me) {
             me.autoRefresh = false;
-            me.refreshValue = 0;
+            me.refreshInterval = 0;
             clearTimeout(interval);
             console.log("refresh cleared");
         }
@@ -182,7 +179,7 @@
         function refreshMe(me) {
             interval = setTimeout(function() {
                 refreshMe(me);
-            }, me.refreshValue);
+            }, me.refreshInterval);
             //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
             if (me.from.toString().search("now") >= 0) {
                 var d = Math.floor(new Date().getTime() / 1000);
