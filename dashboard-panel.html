@@ -68,11 +68,11 @@
             properties: {
                 from: {
                     type: String,
-
+                    observer: '_generateDataRequestFromTo'
                 },
                 to: {
                     type: String,
-
+                    observer: '_generateDataRequestFromTo'
                 },
                 step: {
                     type: String,
@@ -145,11 +145,9 @@
             observers: [
                 '_updateStep(from, to, datasourceType)'
             ],
-            //TODO it is triggered twice first with to then with from..it needs to fire once for both
-
+            //TODO when we change from/to botth _updateStep and _generateDataRequestFromTo are triggered
             _updateStep: function(from, to) {
-              console.log(from,this.from)
-                console.warn('from/to updated', this.datasourceType,from,to);
+                console.warn('from/to updated', this.datasourceType);
                 if (this.datasourceType != 'mist.monitor')
                     return; // step is needed only for mist.monitor datasource
 
@@ -236,8 +234,8 @@
 
             },
             _generateDataRequestFromTo:function (newVal,oldVal){
-              if((newVal!=oldVal|| newVal!=oldVal)&& oldVal!=null && !this.requestFired){
-                //this._generateDataRequest();
+              if(newVal!=oldVal&& oldVal!=null && !this.requestFired){
+                this._generateDataRequest();
               }
             },
 
