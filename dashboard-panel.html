@@ -51,7 +51,7 @@
       </template>
       <template is="dom-if" if="[[_isGraph(panel)]]">
         <paper-spinner active="[[loading]]"></paper-spinner>
-        <c3-chart id="Panel[[panel.title]]" from="[[from]]" chartid="[[panel.title]]"></c3-chart>
+        <c3-chart id="Panel[[panel.title]]" from="[[from]]" chart-id="[[panel.title]]"></c3-chart>
       </template>
       <template is="dom-if" if="[[_isDashlist(panel)]]">
         <div><!-- TODO -->...</div>
@@ -67,10 +67,12 @@
 
             properties: {
                 from: {
-                    type: String
+                    type: String,
+
                 },
                 to: {
-                    type: String
+                    type: String,
+
                 },
                 step: {
                     type: String,
@@ -92,6 +94,10 @@
                 datasourceUri: {
                     type: String,
                     reflectToAttribute: true
+                },
+                requestFired:{
+                  type:Boolean,
+                  value:false
                 },
                 chartData: {
                     type: Object,
@@ -139,8 +145,11 @@
             observers: [
                 '_updateStep(from, to, datasourceType)'
             ],
+            //TODO it is triggered twice first with to then with from..it needs to fire once for both
+
             _updateStep: function(from, to) {
-                console.warn('from/to updated', this.datasourceType);
+              console.log(from,this.from)
+                console.warn('from/to updated', this.datasourceType,from,to);
                 if (this.datasourceType != 'mist.monitor')
                     return; // step is needed only for mist.monitor datasource
 
@@ -164,13 +173,13 @@
                     } else { // time in secs
                         fromInSeconds = parsedDigits;
                     }
-                    console.warn('fromInSeconds string', fromInSeconds);
                 } else if (typeof from === 'number') {
                     fromInSeconds = from;
                 } else {
                     console.error('Unsupported type for "from"', typeof from);
                     return;
                 }
+                console.warn('fromInSeconds string', fromInSeconds);
                 if (typeof to === "string") {
                     if (to == 'now') {
                         toInSeconds = now;
@@ -205,23 +214,38 @@
                 var timeDelta = toInSeconds - fromInSeconds;
                 if (timeDelta <= 3600) { //less than an  hour
                     this.step = "10sec";
+                    this.chartAxis.x.tick.format = "%H:%M:%S";
                 } else if (timeDelta < 86400) { //less than a day
                     this.step = "1min";
+                    this.chartAxis.x.tick.format = "%H:%M";
                 } else if (timeDelta <= 2629746) { //less than a month
                     this.step = "30min";
+                    this.chartAxis.x.tick.format = "%m-%d %H:%M";
                 } else if (timeDelta <= 2629746 * 6) { //less than 6 months
                     this.step = "1h";
+                    this.chartAxis.x.tick.format = "%m-%d %H:%M";
                 } else if (timeDelta <= 31556952) { //less than year
                     this.step = "5d";
+                    this.chartAxis.x.tick.format = "%m-%d";
                 } else { //more than year
                     this.step = "1month";
+                    this.chartAxis.x.tick.format = "%Y-%m";
                 }
-
                 console.warn('calculated step', this.step);
+                this._generateDataRequest();
+
             },
+            _generateDataRequestFromTo:function (newVal,oldVal){
+              if((newVal!=oldVal|| newVal!=oldVal)&& oldVal!=null && !this.requestFired){
+                //this._generateDataRequest();
+              }
+            },
+
             _generateDataRequest: function() {
+              console.log("generating request");
                 //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
                 if (this.panel != null && this.querySelector("iron-ajax")) {
+                    this.requestFired=true;
                     this.async(function(){
                         if (this.datasourceType == 'graphite')
                             this.querySelector("iron-ajax").generateRequest()
@@ -336,6 +360,7 @@
                 return target;
             },
             _handlePanelResponse: function(data) {
+                this.requestFired=false;
                 //when we get the first real response we should stop the auto attribut because machines are updated constantly
                 if (data.metrics != null || data.detail.response != null) {
                     this.querySelector('#dataRequest').removeAttribute("auto");
@@ -360,7 +385,6 @@
                         }
                     }
                     this.chartElement = this.querySelector('c3-chart');
-                    this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                     this.chartElement.axis = this.chartAxis;
                     var dimensions = [];
                     dimensions.push(this.querySelector('paper-card').clientWidth);
@@ -439,7 +463,6 @@
                     //display the new data
                     if (cols.columns[0].length > 1) {
                         console.log("flow good", cols);
-                        this.chartAxis.x = smartAxis(this.from, this.to, this.chartAxis.x);
                         this.chartElement.flow(cols);
                     }
                     //add the new data to the old
@@ -482,43 +505,6 @@
 
             },
         });
-
-        function smartAxis(from, to, axis) {
-            //for presets
-            if (to == "now" && typeof from == "string") {
-                if (from.search("y") >= 0) {
-                    axis.tick.format = "%Y-%m";
-                } else if (from.search("d") >= 0) {
-                    axis.tick.format = "%m-%d";
-                } else if (from.search("h") >= 0) {
-                    axis.tick.format = "%H:%M";
-                    axis.tick.fit = true;
-                } else if (from.search("month") >= 0) {
-                    axis.tick.format = "%m-%d %H:%M";
-                } else if (from.search("min") >= 0) {
-                    axis.tick.format = "%H:%M";
-                }
-            }
-            //for custom time range
-            else {
-                if (to == "now") {
-                    to = Math.floor(new Date().getTime() / 1000);
-                }
-                var timelapsed = (to - from);
-                //less or equal than 2 days
-                if (timelapsed <= 86400 * 3) {
-                    axis.tick.format = "%H:%M";
-                    //more than 2 days less than a year
-                } else if (timelapsed > 86400 * 3 && timelapsed < 86400 * 365) {
-                    axis.tick.format = "%m-%d";
-                    //more than a year
-                } else {
-                    axis.tick.format = "%Y-%m";
-                }
-            }
-            axis.tick.fit = false;
-            return axis;
-        }
 
         function transformData(me, data) {
             var columns = [],
