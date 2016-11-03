@@ -9,57 +9,57 @@
 
 <dom-module id="dashboard-panel">
     <template>
-    <style>
-      :host {
-        float: left;
-        display: inline-block;
+      <style>
+        :host {
+          float: left;
+          display: inline-block;
 
-      }
-      #target {
-        font-weight: bold;
-        text-align: left;
-      }
-      paper-card {
-        width: 100%;
-        padding: 16px;
-        box-sizing: border-box;
-        /*resize:both;*/
-        overflow: auto;
-      }
-    </style>
-    <iron-ajax
-      id="dataRequest"
-      params="[[params]]"
-      url="[[_computeUrl(datasourceUri)]]"
-      handle-as="json"
-      method="GET"
-      loading="{{loading}}"
-      contentType="application/json"
-      on-response="_handlePanelResponse"
-      debounce-duration="300"></iron-ajax>
+        }
+        #target {
+          font-weight: bold;
+          text-align: left;
+        }
+        paper-card {
+          width: 100%;
+          padding: 16px;
+          box-sizing: border-box;
+          /*resize:both;*/
+          overflow: auto;
+        }
+      </style>
+      <iron-ajax
+        id="dataRequest"
+        params="[[params]]"
+        url="[[_computeUrl(datasourceUri)]]"
+        handle-as="json"
+        method="GET"
+        loading="{{loading}}"
+        contentType="application/json"
+        on-response="_handlePanelResponse"
+        debounce-duration="300"></iron-ajax>
 
-    <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
-    <paper-card id="paper">
-      <div class="layout horizontal">
-        <h3 class="flex">[[panel.title]]</h3>
-      </div>
-      <template is="dom-if" if="[[_isText(panel)]]">
-        <div>[[panel.content]]</div>
-      </template>
+      <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
+      <paper-card id="paper">
+        <div class="layout horizontal">
+          <h3 class="flex">[[panel.title]]</h3>
+        </div>
+        <template is="dom-if" if="[[_isText(panel)]]">
+          <div>[[panel.content]]</div>
+        </template>
       <template is="dom-if" if="[[_isSinglestat(panel)]]">
-        <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
-      </template>
+          <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
+        </template>
       <template is="dom-if" if="[[_isGraph(panel)]]">
-        <paper-spinner active="[[loading]]"></paper-spinner>
-        <c3-chart id="Panel[[panel.title]]" from="[[from]]" chart-id="[[panel.title]]"></c3-chart>
-      </template>
+          <paper-spinner active="[[loading]]"></paper-spinner>
+          <c3-chart id="Panel[[panel.title]]" from="[[from]]" chart-id="[[panel.title]]"></c3-chart>
+        </template>
       <template is="dom-if" if="[[_isDashlist(panel)]]">
-        <div><!-- TODO -->...</div>
-      </template>
+          <div><!-- TODO -->...</div>
+        </template>
       <template is="dom-if" if="[[_isTable(panel)]]">
-        <div><!-- TODO -->...</div>
-      </template>
-    </paper-card>
+          <div><!-- TODO -->...</div>
+        </template>
+      </paper-card>
     </template>
     <script>
         Polymer({
@@ -68,11 +68,9 @@
             properties: {
                 from: {
                     type: String,
-                    observer: '_generateDataRequestFromTo'
                 },
                 to: {
                     type: String,
-                    observer: '_generateDataRequestFromTo'
                 },
                 step: {
                     type: String,
@@ -94,10 +92,6 @@
                 datasourceUri: {
                     type: String,
                     reflectToAttribute: true
-                },
-                requestFired:{
-                  type:Boolean,
-                  value:false
                 },
                 chartData: {
                     type: Object,
@@ -143,108 +137,103 @@
                 'panelChanged': '_changeGraph'
             },
             observers: [
-                '_updateStep(from, to, datasourceType)'
+                '_updateStep(from, to)'
             ],
-            //TODO when we change from/to botth _updateStep and _generateDataRequestFromTo are triggered
+
             _updateStep: function(from, to) {
-                console.warn('from/to updated', this.datasourceType);
-                if (this.datasourceType != 'mist.monitor')
-                    return; // step is needed only for mist.monitor datasource
+                this.debounce('updateStep', function() {
+                    console.warn('from/to updated', this.datasourceType, from, to);
+                    if (this.datasourceType != 'mist.monitor')
+                        return; // step is needed only for mist.monitor datasource
 
-                // We need to calculate "from" and "to" in seconds in order to
-                // subtract them
-                var fromInSeconds, toInSeconds, parsedDigits,
-                    now = Math.floor(new Date().getTime()/1000);
-                if (typeof from === "string") {
-                    // get digits in string
-                    parsedDigits = parseInt(from.match(/\d+/g));
-                    if (from.search("y") >= 0) { // time in years
-                        fromInSeconds = now - parsedDigits *  31556952;
-                    } else if (from.search("month") >= 0) { // time in months
-                        fromInSeconds = now - parsedDigits * 2629746;
-                    } else if (from.search("d") >= 0) { // time in days
-                        fromInSeconds = now - parsedDigits * 86400;
-                    } else if (from.search("h") >= 0) { // time in hours
-                        fromInSeconds = now - parsedDigits * 3600;
-                    } else if (from.search("m") >= 0) { // time in mins
-                        fromInSeconds = now - parsedDigits * 60;
-                    } else { // time in secs
-                        fromInSeconds = parsedDigits;
-                    }
-                } else if (typeof from === 'number') {
-                    fromInSeconds = from;
-                } else {
-                    console.error('Unsupported type for "from"', typeof from);
-                    return;
-                }
-                console.warn('fromInSeconds string', fromInSeconds);
-                if (typeof to === "string") {
-                    if (to == 'now') {
-                        toInSeconds = now;
-                    } else {
+                    // We need to calculate "from" and "to" in seconds in order to
+                    // subtract them
+                    var fromInSeconds, toInSeconds, parsedDigits,
+                        now = Math.floor(new Date().getTime() / 1000);
+                    if (typeof from === "string") {
                         // get digits in string
-                        parsedDigits = parseInt(to.match(/\d+/g));
-                        if (!parsedDigits || parsedDigits === NaN) {
-                            console.error('Invalid value for "to"', to);
-                            return;
-                        }
-                        if (to.search("y") >= 0) { // time in years
-                            toInSeconds = now - parsedDigits *  31556952;
-                        } else if (to.search("month") >= 0) { // time in months
-                            toInSeconds = now - parsedDigits * 2629746;
-                        } else if (to.search("d") >= 0) { // time in days
-                            toInSeconds = now - parsedDigits * 86400;
-                        } else if (to.search("h") >= 0) { // time in hours
-                            toInSeconds = now - parsedDigits * 3600;
-                        } else if (to.search("m") >= 0) { // time in mins
-                            toInSeconds = now - parsedDigits * 60;
+                        parsedDigits = parseInt(from.match(/\d+/g));
+                        if (from.search("y") >= 0) { // time in years
+                            fromInSeconds = now - parsedDigits * 31556952;
+                        } else if (from.search("month") >= 0) { // time in months
+                            fromInSeconds = now - parsedDigits * 2629746;
+                        } else if (from.search("d") >= 0) { // time in days
+                            fromInSeconds = now - parsedDigits * 86400;
+                        } else if (from.search("h") >= 0) { // time in hours
+                            fromInSeconds = now - parsedDigits * 3600;
+                        } else if (from.search("m") >= 0) { // time in mins
+                            fromInSeconds = now - parsedDigits * 60;
                         } else { // time in secs
-                            toInSeconds = now - parsedDigits;
+                            fromInSeconds = parsedDigits;
                         }
+                    } else if (typeof from === 'number') {
+                        fromInSeconds = from;
+                    } else {
+                        console.error('Unsupported type for "from"', typeof from);
+                        return;
                     }
-                } else if (typeof to === 'number') {
-                    toInSeconds = to;
-                } else {
-                    console.error('Unsupported type for "to"', typeof to);
-                    return;
-                }
-                console.warn('toInSeconds', toInSeconds);
-                var timeDelta = toInSeconds - fromInSeconds;
-                if (timeDelta <= 3600) { //less than an  hour
-                    this.step = "10sec";
-                    this.chartAxis.x.tick.format = "%H:%M:%S";
-                } else if (timeDelta < 86400) { //less than a day
-                    this.step = "1min";
-                    this.chartAxis.x.tick.format = "%H:%M";
-                } else if (timeDelta <= 2629746) { //less than a month
-                    this.step = "30min";
-                    this.chartAxis.x.tick.format = "%m-%d %H:%M";
-                } else if (timeDelta <= 2629746 * 6) { //less than 6 months
-                    this.step = "1h";
-                    this.chartAxis.x.tick.format = "%m-%d %H:%M";
-                } else if (timeDelta <= 31556952) { //less than year
-                    this.step = "5d";
-                    this.chartAxis.x.tick.format = "%m-%d";
-                } else { //more than year
-                    this.step = "1month";
-                    this.chartAxis.x.tick.format = "%Y-%m";
-                }
-                console.warn('calculated step', this.step);
-                this._generateDataRequest();
-
-            },
-            _generateDataRequestFromTo:function (newVal,oldVal){
-              if(newVal!=oldVal&& oldVal!=null && !this.requestFired){
-                this._generateDataRequest();
-              }
+                    console.warn('fromInSeconds string', fromInSeconds);
+                    if (typeof to === "string") {
+                        if (to == 'now') {
+                            toInSeconds = now;
+                        } else {
+                            // get digits in string
+                            parsedDigits = parseInt(to.match(/\d+/g));
+                            if (!parsedDigits || parsedDigits === NaN) {
+                                console.error('Invalid value for "to"', to);
+                                return;
+                            }
+                            if (to.search("y") >= 0) { // time in years
+                                toInSeconds = now - parsedDigits * 31556952;
+                            } else if (to.search("month") >= 0) { // time in months
+                                toInSeconds = now - parsedDigits * 2629746;
+                            } else if (to.search("d") >= 0) { // time in days
+                                toInSeconds = now - parsedDigits * 86400;
+                            } else if (to.search("h") >= 0) { // time in hours
+                                toInSeconds = now - parsedDigits * 3600;
+                            } else if (to.search("m") >= 0) { // time in mins
+                                toInSeconds = now - parsedDigits * 60;
+                            } else { // time in secs
+                                toInSeconds = now - parsedDigits;
+                            }
+                        }
+                    } else if (typeof to === 'number') {
+                        toInSeconds = to;
+                    } else {
+                        console.error('Unsupported type for "to"', typeof to);
+                        return;
+                    }
+                    console.warn('toInSeconds', toInSeconds);
+                    var timeDelta = toInSeconds - fromInSeconds;
+                    if (timeDelta <= 3600) { //less than an  hour
+                        this.step = "10sec";
+                        this.chartAxis.x.tick.format = "%H:%M:%S";
+                    } else if (timeDelta < 86400) { //less than a day
+                        this.step = "1min";
+                        this.chartAxis.x.tick.format = "%H:%M";
+                    } else if (timeDelta <= 2629746) { //less than a month
+                        this.step = "10min";
+                        this.chartAxis.x.tick.format = "%m-%d %H:%M";
+                    } else if (timeDelta <= 2629746 * 6) { //less than 6 months
+                        this.step = "1h";
+                        this.chartAxis.x.tick.format = "%m-%d %H:%M";
+                    } else if (timeDelta <= 31556952) { //less than year
+                        this.step = "5d";
+                        this.chartAxis.x.tick.format = "%m-%d";
+                    } else { //more than year
+                        this.step = "1month";
+                        this.chartAxis.x.tick.format = "%Y-%m";
+                    }
+                    console.warn('calculated step', this.step);
+                    this._generateDataRequest();
+                }, 100);
             },
 
             _generateDataRequest: function() {
-              console.log("generating request");
                 //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
                 if (this.panel != null && this.querySelector("iron-ajax")) {
-                    this.requestFired=true;
-                    this.async(function(){
+                    this.async(function() {
+                        console.log("requesting")
                         if (this.datasourceType == 'graphite')
                             this.querySelector("iron-ajax").generateRequest()
                         else if (this.datasourceType == 'mist.monitor') {
@@ -255,9 +244,9 @@
                                 targets.push(this.panel.targets[i].target);
                             }
                             var socket = document.querySelector('mist-socket');
-                            if(this.panel.machineArray.length>0){
-                              var payload = [this.panel.machineArray[0][0], this.panel.machineArray[0][1], this._computeGraphiteTimestamp(this.from), this._computeGraphiteTimestamp(this.to), this.step, 0, targets];
-                              socket.getStats(payload, this._handlePanelResponse.bind(this));
+                            if (this.panel.machineArray.length > 0) {
+                                var payload = [this.panel.machineArray[0][0], this.panel.machineArray[0][1], this._computeGraphiteTimestamp(this.from), this._computeGraphiteTimestamp(this.to), this.step, 0, targets];
+                                socket.getStats(payload, this._handlePanelResponse.bind(this));
                             }
                         }
                     }, 100);
@@ -269,7 +258,7 @@
                     return timestamp;
 
                 var ret = timestamp.replace('now-', '-');
-                if (ret.search('min') == -1)
+                if (ret.search('min') == -1 && ret.search('month') == -1)
                     ret = ret.replace('m', 'min');
                 return ret;
             },
@@ -358,7 +347,6 @@
                 return target;
             },
             _handlePanelResponse: function(data) {
-                this.requestFired=false;
                 //when we get the first real response we should stop the auto attribut because machines are updated constantly
                 if (data.metrics != null || data.detail.response != null) {
                     this.querySelector('#dataRequest').removeAttribute("auto");
@@ -506,7 +494,9 @@
 
         function transformData(me, data) {
             var columns = [],
-                xs = {}, x = [], d = [];
+                xs = {},
+                x = [],
+                d = [];
             if (me.datasourceType == "mist.monitor") {
                 var response;
                 //for http
@@ -546,29 +536,29 @@
                 var xcolumns = [],
                     dcolumns = [];
                 for (var i = 0; i < data.detail.response.length; i++) {
-                  x.push(data.detail.response[i].datapoints.map(function(point) {
-                      return point[1]
-                  }));
-                  d.push(data.detail.response[i].datapoints.map(function(point) {
-                      return point[0]
-                  }));
-                  xs[me._filterTarget(data.detail.response[i].target)] = 'x' + (i + 1);
-                  xcolumns.push(['x' + (i + 1)].concat(x[i]));
-                  dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
+                    x.push(data.detail.response[i].datapoints.map(function(point) {
+                        return point[1]
+                    }));
+                    d.push(data.detail.response[i].datapoints.map(function(point) {
+                        return point[0]
+                    }));
+                    xs[me._filterTarget(data.detail.response[i].target)] = 'x' + (i + 1);
+                    xcolumns.push(['x' + (i + 1)].concat(x[i]));
+                    dcolumns.push([me._filterTarget(data.detail.response[i].target)].concat(d[i]));
                 }
                 columns = xcolumns.concat(dcolumns);
                 var test = columns;
                 // convert timestamp to date so it can be displayed correctly on the x axis of the graph
                 for (var k = 0; k < columns.length; k++) {
-                  if (columns[k][0].charAt(0) == 'x') {
-                      for (var j = 1; j < columns[0].length; j++) {
-                          columns[k][j] = new Date(columns[k][j] * 1000);
-                      }
-                  }
+                    if (columns[k][0].charAt(0) == 'x') {
+                        for (var j = 1; j < columns[0].length; j++) {
+                            columns[k][j] = new Date(columns[k][j] * 1000);
+                        }
+                    }
                 }
                 return {
-                  xs: xs,
-                  columns: columns
+                    xs: xs,
+                    columns: columns
                 };
             }
         }
