@@ -230,7 +230,6 @@
             },
 
             _generateDataRequest: function() {
-              console.log("generating request");
                 //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
                 if (this.panel != null && this.querySelector("iron-ajax")) {
                     this.async(function() {
