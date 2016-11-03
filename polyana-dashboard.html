@@ -3,7 +3,6 @@
 <link rel="import" href="../timerange-picker/timerange-picker.html">
 <link rel="import" href="../iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="dashboard-row.html">
-<link rel="import" href="add-panel.html">
 
 <dom-module id="polyana-dashboard">
     <template>
@@ -26,8 +25,19 @@
         }
     </style>
     <paper-card class="layout horizontal stretch">
-        <add-panel uri="[[_computeMetricsUri(dashboard)]]"></add-panel>
-        <timerange-picker from="{{from}}" to="{{to}}" on-tap="_handleTap" style="float:right;"></timerange-picker>
+        <div class="flex">
+          <paper-dropdown-menu label="Select autorefresh period" placeholder="off" on-select="_autoRefresh">
+            <paper-menu id="AutoRefresh" class="dropdown-content" selected="{{refreshInterval}}" attr-for-selected="data-value" >
+              <paper-item data-value="0">off</paper-item>
+              <paper-item data-value="5000">5s</paper-item>
+              <paper-item data-value="10000">10sec</paper-item>
+              <paper-item data-value="30000">30sec</paper-item>
+              <paper-item data-value="60000">1min</paper-item>
+              <paper-item data-value="300000">5min</paper-item>
+            </paper-menu>
+          </paper-dropdown-menu>
+        </div>
+        <timerange-picker from="{{from}}" to="{{to}}" on-tap="_handleTap"></timerange-picker>
     </paper-card>
         <iron-ajax
             id="dataAjax"
@@ -83,51 +93,16 @@
                     type: Boolean,
                     value: false
                 },
-                refreshInterval:{
-                  type:Number,
-                }
             },
             listeners: {
                 'end': '_saveDashboard',
                 'resizeDone': '_saveDashboard',
-                'graphChanged': '_saveDashboard',
-                'refresh':'_autoRefresh',
-                'panelAdded':'_panelAdded'
+                'graphChanged': '_saveDashboard'
             },
 
             _handleTap: function() {
                 clearRefresh(this);
             },
-
-            _panelAdded:function (e){
-              console.log("i got",e.detail);
-              var panel ={
-                "lines": true,
-                "aliasColors": {},
-                "datasource": "mist.monitor",
-                "id": this.dashboard.rows[0].panels.length,
-                "span": 12,
-                "stack": false,
-                "targets": [{
-                    "refId": "A",
-                    "target": e.detail
-                }],
-                "timeFrom": null,
-                "timeShift": null,
-                "title": e.detail.split(".")[0],
-                "type": "graph",
-                "machineArray": [[this.dashboard.rows[0].panels[0].machineArray[0][0], this.dashboard.rows[0].panels[0].machineArray[0][1]]],
-                "x-axis": true,
-                "y-axis": true
-              }
-              this.push("dashboard.rows.0.panels",panel);
-              console.log(this.dashboard);
-            },
-
-            _computeMetricsUri: function(dashboard) {
-              return "/api/v1/clouds/" + dashboard.rows[0].panels[0].machineArray[0][0] + "/machines/" + dashboard.rows[0].panels[0].machineArray[0][1]+ "/metrics";
-            },
-
             _saveDashboard: function(e) {
                 if (this.dashboardPath) {
                     this.$.dataAjax.headers["Content-Type"] = 'application/json';
@@ -182,11 +157,11 @@
                 }
                 return targets
             },
-            _autoRefresh: function(value) {
-                this.refreshInterval=value.detail;
+            _autoRefresh: function(e) {
                 if (this.refreshInterval > 0) {
                     this.from = refreshMe(this);
                 } else {
+                    console.log("not now");
                     clearRefresh(this);
                 }
             },
@@ -217,11 +192,8 @@
             //in case he has picked a value -10min to now and autorefresh is off for more than that period
             else if (!me.autoRefresh) {
                 console.log("reseting panel", me.from);
-                me.to= Math.floor(new Date().getTime() / 1000);
-                if(typeof me.from != 'string'){
-                  me.from = Math.floor(new Date().getTime() / 1000) - (me.to - me.from);
-                }
                 me.autoRefresh = true;
+                me.from = Math.floor(new Date().getTime() / 1000) - (me.to - me.from);
             } else {
                 //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
                 me.to = Math.floor(new Date().getTime() / 1000);
