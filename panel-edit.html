@@ -17,8 +17,14 @@
     paper-header-panel {
       background-color: #03a9f4;
     }
+    paper-icon-button#settings {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      opacity: 0.32;
+    }
   </style>
-  <paper-button raised on-tap="openDialog">Edit Graph</paper-button>
+  <paper-icon-button id="settings" icon="icons:settings" on-tap="openDialog">Edit Graph</paper-icon-button>
 
   <paper-dialog id="alignedDialog" no-overlap horizontal-align="left" vertical-align="top">
     <paper-dialog-scrollable>
