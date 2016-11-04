@@ -72,6 +72,7 @@
             properties: {
                 from: {
                     type: String,
+                    value:"10min"
                 },
                 to: {
                     type: String,
@@ -208,8 +209,9 @@
             },
             _handlePanelResponse: function(data) {
                 //if refresh is on then we need to flow the data not to redraw them
-                if (this.refresh == false) {
+                if (this.refresh == false || this.refresh) {
                     var cols = transformData(this, data);
+                    console.log(cols);
                     this.set('chartData', {
                         xs: cols.xs,
                         columns: cols.columns
@@ -309,7 +311,7 @@
                     //display the new data
                     if (cols.columns[0].length > 1) {
                         console.log("flow good", cols);
-                        this.chartElement.flow(cols);
+                        //this.chartElement.flow(cols);
                     }
                     //add the new data to the old
                     for (var j = 0; j < cols.columns.length; j++) {
@@ -356,6 +358,7 @@
 
         function smartAxis(from, to, axis) {
             //for presets
+            from=from.toString();
             if (to == "now") {
                 if (from.search("y") >= 0) {
                     axis.tick.format = "%Y-%m";
@@ -382,6 +385,7 @@
                     axis.tick.format = "%Y-%m";
                 }
             }
+                                  console.log('smaraxis',from,to,axis);
             axis.tick.fit = false;
             return axis;
         }
