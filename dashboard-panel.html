@@ -287,8 +287,8 @@
 
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
-                    this.width = this.querySelector('paper-card').clientWidth;
-                    this.height = this.querySelector('paper-card').clientHeight;
+                    this.width = this.querySelector('paper-material').clientWidth;
+                    this.height = this.querySelector('paper-material').clientHeight;
                     this.chartElement.resize({
                         height: this.height - 140,
                         width: this.width - 20
@@ -396,7 +396,7 @@
                     this.chartElement = this.querySelector('c3-chart');
                     this.chartElement.axis = this.chartAxis;
                     var dimensions = [];
-                    dimensions.push(this.querySelector('paper-card').clientWidth);
+                    dimensions.push(this.querySelector('paper-material').clientWidth);
                     dimensions.push(this.rowh);
                     this.chartData.size = dimensions;
                     this.chartElement.load(this.chartData);
