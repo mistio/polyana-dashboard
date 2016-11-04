@@ -1,6 +1,7 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-styles/typography.html">
 <link rel="import" href="../timerange-picker/timerange-picker.html">
+<link rel="import" href="../paper-material/paper-material.html">
 <link rel="import" href="../iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="dashboard-row.html">
 
@@ -17,6 +18,14 @@
           cursor: move;
           cursor: -webkit-grabbing;
         }
+        paper-material {
+          width: 100%;
+          padding: 16px;
+          box-sizing: border-box;
+        }
+        .timerange-area {
+            justify-content: flex-end;
+        }
       </style>
       <style is="custom-style">
         paper-card {
@@ -24,7 +33,7 @@
           margin: 16px;
         }
     </style>
-    <paper-card class="layout horizontal stretch">
+    <paper-material class="timerange-area layout horizontal stretch" elevation="0">
         <div class="flex">
           <paper-dropdown-menu label="Select autorefresh period" placeholder="off" on-select="_autoRefresh">
             <paper-menu id="AutoRefresh" class="dropdown-content" selected="{{refreshInterval}}" attr-for-selected="data-value" >
@@ -38,7 +47,7 @@
           </paper-dropdown-menu>
         </div>
         <timerange-picker from="{{from}}" to="{{to}}" on-tap="_handleTap"></timerange-picker>
-    </paper-card>
+    </paper-material>
         <iron-ajax
             id="dataAjax"
             url="/api/v1/dashboards/db"

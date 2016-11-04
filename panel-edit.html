@@ -18,15 +18,13 @@
       background-color: #03a9f4;
     }
     paper-icon-button#settings {
-      position: absolute;
-      top: 8px;
-      right: 8px;
+      padding: 8px;
       opacity: 0.32;
     }
   </style>
   <paper-icon-button id="settings" icon="icons:settings" on-tap="openDialog">Edit Graph</paper-icon-button>
 
-  <paper-dialog id="alignedDialog" no-overlap horizontal-align="left" vertical-align="top">
+  <paper-dialog id="alignedDialog" no-overlap horizontal-align="right" vertical-align="top">
     <paper-dialog-scrollable>
       <h2>Data display</h2>
       <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
