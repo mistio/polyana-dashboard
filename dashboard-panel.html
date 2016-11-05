@@ -14,7 +14,7 @@
       :host {
         float: left;
         display: inline-block;
-
+        position: relative;
       }
       #target {
         font-weight: bold;
@@ -25,7 +25,7 @@
         padding: 0 16px 16px 16px;
         box-sizing: border-box;
         overflow: auto;
-        background-color: #eee;
+        background-color: #f1f1f1;
         margin-bottom: 4px;
       }
       h3 {
@@ -33,9 +33,15 @@
         font-size: 16px;
         font-weight: 500;
         line-height: 36px;
+        cursor: move;
       }
       .head {
         align-items: center;
+      }
+      paper-spinner {
+        position: absolute;
+        left: 50%;
+        top: 24px;
       }
     </style>
     <iron-ajax
