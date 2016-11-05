@@ -1,5 +1,6 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
@@ -19,12 +20,22 @@
         font-weight: bold;
         text-align: left;
       }
-      paper-card {
+      paper-material {
         width: 100%;
-        padding: 16px;
+        padding: 0 16px 16px 16px;
         box-sizing: border-box;
-        /*resize:both;*/
         overflow: auto;
+        background-color: #eee;
+        margin-bottom: 4px;
+      }
+      h3 {
+        text-transform: uppercase;
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 36px;
+      }
+      .head {
+        align-items: center;
       }
     </style>
     <iron-ajax
@@ -38,10 +49,10 @@
       on-response="_handlePanelResponse"
       debounce-duration="300"></iron-ajax>
 
-    <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
-    <paper-card id="paper">
-      <div class="layout horizontal">
+    <paper-material id="paper" elevation="0">
+      <div class="head layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
+        <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
       </div>
       <template is="dom-if" if="[[_isText(panel)]]">
         <div>[[panel.content]]</div>
@@ -59,7 +70,7 @@
       <template is="dom-if" if="[[_isTable(panel)]]">
         <div><!-- TODO -->...</div>
       </template>
-    </paper-card>
+    </paper-material>
     </template>
     <script>
         Polymer({
@@ -276,8 +287,8 @@
 
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
-                    this.width = this.querySelector('paper-card').clientWidth;
-                    this.height = this.querySelector('paper-card').clientHeight;
+                    this.width = this.querySelector('paper-material').clientWidth;
+                    this.height = this.querySelector('paper-material').clientHeight;
                     this.chartElement.resize({
                         height: this.height - 140,
                         width: this.width - 20
@@ -385,7 +396,7 @@
                     this.chartElement = this.querySelector('c3-chart');
                     this.chartElement.axis = this.chartAxis;
                     var dimensions = [];
-                    dimensions.push(this.querySelector('paper-card').clientWidth);
+                    dimensions.push(this.querySelector('paper-material').clientWidth);
                     dimensions.push(this.rowh);
                     this.chartData.size = dimensions;
                     this.chartElement.load(this.chartData);
