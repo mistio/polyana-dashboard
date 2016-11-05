@@ -14,7 +14,7 @@
       :host {
         float: left;
         display: inline-block;
-
+        position: relative;
       }
       #target {
         font-weight: bold;
@@ -25,7 +25,7 @@
         padding: 0 16px 16px 16px;
         box-sizing: border-box;
         overflow: auto;
-        background-color: #eee;
+        background-color: #f1f1f1;
         margin-bottom: 4px;
       }
       h3 {
@@ -33,9 +33,15 @@
         font-size: 16px;
         font-weight: 500;
         line-height: 36px;
+        cursor: move;
       }
       .head {
         align-items: center;
+      }
+      paper-spinner {
+        position: absolute;
+        left: 50%;
+        top: 24px;
       }
     </style>
     <iron-ajax
@@ -51,7 +57,7 @@
 
     <paper-material id="paper" elevation="0">
       <div class="head layout horizontal">
-        <h3 class="flex">[[panel.title]]</h3>
+        <h3 class="flex">[[computeTitle(panel.title)]]</h3>
         <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
       </div>
       <template is="dom-if" if="[[_isText(panel)]]">
@@ -513,6 +519,12 @@
                 return panel.type == "table"
 
             },
+            computeTitle: function(title){
+                if (title)
+                    return title.replace(/_/g," ");
+                else
+                    return "";
+            }
         });
 
         function transformData(me, data) {

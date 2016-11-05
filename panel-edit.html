@@ -12,7 +12,7 @@
       display: inline-block;
     }
     #alignedDialog {
-      margin: 0;
+      margin: 20px 0;
     }
     paper-header-panel {
       background-color: #03a9f4;
@@ -21,40 +21,65 @@
       padding: 8px;
       opacity: 0.32;
     }
+    .settings-section h2 {
+      padding: 0;
+      margin: 0;
+    }
+    .settings-section {
+      padding-bottom: 16px;
+    }
+    #step-number, #step-unit  {
+      max-width: 100px;
+      display: inline-block;
+    }
+     #step-unit  {
+      max-width: 150px;
+    }
+    .x-axis paper-checkbox {
+      margin: 16px 8px 16px 0;
+      float: right;
+    }
+    .display paper-checkbox {
+      margin-left: 16px;
+    }
   </style>
   <paper-icon-button id="settings" icon="icons:settings" on-tap="openDialog">Edit Graph</paper-icon-button>
 
-  <paper-dialog id="alignedDialog" no-overlap horizontal-align="right" vertical-align="top">
+  <paper-dialog id="alignedDialog" no-overlap horizontal-align="right" vertical-align="bottom" with-backdrop>
     <paper-dialog-scrollable>
-      <h2>Data display</h2>
-      <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
-        <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value" >
-          <paper-item data-value="bar">Bar</paper-item>
-          <paper-item data-value="spline">Spline</paper-item>
-          <paper-item data-value="line">Line</paper-item>
-        </paper-menu>
-      </paper-dropdown-menu>
-      <paper-checkbox id="step" on-tap="_changeGraph">Stack</paper-checkbox>
-
-      <h2>Step</h2>
-      <paper-input  type="number" on-input="_clearDropDown" value="{{validInput}}" label="Enter step number"></paper-input>
-      <paper-dropdown-menu label="Select Step Interval" placeholder="Step interval in" on-select="_changeStep">
-        <paper-menu class="dropdown-content" selected="{{stepType}}" attr-for-selected="data-value" >
-          <paper-item data-value="sec">seconds</paper-item>
-          <paper-item data-value="min">minutes</paper-item>
-          <paper-item data-value="d">days</paper-item>
-          <paper-item data-value="month">month</paper-item>
-          <paper-item data-value="y">year</paper-item>
-        </paper-menu>
-      </paper-dropdown-menu>
-
-      <h2>X-axis</h2>
-      <paper-checkbox id="year" on-tap="_dateFormat">Years</paper-checkbox>
-      <paper-checkbox id="month" on-tap="_dateFormat">Months</paper-checkbox>
-      <paper-checkbox id="day" on-tap="_dateFormat">Days</paper-checkbox>
-      <paper-checkbox id="hour" on-tap="_dateFormat">Hours</paper-checkbox>
-      <paper-checkbox id="minute" on-tap="_dateFormat">Mins</paper-checkbox>
-      <paper-checkbox id="second" on-tap="_dateFormat">Secs</paper-checkbox>
+      <div class="settings-section display">
+        <h2>[[computeTitle(panel.title)]] Data display</h2>
+        <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
+          <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value" >
+            <paper-item data-value="bar">Bar</paper-item>
+            <paper-item data-value="spline">Spline</paper-item>
+            <paper-item data-value="line">Line</paper-item>
+          </paper-menu>
+        </paper-dropdown-menu>
+        <paper-checkbox id="step" on-tap="_changeGraph">Stack</paper-checkbox>
+      </div>
+      <div class="settings-section">
+        <h2>Step Interval</h2>
+        <paper-input id="step-number" type="number" on-input="_clearDropDown" value="{{validInput}}" label="Step number" placeholder="eg. 5"></paper-input>
+        <paper-dropdown-menu id="step-unit" label="Time unit" placeholder="minutes" on-select="_changeStep">
+          <paper-menu class="dropdown-content" selected="{{stepType}}" attr-for-selected="data-value" >
+            <paper-item data-value="sec">seconds</paper-item>
+            <paper-item data-value="min">minutes</paper-item>
+            <paper-item data-value="d">days</paper-item>
+            <paper-item data-value="month">month</paper-item>
+            <paper-item data-value="y">year</paper-item>
+          </paper-menu>
+        </paper-dropdown-menu>
+      </div>
+      <div class="settings-section x-axis">
+        <h2>X-axis</h2>
+        <paper-checkbox id="year" on-tap="_dateFormat">Years</paper-checkbox>
+        <paper-checkbox id="month" on-tap="_dateFormat">Months</paper-checkbox>
+        <paper-checkbox id="day" on-tap="_dateFormat">Days</paper-checkbox>
+        <paper-checkbox id="hour" on-tap="_dateFormat">Hours</paper-checkbox>
+        <paper-checkbox id="minute" on-tap="_dateFormat">Mins</paper-checkbox>
+        <paper-checkbox id="second" on-tap="_dateFormat">Secs</paper-checkbox>
+      </div>
     </paper-dialog-scrollable>
   </paper-dialog>
   </template>
@@ -185,6 +210,13 @@
                 } else {
                     this.querySelector('#step').checked = false;
                 }
+            },
+
+            computeTitle: function(title){
+                if (title)
+                    return title.replace(/_/g," ").slice(0,11);
+                else
+                    return "";
             }
         });
     </script>
