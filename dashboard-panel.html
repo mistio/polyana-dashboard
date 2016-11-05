@@ -57,7 +57,7 @@
 
     <paper-material id="paper" elevation="0">
       <div class="head layout horizontal">
-        <h3 class="flex">[[panel.title]]</h3>
+        <h3 class="flex">[[computeTitle(panel.title)]]</h3>
         <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
       </div>
       <template is="dom-if" if="[[_isText(panel)]]">
@@ -519,6 +519,12 @@
                 return panel.type == "table"
 
             },
+            computeTitle: function(title){
+                if (title)
+                    return title.replace(/_/g," ");
+                else
+                    return "";
+            }
         });
 
         function transformData(me, data) {

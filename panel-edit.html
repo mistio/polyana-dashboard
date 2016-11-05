@@ -48,7 +48,7 @@
   <paper-dialog id="alignedDialog" no-overlap horizontal-align="right" vertical-align="bottom" with-backdrop>
     <paper-dialog-scrollable>
       <div class="settings-section display">
-        <h2>[[panel.title]] Data display</h2>
+        <h2>[[computeTitle(panel.title)]] Data display</h2>
         <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
           <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value" >
             <paper-item data-value="bar">Bar</paper-item>
@@ -210,6 +210,13 @@
                 } else {
                     this.querySelector('#step').checked = false;
                 }
+            },
+
+            computeTitle: function(title){
+                if (title)
+                    return title.replace(/_/g," ").slice(0,11);
+                else
+                    return "";
             }
         });
     </script>
