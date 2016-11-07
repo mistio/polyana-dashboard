@@ -609,12 +609,6 @@
   }
 
   var interval=0;
-  function clearRefresh(me) {
-      clearTimeout(interval);
-      me.refreshOn = false;
-      me.refreshInterval = 0;
-      console.log("refresh cleared");
-  }
   function refreshMe(me) {
       interval = setTimeout(function() {
           if (me.refreshInterval > 0) {
@@ -626,5 +620,11 @@
           }
       }, me.refreshInterval);
   };
+  function clearRefresh(me) {
+      clearTimeout(interval);
+      me.refreshOn = false;
+      me.refreshInterval = 0;
+      console.log("refresh cleared");
+  }
   </script>
 </dom-module>
