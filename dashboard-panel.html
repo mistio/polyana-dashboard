@@ -105,7 +105,7 @@
               type: Number,
               notify: true
           },
-          autoRefresh: Boolean,
+          refreshInterval: Number,
           panel: {
               type: Object,
               observer: '_generateDataRequest'
@@ -602,5 +602,18 @@
           };
       }
   }
+
+  var interval=0;
+  function clearRefresh(me){
+    
+    clearInterval(interval);
+  };
+  function refreshMe(me) {
+    interval=setTimeout(function() {
+      me.to = Math.floor(new Date().getTime() / 1000);
+      me.from = Math.floor(new Date().getTime() / 1000) - 300;
+      refreshMe(me);
+    }, me.refreshInterval);
+  };
   </script>
 </dom-module>
