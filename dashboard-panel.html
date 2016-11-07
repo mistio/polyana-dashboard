@@ -102,7 +102,10 @@
                     type: Number,
                     notify: true
                 },
-                autoRefresh: Boolean,
+                refreshInterval: {
+                  type:Number,
+                  observer: '_refreshMe'
+                },
                 panel: {
                     type: Object,
                     observer: '_generateDataRequest'
@@ -380,8 +383,9 @@
                 if (data.metrics != null || data.detail.response != null) {
                     this.querySelector('#dataRequest').removeAttribute("auto");
                 }
+                console.log(this.refreshInterval);
                 //if refresh is on then we need to flow the data not to redraw them
-                if (!this.autoRefresh) {
+                if (this.refreshInterval==0) {
                     var cols = transformData(this, data);
                     this.set('chartData', {
                         xs: cols.xs,
@@ -524,9 +528,34 @@
                     return title.replace(/_/g," ");
                 else
                     return "";
-            }
+            },
         });
-
+        var interval=0;
+        function refreshMe(me) {
+            console.log("i am in");
+            interval = setTimeout(function() {
+                refreshMe(me);
+            }, me.refreshInterval);
+            //first time you pick autorefresh without having change the date/time previously "from" is in this format (now-xh) and needs to be changed
+            if (me.from.toString().search("now") >= 0) {
+                var d = Math.floor(new Date().getTime() / 1000);
+                if (me.from.indexOf("h") >= 0) {
+                    var t = me.from.substr(me.from.indexOf("-") + 1, me.from.indexOf("h") - (me.from.indexOf("-") + 1));
+                    me.from = (d - t * 3600).toString();
+                }
+            }
+            //in case he has picked a value -10min to now and autorefresh is off for more than that period
+            else if (!me.autoRefresh) {
+                console.log("reseting panel", me.from);
+                me.autoRefresh = true;
+                me.from = Math.floor(new Date().getTime() / 1000) - (me.to - me.from);
+            } else {
+                //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
+                me.to = Math.floor(new Date().getTime() / 1000);
+                me.from = Math.floor(new Date().getTime() / 1000) - 300;
+            }
+            return me.from;
+        };
         function transformData(me, data) {
             var columns = [],
                 xs = {}, x = [], d = [];
