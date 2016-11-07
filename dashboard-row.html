@@ -30,7 +30,7 @@
             <template is="dom-repeat" items="{{row.panels}}">
               <div>
                 <dashboard-panel id="panel-[[item.id]]"
-                  refresh-interval="[[refreshInterval]]"
+                  refresh-interval="{{refreshInterval}}"
                   datasource-uri="[[_computeDatasourceUri(datasources, item)]]"
                   datasource-type="[[_computeDatasourceType(datasources, item)]]"
                   row-height="{{row.height}}"

@@ -39,7 +39,7 @@
     </style>
 
     <timerange-picker from="{{from}}" to="{{to}}"
-      refreshInterval="{{refreshInterval}}"></timerange-picker>
+      refresh-interval="{{refreshInterval}}"></timerange-picker>
 
     <iron-ajax id="dataAjax"
       url="/api/v1/dashboards/db"
@@ -50,10 +50,9 @@
     <template is="dom-repeat" items="{{dashboard.rows}}">
       <dashboard-row id="row-[[index]]" class="row"
         row="[[item]]"
-        refresh-interval="[[refreshInterval]]"
         from="[[from]]" to="[[to]]"
         datasources="[[datasources]]"
-        auto-refresh="[[autoRefresh]]"
+        refresh-interval="{{refreshInterval}}"
         style="height: [[item.height]]*2;"></dashboard-row>
     </template>
 
@@ -165,5 +164,7 @@
       }
       return targets
     },
+  });
+
   </script>
 </dom-module>
