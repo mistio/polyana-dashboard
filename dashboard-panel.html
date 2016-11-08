@@ -166,9 +166,9 @@
           '_updateStep(from, to, datasourceType)'
       ],
       _initRefresh: function() {
-          if (this.refreshInterval > 0) {
+          if (this.refreshInterval > 0 && !this.refreshOn) {
               refreshMe(this);
-          } else {
+          } else if(this.refreshInterval==0) {
               clearRefresh(this);
           }
       },

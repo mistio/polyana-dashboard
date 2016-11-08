@@ -38,8 +38,7 @@
       }
     </style>
 
-    <timerange-picker from="{{from}}" to="{{to}}"
-      refresh-interval="{{refreshInterval}}"></timerange-picker>
+    <timerange-picker from="{{from}}" to="{{to}}" refresh-interval="{{refreshInterval}}"></timerange-picker>
 
     <iron-ajax id="dataAjax"
       url="/api/v1/dashboards/db"
@@ -98,8 +97,7 @@
         type: String
       },
       refreshInterval: {
-        type: Number,
-        value: 0
+        type: Number
       }
     },
 
