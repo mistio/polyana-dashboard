@@ -104,8 +104,12 @@
               notify: true
           },
           refreshInterval: {
-              type:Number,
-              observer:"_initRefresh"
+            type:Number,
+            observer:"_initRefresh"
+          },
+          refreshOn: {
+              type: Boolean,
+              value: false
           },
           panel: {
               type: Object,
@@ -114,10 +118,6 @@
           datasourceUri: {
               type: String,
               reflectToAttribute: true
-          },
-          requestFired:{
-            type:Boolean,
-            value:false
           },
           chartData: {
               type: Object,
@@ -266,7 +266,6 @@
         console.log("generating request");
           //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
           if (this.panel != null && this.querySelector("iron-ajax")) {
-              this.requestFired = true;
               this.async(function(){
                   if (this.datasourceType == 'graphite')
                       this.querySelector("iron-ajax").generateRequest()
@@ -387,13 +386,12 @@
       },
 
       _handlePanelResponse: function(data) {
-          this.requestFired=false;
           //when we get the first real response we should stop the auto attribut because machines are updated constantly
           if (data.metrics != null || data.detail.response != null) {
               this.querySelector('#dataRequest').removeAttribute("auto");
           }
           //if refresh is on then we need to flow the data not to redraw them
-          if (!this.refreshInterval>0) {
+          if (!this.refreshOn) {
               var cols = transformData(this, data);
               this.set('chartData', {
                   xs: cols.xs,
@@ -608,6 +606,7 @@
   function refreshMe(me) {
       interval = setTimeout(function() {
           if (me.refreshInterval > 0) {
+              me.refreshOn = true;
               //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
               me.to = Math.floor(new Date().getTime() / 1000);
               me.from = '-10min';
@@ -617,6 +616,7 @@
   };
   function clearRefresh(me) {
       clearTimeout(interval);
+      me.refreshOn = false;
       me.refreshInterval = 0;
       console.log("refresh cleared");
   }
