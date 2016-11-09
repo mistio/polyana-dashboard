@@ -175,7 +175,7 @@
       //TODO when we change from/to both _updateStep and _generateDataRequestFromTo are triggered
       _updateStep: function(from, to) {
           this.debounce('updateStep', function() {
-              console.warn('from/to updated', this.datasourceType, from, to);
+              console.warn('from/to updated', this.panel, from, to);
               if (this.datasourceType != 'mist.monitor')
                   return; // step is needed only for mist.monitor datasource
 
@@ -329,25 +329,26 @@
           } else {
               this.chartElement.transform('line');
           }
-
           if (this.panel.stack) {
-              var grp = [];
-              for (var i = 0; i < this.chartData.columns.length; i++) {
-                  if (this.chartData.columns[i][0].indexOf('x') < 0) {
-                      grp.push(this.chartData.columns[i][0].toString());
-                  }
-              }
-              this.chartElement.groups([grp]);
-              if (!this.panel.bars) {
-                  this.chartElement.transform('area-spline');
-              }
+              this._stackIt();
           } else {
-              this.chartElement.groups(0);
+              //this.chartElement.groups(0);
           }
 
           this.fire('graphChanged');
       },
-
+      _stackIt:function(){
+          var grp = [];
+          for (var i = 0; i < this.chartData.columns.length; i++) {
+              if (this.chartData.columns[i][0].indexOf('x') < 0) {
+                  grp.push(this.chartData.columns[i][0].toString());
+              }
+          }
+          this.chartElement.groups([grp]);
+          if (!this.panel.bars) {
+              this.chartElement.transform('area-spline');
+          }
+      },
       _computeParams: function(from, to, targets, datasourceType) {
           if (this.datasourceType == "graphite") {
               //some graphite versions expect 'until' paramater and others "to"
@@ -424,23 +425,10 @@
                   this.chartElement.transform('spline');
               }
               if (this.panel.stack) {
-                  var grp = []
-                  for (var i = 0; i < this.panel.targets.length; i++) {
-                      grp.push(this.panel.targets[i].target);
-                  }
-                  this.chartElement.groups([grp]);
-                  if (!this.panel.bars)
-                      this.chartElement.transform('area-spline');
+                  this._stackIt();
               }
           } else { // flow the new data from auto refresh
               var cols = transformData(this, data);
-              if (this.panel.stack) {
-                  var grp = []
-                  for (var i = 0; i < this.panel.targets.length; i++) {
-                      grp.push(this.panel.targets[i].target);
-                  }
-                  this.chartElement.groups([grp]);
-              }
               //remove all the null values from the data we have drawn
               for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
                   for (var k = this.chartData.columns[j].length; k >= 0; k--) {
