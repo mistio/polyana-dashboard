@@ -30,7 +30,7 @@
             <template is="dom-repeat" items="{{row.panels}}">
               <div>
                 <dashboard-panel id="panel-[[item.id]]"
-                  auto-refresh="[[autoRefresh]]"
+                  refresh-interval="{{refreshInterval}}"
                   datasource-uri="[[_computeDatasourceUri(datasources, item)]]"
                   datasource-type="[[_computeDatasourceType(datasources, item)]]"
                   row-height="{{row.height}}"
@@ -54,7 +54,7 @@
                 title: String,
                 from: String,
                 to: String,
-                autoRefresh: Boolean,
+                refreshInterval: Number,
             },
             _elementWidth: function(span) {
                 return 100 * span / 12 + '%';

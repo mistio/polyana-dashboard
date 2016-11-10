@@ -88,11 +88,9 @@
       properties: {
           from: {
               type: String,
-              observer: '_generateDataRequestFromTo'
           },
           to: {
               type: String,
-              observer: '_generateDataRequestFromTo'
           },
           step: {
               type: String,
@@ -105,19 +103,21 @@
               type: Number,
               notify: true
           },
-          autoRefresh: Boolean,
+          refreshInterval: {
+            type:Number,
+            observer:"_initRefresh"
+          },
+          refreshOn: {
+              type: Boolean,
+              value: false
+          },
           panel: {
               type: Object,
-              observer: '_generateDataRequest'
           },
           loading: Boolean,
           datasourceUri: {
               type: String,
               reflectToAttribute: true
-          },
-          requestFired:{
-            type:Boolean,
-            value:false
           },
           chartData: {
               type: Object,
@@ -165,107 +165,107 @@
       observers: [
           '_updateStep(from, to, datasourceType)'
       ],
-
+      _initRefresh: function() {
+          if (this.refreshInterval > 0 && !this.refreshOn) {
+              refreshMe(this);
+          } else if(this.refreshInterval==0) {
+              clearRefresh(this);
+          }
+      },
       //TODO when we change from/to both _updateStep and _generateDataRequestFromTo are triggered
       _updateStep: function(from, to) {
-          console.warn('from/to updated', this.datasourceType);
-          if (this.datasourceType != 'mist.monitor')
-              return; // step is needed only for mist.monitor datasource
+          this.debounce('updateStep', function() {
+              console.warn('from/to updated', this.panel, from, to);
+              if (this.datasourceType != 'mist.monitor')
+                  return; // step is needed only for mist.monitor datasource
 
-          // We need to calculate "from" and "to" in seconds in order to
-          // subtract them
-          var fromInSeconds, toInSeconds, parsedDigits,
-              now = Math.floor(new Date().getTime()/1000);
-          if (typeof from === "string") {
-              // get digits in string
-              parsedDigits = parseInt(from.match(/\d+/g));
-              if (from.search("y") >= 0) { // time in years
-                  fromInSeconds = now - parsedDigits *  31556952;
-              } else if (from.search("month") >= 0) { // time in months
-                  fromInSeconds = now - parsedDigits * 2629746;
-              } else if (from.search("d") >= 0) { // time in days
-                  fromInSeconds = now - parsedDigits * 86400;
-              } else if (from.search("h") >= 0) { // time in hours
-                  fromInSeconds = now - parsedDigits * 3600;
-              } else if (from.search("m") >= 0) { // time in mins
-                  fromInSeconds = now - parsedDigits * 60;
-              } else { // time in secs
-                  fromInSeconds = parsedDigits;
-              }
-          } else if (typeof from === 'number') {
-              fromInSeconds = from;
-          } else {
-              console.error('Unsupported type for "from"', typeof from);
-              return;
-          }
-
-          if (typeof to === "string") {
-              if (to == 'now') {
-                  toInSeconds = now;
-              } else {
+              // We need to calculate "from" and "to" in seconds in order to
+              // subtract them
+              var fromInSeconds, toInSeconds, parsedDigits,
+                  now = Math.floor(new Date().getTime() / 1000);
+              if (typeof from === "string") {
                   // get digits in string
-                  parsedDigits = parseInt(to.match(/\d+/g));
-                  if (!parsedDigits || parsedDigits === NaN) {
-                      console.error('Invalid value for "to"', to);
-                      return;
-                  }
-                  if (to.search("y") >= 0) { // time in years
-                      toInSeconds = now - parsedDigits *  31556952;
-                  } else if (to.search("month") >= 0) { // time in months
-                      toInSeconds = now - parsedDigits * 2629746;
-                  } else if (to.search("d") >= 0) { // time in days
-                      toInSeconds = now - parsedDigits * 86400;
-                  } else if (to.search("h") >= 0) { // time in hours
-                      toInSeconds = now - parsedDigits * 3600;
-                  } else if (to.search("m") >= 0) { // time in mins
-                      toInSeconds = now - parsedDigits * 60;
+                  parsedDigits = parseInt(from.match(/\d+/g));
+                  if (from.search("y") >= 0) { // time in years
+                      fromInSeconds = now - parsedDigits * 31556952;
+                  } else if (from.search("month") >= 0) { // time in months
+                      fromInSeconds = now - parsedDigits * 2629746;
+                  } else if (from.search("d") >= 0) { // time in days
+                      fromInSeconds = now - parsedDigits * 86400;
+                  } else if (from.search("h") >= 0) { // time in hours
+                      fromInSeconds = now - parsedDigits * 3600;
+                  } else if (from.search("m") >= 0) { // time in mins
+                      fromInSeconds = now - parsedDigits * 60;
                   } else { // time in secs
-                      toInSeconds = now - parsedDigits;
+                      fromInSeconds = parsedDigits;
                   }
+              } else if (typeof from === 'number') {
+                  fromInSeconds = from;
+              } else {
+                  console.error('Unsupported type for "from"', typeof from);
+                  return;
               }
-          } else if (typeof to === 'number') {
-              toInSeconds = to;
-          } else {
-              console.error('Unsupported type for "to"', typeof to);
-              return;
-          }
-
-          var timeDelta = toInSeconds - fromInSeconds;
-          if (timeDelta <= 3600) { //less than an  hour
-              this.step = "10sec";
-              this.chartAxis.x.tick.format = "%H:%M:%S";
-          } else if (timeDelta < 86400) { //less than a day
-              this.step = "1min";
-              this.chartAxis.x.tick.format = "%H:%M";
-          } else if (timeDelta <= 2629746) { //less than a month
-              this.step = "30min";
-              this.chartAxis.x.tick.format = "%m-%d %H:%M";
-          } else if (timeDelta <= 2629746 * 6) { //less than 6 months
-              this.step = "1h";
-              this.chartAxis.x.tick.format = "%m-%d %H:%M";
-          } else if (timeDelta <= 31556952) { //less than year
-              this.step = "5d";
-              this.chartAxis.x.tick.format = "%m-%d";
-          } else { //more than year
-              this.step = "1month";
-              this.chartAxis.x.tick.format = "%Y-%m";
-          }
-          console.debug('calculated step', this.step);
-          this._generateDataRequest();
-
-      },
-
-      _generateDataRequestFromTo:function (newVal,oldVal){
-          if(newVal!=oldVal&& oldVal!=null && !this.requestFired){
+              console.warn('fromInSeconds string', fromInSeconds);
+              if (typeof to === "string") {
+                  if (to == 'now') {
+                      toInSeconds = now;
+                  } else {
+                      // get digits in string
+                      parsedDigits = parseInt(to.match(/\d+/g));
+                      if (!parsedDigits || parsedDigits === NaN) {
+                          console.error('Invalid value for "to"', to);
+                          return;
+                      }
+                      if (to.search("y") >= 0) { // time in years
+                          toInSeconds = now - parsedDigits * 31556952;
+                      } else if (to.search("month") >= 0) { // time in months
+                          toInSeconds = now - parsedDigits * 2629746;
+                      } else if (to.search("d") >= 0) { // time in days
+                          toInSeconds = now - parsedDigits * 86400;
+                      } else if (to.search("h") >= 0) { // time in hours
+                          toInSeconds = now - parsedDigits * 3600;
+                      } else if (to.search("m") >= 0) { // time in mins
+                          toInSeconds = now - parsedDigits * 60;
+                      } else { // time in secs
+                          toInSeconds = now - parsedDigits;
+                      }
+                  }
+              } else if (typeof to === 'number') {
+                  toInSeconds = to;
+              } else {
+                  console.error('Unsupported type for "to"', typeof to);
+                  return;
+              }
+              console.warn('toInSeconds', toInSeconds);
+              var timeDelta = toInSeconds - fromInSeconds;
+              if (timeDelta <= 3600) { //less than an  hour
+                  this.step = "10sec";
+                  this.chartAxis.x.tick.format = "%H:%M:%S";
+              } else if (timeDelta < 86400) { //less than a day
+                  this.step = "1min";
+                  this.chartAxis.x.tick.format = "%H:%M";
+              } else if (timeDelta <= 2629746) { //less than a month
+                  this.step = "10min";
+                  this.chartAxis.x.tick.format = "%m-%d %H:%M";
+              } else if (timeDelta <= 2629746 * 6) { //less than 6 months
+                  this.step = "1h";
+                  this.chartAxis.x.tick.format = "%m-%d %H:%M";
+              } else if (timeDelta <= 31556952) { //less than year
+                  this.step = "5d";
+                  this.chartAxis.x.tick.format = "%m-%d";
+              } else { //more than year
+                  this.step = "1month";
+                  this.chartAxis.x.tick.format = "%Y-%m";
+              }
+              console.warn('calculated step', this.step);
               this._generateDataRequest();
-          }
+          }, 100);
       },
 
       _generateDataRequest: function() {
         console.log("generating request");
           //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
           if (this.panel != null && this.querySelector("iron-ajax")) {
-              this.requestFired = true;
               this.async(function(){
                   if (this.datasourceType == 'graphite')
                       this.querySelector("iron-ajax").generateRequest()
@@ -329,25 +329,26 @@
           } else {
               this.chartElement.transform('line');
           }
-
           if (this.panel.stack) {
-              var grp = [];
-              for (var i = 0; i < this.chartData.columns.length; i++) {
-                  if (this.chartData.columns[i][0].indexOf('x') < 0) {
-                      grp.push(this.chartData.columns[i][0].toString());
-                  }
-              }
-              this.chartElement.groups([grp]);
-              if (!this.panel.bars) {
-                  this.chartElement.transform('area-spline');
-              }
+              this._stackIt();
           } else {
-              this.chartElement.groups(0);
+              //this.chartElement.groups(0);
           }
 
           this.fire('graphChanged');
       },
-
+      _stackIt:function(){
+          var grp = [];
+          for (var i = 0; i < this.chartData.columns.length; i++) {
+              if (this.chartData.columns[i][0].indexOf('x') < 0) {
+                  grp.push(this.chartData.columns[i][0].toString());
+              }
+          }
+          this.chartElement.groups([grp]);
+          if (!this.panel.bars) {
+              this.chartElement.transform('area-spline');
+          }
+      },
       _computeParams: function(from, to, targets, datasourceType) {
           if (this.datasourceType == "graphite") {
               //some graphite versions expect 'until' paramater and others "to"
@@ -386,13 +387,12 @@
       },
 
       _handlePanelResponse: function(data) {
-          this.requestFired=false;
           //when we get the first real response we should stop the auto attribut because machines are updated constantly
           if (data.metrics != null || data.detail.response != null) {
               this.querySelector('#dataRequest').removeAttribute("auto");
           }
           //if refresh is on then we need to flow the data not to redraw them
-          if (!this.autoRefresh) {
+          if (!this.refreshOn || !this.chartData.columns.length) {
               var cols = transformData(this, data);
               this.set('chartData', {
                   xs: cols.xs,
@@ -425,23 +425,10 @@
                   this.chartElement.transform('spline');
               }
               if (this.panel.stack) {
-                  var grp = []
-                  for (var i = 0; i < this.panel.targets.length; i++) {
-                      grp.push(this.panel.targets[i].target);
-                  }
-                  this.chartElement.groups([grp]);
-                  if (!this.panel.bars)
-                      this.chartElement.transform('area-spline');
+                  this._stackIt();
               }
           } else { // flow the new data from auto refresh
               var cols = transformData(this, data);
-              if (this.panel.stack) {
-                  var grp = []
-                  for (var i = 0; i < this.panel.targets.length; i++) {
-                      grp.push(this.panel.targets[i].target);
-                  }
-                  this.chartElement.groups([grp]);
-              }
               //remove all the null values from the data we have drawn
               for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
                   for (var k = this.chartData.columns[j].length; k >= 0; k--) {
@@ -601,6 +588,25 @@
               columns: columns
           };
       }
+  }
+
+  var interval=0;
+  function refreshMe(me) {
+      interval = setTimeout(function() {
+          if (me.refreshInterval > 0) {
+              me.refreshOn = true;
+              //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
+              me.to = Math.floor(new Date().getTime() / 1000);
+              me.from = '-10min';
+              refreshMe(me);
+          }
+      }, me.refreshInterval);
+  };
+  function clearRefresh(me) {
+      clearTimeout(interval);
+      me.refreshOn = false;
+      me.refreshInterval = 0;
+      console.log("refresh cleared");
   }
   </script>
 </dom-module>
