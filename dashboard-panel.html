@@ -358,7 +358,7 @@
           if (this.panel.stack) {
               this._stackIt();
           } else {
-              //this.chartElement.groups(0);
+              this.chartElement.groups(0);
           }
 
           this.fire('graphChanged');
@@ -370,7 +370,7 @@
                   grp.push(this.chartData.columns[i][0].toString());
               }
           }
-          this.chartElement.groups([grp]);
+          this.chartElement.groups=[grp];
           if (!this.panel.bars) {
               this.chartElement.transform('area-spline');
           }
@@ -514,6 +514,9 @@
                   this.chartData.columns[j].splice(1, cols.columns[j].length - 1);
               }
               console.log("removed old data from old array (chartdata)", this.chartData.columns[0].length, cols.columns[0].length);
+              if (this.panel.stack) {
+                  this._stackIt();
+              }
           }
       },
 
