@@ -63,7 +63,7 @@
             },
             deletePanel: function(e){
                 this.splice('row.panels', e.detail.index, 1);
-                if (e.detail.index == 0) 
+                if (this.row.panels.length == 0) 
                   this.fire('delete-row', {rowlId: this.row.id, index: this.index})
             },
             _elementWidth: function(span) {
