@@ -97,28 +97,29 @@
         type: String
       },
       refreshInterval: {
-        type: Number,
-        computed: "_computeInterval(dashboard)"
+        type: Number
       }
     },
-
+    observers: [
+      "_computeInterval(dashboard, dashboard.refresh)"
+    ],
     listeners: {
       'end': '_saveDashboard',
       'resizeDone': '_saveDashboard',
       'graphChanged': '_saveDashboard'
     },
-    _computeInterval:function(dashboard){
+    _computeInterval:function(dashboard, refresh){
       var res;
-      if(typeof dashboard.refresh ==='string'){
-        var digits = parseInt(dashboard.refresh.match(/\d+/g));
-        if(dashboard.refresh.search("min")>-1){
+      if(typeof this.dashboard.refresh ==='string'){
+        var digits = parseInt(this.dashboard.refresh.match(/\d+/g));
+        if(this.dashboard.refresh.search("min")>-1){
           res=digits*60000;
         }
-        else if(dashboard.refresh.search("sec")>-1){
+        else if(this.dashboard.refresh.search("sec")>-1){
           res=digits*1000;
         }
       }
-      return res;
+      this.set('refreshInterval',res);
     },
     _saveDashboard: function(e) {
       if (this.dashboardPath) {
