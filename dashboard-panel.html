@@ -71,7 +71,7 @@
       </template>
       <template is="dom-if" if="[[_isGraph(panel)]]">
         <paper-spinner active="[[loading]]"></paper-spinner>
-        <c3-chart id="[[_computePanelId(panel.title)]]" from="[[from]]" chart-id="[[_computePanelId(panel.title)]]"></c3-chart>
+        <c3-chart id="[[_computePanelId(panel.id, panel.title)]]" from="[[from]]" chart-id="[[_computePanelId(panel.id, panel.title)]]"></c3-chart>
       </template>
       <template is="dom-if" if="[[_isDashlist(panel)]]">
         <div><!-- TODO -->...</div>
@@ -115,7 +115,10 @@
           panel: {
               type: Object,
           },
-          loading: Boolean,
+          loading: {
+            type: Boolean,
+            value: false
+          },
           datasourceUri: {
               type: String,
               reflectToAttribute: true
@@ -158,7 +161,8 @@
           replaceTargets: {
               type: Object,
               value: {}
-          }
+          },
+          intervalID: String
       },
       listeners: {
           'panelChanged': '_changeGraph'
@@ -168,10 +172,30 @@
       ],
       _initRefresh: function() {
           if (this.refreshInterval > 0 && !this.refreshOn) {
-              refreshMe(this);
+              console.log('refresh',this.refreshInterval, this.refreshOn);
+              this._refresh();
           } else if(this.refreshInterval==0) {
-              clearRefresh(this);
+              console.log('refresh',this.refreshInterval)
+              this._clearRefresh();
           }
+      },
+      _refresh: function() {
+          var that = this;
+          this.intervalID = window.setTimeout(function() {
+              if (that.refreshInterval > 0) {
+                  that.set('refreshOn', true);
+                  //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
+                  that.to = Math.floor(new Date().getTime() / 1000);
+                  that.from = '-10min';
+                  that._refresh();
+              }
+          }, that.refreshInterval, that);
+      },
+      _clearRefresh: function() {
+          window.clearTimeout(this.intervalID);
+          this.set('refreshOn', false);
+          this.set('refreshInterval', 0);
+          console.log("refresh cleared");
       },
       //TODO when we change from/to both _updateStep and _generateDataRequestFromTo are triggered
       _updateStep: function(from, to) {
@@ -281,6 +305,7 @@
                       if(this.panel.machineArray.length>0){
                           var payload = [this.panel.machineArray[0][0], this.panel.machineArray[0][1], this._computeGraphiteTimestamp(this.from), this._computeGraphiteTimestamp(this.to), this.step, 0, targets];
                           socket.getStats(payload, this._handlePanelResponse.bind(this));
+                          this.set('loading', true);
                       }
                   }
               }, 100);
@@ -392,6 +417,7 @@
           if (data.metrics != null || data.detail.response != null) {
               this.querySelector('#dataRequest').removeAttribute("auto");
           }
+          this.set('loading', false);
           //if refresh is on then we need to flow the data not to redraw them
           if (!this.refreshOn || !this.chartData.columns.length) {
               var cols = transformData(this, data);
@@ -515,8 +541,8 @@
           return panel.type == "table"
 
       },
-      _computePanelId: function(title) {
-          return title.replace(/ /g,"-");
+      _computePanelId: function(id, title) {
+          return title.replace(/ /g,"-")+"-panel"+id;
       },
       _computeTitle: function(title) {
           if (title)
@@ -589,25 +615,6 @@
               columns: columns
           };
       }
-  }
-
-  var interval=0;
-  function refreshMe(me) {
-      interval = setTimeout(function() {
-          if (me.refreshInterval > 0) {
-              me.refreshOn = true;
-              //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
-              me.to = Math.floor(new Date().getTime() / 1000);
-              me.from = '-10min';
-              refreshMe(me);
-          }
-      }, me.refreshInterval);
-  };
-  function clearRefresh(me) {
-      clearTimeout(interval);
-      me.refreshOn = false;
-      me.refreshInterval = 0;
-      console.log("refresh cleared");
   }
   </script>
 </dom-module>
