@@ -30,6 +30,7 @@
             <template is="dom-repeat" items="{{row.panels}}">
               <div>
                 <dashboard-panel id="panel-[[item.id]]"
+                  index="[[index]]"
                   refresh-interval="{{refreshInterval}}"
                   datasource-uri="[[_computeDatasourceUri(datasources, item)]]"
                   datasource-type="[[_computeDatasourceType(datasources, item)]]"
@@ -55,6 +56,15 @@
                 from: String,
                 to: String,
                 refreshInterval: Number,
+                index: Number
+            },
+            listeners: {
+              'delete-panel': 'deletePanel'
+            },
+            deletePanel: function(e){
+                this.splice('row.panels', e.detail.index, 1);
+                if (e.detail.index == 0) 
+                  this.fire('delete-row', {rowlId: this.row.id, index: this.index})
             },
             _elementWidth: function(span) {
                 return 100 * span / 12 + '%';

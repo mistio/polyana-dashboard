@@ -48,6 +48,7 @@
 
     <template is="dom-repeat" items="{{dashboard.rows}}">
       <dashboard-row id="row-[[index]]" class="row"
+        index="[[index]]"
         row="[[item]]"
         from="[[from]]" to="[[to]]"
         datasources="[[datasources]]"
@@ -106,7 +107,16 @@
     listeners: {
       'end': '_saveDashboard',
       'resizeDone': '_saveDashboard',
-      'graphChanged': '_saveDashboard'
+      'graphChanged': '_saveDashboard',
+      'delete-row': 'deleteRow',
+      'delete-panel': 'panelDeleted'
+    },
+    deleteRow: function(e){
+        this.splice('dashboard.rows', e.detail.index, 1);
+        this._saveDashboard();
+    },
+    panelDeleted: function(){
+        this._saveDashboard();
     },
     _computeInterval:function(dashboard, refresh){
       var res;

@@ -18,6 +18,7 @@
         position: relative;
         padding: 4px;
         box-sizing: border-box;
+        transition: height 500ms ease-in;
       }
       #target {
         font-weight: bold;
@@ -45,6 +46,9 @@
         left: 50%;
         top: 24px;
       }
+      paper-icon-button {
+        opacity: 0.32;
+      }
     </style>
     <iron-ajax id="dataRequest"
       params="[[params]]"
@@ -59,6 +63,7 @@
     <paper-material id="paper" elevation="0">
       <div class="head layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
+        <paper-icon-button icon="icons:close" on-tap="deletePanel"></paper-icon-button>
         <template is="dom-if" if="[[panel.editable]]">
           <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
         </template>
@@ -162,7 +167,8 @@
               type: Object,
               value: {}
           },
-          intervalID: String
+          intervalID: String,
+          index: Number
       },
       listeners: {
           'panelChanged': '_changeGraph'
@@ -170,6 +176,9 @@
       observers: [
           '_updateStep(from, to, datasourceType)'
       ],
+      deletePanel: function(e){
+          this.fire('delete-panel', {panelId: this.panel.id, index: this.index});
+      },
       _initRefresh: function() {
           if (this.refreshInterval > 0 && !this.refreshOn) {
               console.log('refresh',this.refreshInterval, this.refreshOn);
