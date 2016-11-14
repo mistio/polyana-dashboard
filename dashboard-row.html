@@ -38,7 +38,7 @@
                   panel="[[item]]"
                   from="[[from]]"
                   to="[[to]]"
-                  style="width: [[_elementWidth(item.span)]];"></dashboard-panel>
+                  style$="width: {{_elementWidth(item.span)}};"></dashboard-panel>
               </div>
             </template>
         </sortable-js>
@@ -63,8 +63,20 @@
             },
             deletePanel: function(e){
                 this.splice('row.panels', e.detail.index, 1);
+                this.redistributeSpace();
                 if (this.row.panels.length == 0) 
                   this.fire('delete-row', {rowlId: this.row.id, index: this.index})
+            },
+            redistributeSpace: function(){
+                var panels = this.row.panels.length;
+                var totalSpan = this.row.panels.reduce(function(a,b){
+                  return a.span+b.span;
+                });
+                var diff = (12 - totalSpan)/panels;
+                console.log(panels, totalSpan, diff);
+                this.row.panels.forEach(function(p, index){
+                  this.set('row.panels.'+index, p.span+diff)
+                }, this);
             },
             _elementWidth: function(span) {
                 return 100 * span / 12 + '%';
