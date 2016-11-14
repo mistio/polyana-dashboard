@@ -63,7 +63,7 @@
     <paper-material id="paper" elevation="0">
       <div class="head layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
-        <paper-icon-button icon="icons:close" on-tap="deletePanel"></paper-icon-button>
+        <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!panel.removable]]"></paper-icon-button>
         <template is="dom-if" if="[[panel.editable]]">
           <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
         </template>
@@ -538,7 +538,7 @@
               //console.log("null values removed from new data (cols)", cols.columns[0].length);
               //display the new data
               if (cols.columns[0].length > 1) {
-                  console.log("flow good", cols);
+                  //console.log("flow good", cols);
                   this.chartElement.flow(cols);
               }
               //add the new data to the old
