@@ -201,7 +201,6 @@
           '_updateStep(from, to, datasourceType)'
       ],
       deletePanel: function(e){
-          this.chartElement.destroy();
           window.clearTimeout(this.intervalID);
           this.fire('delete-panel', {panelId: this.panel.id, index: this.index,panel:this});
       },
