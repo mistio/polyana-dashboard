@@ -159,7 +159,7 @@
                       },
                       tick:{
                         format: function (datapoint,decimals) {
-                            if(datapoint >= 1000 || (datapoint<1 && datapoint>0)){
+                            if(datapoint >= 1000 || (datapoint<0.1 && datapoint>0)){
                                 var k = 1000;
                                 var dm = decimals + 1 || 3;
                                 var bigSizes = ['','K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
