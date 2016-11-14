@@ -62,21 +62,30 @@
               'delete-panel': 'deletePanel'
             },
             deletePanel: function(e){
-                this.splice('row.panels', e.detail.index, 1);
-                this.redistributeSpace();
-                if (this.row.panels.length == 0) 
+                this.row.panels.splice(e.detail.index,1);
+                Polymer.dom(e.detail.panel.parentNode).removeChild(e.detail.panel);
+                if (this.row.panels.length > 0)
+                  this.redistributeSpace();
+                if (this.row.panels.length == 0)
                   this.fire('delete-row', {rowlId: this.row.id, index: this.index})
             },
             redistributeSpace: function(){
                 var panels = this.row.panels.length;
-                var totalSpan = this.row.panels.reduce(function(a,b){
-                  return a.span+b.span;
+                var spanArray=[];
+                for(var i=0; i<this.row.panels.length; i++){
+                  spanArray.push(this.row.panels[i].span)
+                }
+                var totalSpan = spanArray.reduce(function(a,b){
+                  return a+b;
                 });
                 var diff = (12 - totalSpan)/panels;
-                console.log(panels, totalSpan, diff);
-                this.row.panels.forEach(function(p, index){
-                  this.set('row.panels.'+index, p.span+diff)
-                }, this);
+                console.log(this.row.panels, totalSpan, diff);
+                for (var j=0; j<this.row.panels.length; j++){
+                  this.set("this.row.panels."+j+"span",this.row.panels[j].span+diff);
+                }
+                //this.row.panels.forEach(function(p, index){
+                  //this.set('row.panels.'+index, p.span+diff)
+                //}, this);
             },
             _elementWidth: function(span) {
                 return 100 * span / 12 + '%';

@@ -177,7 +177,9 @@
           '_updateStep(from, to, datasourceType)'
       ],
       deletePanel: function(e){
-          this.fire('delete-panel', {panelId: this.panel.id, index: this.index});
+          this.chartElement.destroy();
+          window.clearTimeout(this.intervalID);
+          this.fire('delete-panel', {panelId: this.panel.id, index: this.index,panel:this});
       },
       _initRefresh: function() {
           if (this.refreshInterval > 0 && !this.refreshOn) {
@@ -379,7 +381,7 @@
                   grp.push(this.chartData.columns[i][0].toString());
               }
           }
-          this.chartElement.groups=[grp];
+          this.chartElement.groups([grp]);
           if (!this.panel.bars) {
               this.chartElement.transform('area-spline');
           }
@@ -476,7 +478,7 @@
                       }
                   }
               }
-              console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
+              //console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
               //get the last time value we have drawn in the graph
               var lastdrawn = new Date(this.chartData.columns[0][this.chartData.columns[0].length - 1]).getTime();
               //find this value in the new data
@@ -496,7 +498,7 @@
                       cols.columns[j].splice(1, cols.columns[j].length - 1);
                   }
               }
-              console.log("new data filtered(cols)", cols.columns[0].length, index);
+              //console.log("new data filtered(cols)", cols.columns[0].length, index);
               //remove the null values from new arrays
               for (var j = cols.columns.length / 2; j < cols.columns.length; j++) {
                   for (var k = cols.columns[j].length; k >= 0; k--) {
@@ -506,7 +508,7 @@
                       }
                   }
               }
-              console.log("null values removed from new data (cols)", cols.columns[0].length);
+              //console.log("null values removed from new data (cols)", cols.columns[0].length);
               //display the new data
               if (cols.columns[0].length > 1) {
                   console.log("flow good", cols);
@@ -522,7 +524,7 @@
               for (var j = 0; j < cols.columns.length; j++) {
                   this.chartData.columns[j].splice(1, cols.columns[j].length - 1);
               }
-              console.log("removed old data from old array (chartdata)", this.chartData.columns[0].length, cols.columns[0].length);
+              //console.log("removed old data from old array (chartdata)", this.chartData.columns[0].length, cols.columns[0].length);
               if (this.panel.stack) {
                   this._stackIt();
               }

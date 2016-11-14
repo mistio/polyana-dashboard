@@ -112,10 +112,12 @@
       'delete-panel': 'panelDeleted'
     },
     deleteRow: function(e){
-        this.splice('dashboard.rows', e.detail.index, 1);
+      if(this.refreshInterval>0){
+        this.set("refreshInterval",0);
+      }
         this._saveDashboard();
     },
-    panelDeleted: function(){
+    panelDeleted: function(e){
         this._saveDashboard();
     },
     _computeInterval:function(dashboard, refresh){
