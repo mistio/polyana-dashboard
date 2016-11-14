@@ -424,6 +424,7 @@
       },
 
       _handlePanelResponse: function(data) {
+        console.log(data);
           //when we get the first real response we should stop the auto attribut because machines are updated constantly
           if (data.metrics != null || data.detail.response != null) {
               this.querySelector('#dataRequest').removeAttribute("auto");
@@ -448,8 +449,7 @@
                       }
                   }
               }
-              this.chartData.size = [this.querySelector('paper-material').clientWidth, this.rowHeight];;
-
+              this.chartData.size = [this.querySelector('paper-material').clientWidth, this.rowHeight];
               this.chartElement = this.querySelector('c3-chart');
               if (this.chartElement) {
                   this.chartElement.axis = this.chartAxis;
