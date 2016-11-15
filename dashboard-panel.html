@@ -172,7 +172,6 @@
                                 }
                                 else{
                                     var p=i*-1;
-                                    console.log("DATAPOINT",datapoint)
                                     sizes=smallSizes;
                                 }
                                 return parseFloat((datapoint / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[p];
@@ -202,6 +201,7 @@
       ],
       deletePanel: function(e){
           window.clearTimeout(this.intervalID);
+          this.chartElement.destroy();
           this.fire('delete-panel', {panelId: this.panel.id, index: this.index,panel:this});
       },
       _initRefresh: function() {
@@ -538,7 +538,7 @@
               //console.log("null values removed from new data (cols)", cols.columns[0].length);
               //display the new data
               if (cols.columns[0].length > 1) {
-                  //console.log("flow good", cols);
+                  console.log("flow good", cols);
                   this.chartElement.flow(cols);
               }
               //add the new data to the old
@@ -548,6 +548,7 @@
                   }
               }
               //remove equal number of old data from the ola array (drawn data)
+              if(typeof this.chartData.columns!="undefined" || this.chartData.columns.length>0)
               for (var j = 0; j < cols.columns.length; j++) {
                   this.chartData.columns[j].splice(1, cols.columns[j].length - 1);
               }

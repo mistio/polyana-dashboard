@@ -2,7 +2,6 @@
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
-
 <link rel="import" href="../timerange-picker/timerange-picker.html">
 
 <link rel="import" href="dashboard-row.html">
@@ -112,9 +111,6 @@
       'delete-panel': 'panelDeleted'
     },
     deleteRow: function(e){
-      if(this.refreshInterval>0){
-        this.set("refreshInterval",0);
-      }
         this._saveDashboard();
     },
     panelDeleted: function(e){
