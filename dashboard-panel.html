@@ -576,7 +576,6 @@
                       for (var i = 0; i < response[metr].datapoints.length; i++) {
                           x.push(response[metr].datapoints[i][1]);
                           d.push(response[metr].datapoints[i][0]);
-                          console.log("METRIC ",response[metr].name);
                           xs[this._filterTarget(response[metr].name)] = 'x' + (k + 1);
                       }
                       x.unshift("x" + (k + 1));
