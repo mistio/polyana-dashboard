@@ -459,7 +459,7 @@
           this.set('loading', false);
           //if refresh is on then we need to flow the data not to redraw them
           if (!this.refreshOn || !this.chartData.columns.length) {
-              var cols = transformData(this, data);
+              var cols = this.transformData(data);
               this.set('chartData', {
                   xs: cols.xs,
                   columns: cols.columns
@@ -493,7 +493,7 @@
                   this._stackIt();
               }
           } else { // flow the new data from auto refresh
-              var cols = transformData(this, data);
+              var cols = this.transformData(data);
               //remove all the null values from the data we have drawn
               for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
                   for (var k = this.chartData.columns[j].length; k >= 0; k--) {
@@ -558,6 +558,71 @@
               }
           }
       },
+      transformData:function(data) {
+          var columns = [], response,
+              xs = {}, x = [], d = [];
+          if (this.datasourceType == "mist.monitor") {
+              //for http
+              if (data.detail != null) {
+                  response = data.detail.response;
+              } else {
+                  response = data.metrics;
+              }
+              var k = 0;
+              for (var metr in response) {
+                  x = [];
+                  d = [];
+                  if (response[metr] != null) {
+                      for (var i = 0; i < response[metr].datapoints.length; i++) {
+                          x.push(response[metr].datapoints[i][1]);
+                          d.push(response[metr].datapoints[i][0]);
+                          console.log("METRIC ",response[metr].name);
+                          xs[this._filterTarget(response[metr].name)] = 'x' + (k + 1);
+                      }
+                      x.unshift("x" + (k + 1));
+                      k++;
+                      d.unshift(response[metr].name);
+                      columns.splice(k, 0, x);
+                      columns.push(d);
+                      for (var j = 1; j < x.length; j++) {
+                          x[j] = new Date(x[j] * 1000);
+                      }
+                  }
+              }
+
+              return {
+                  xs: xs,
+                  columns: columns
+              };
+          } else { //for graphite
+              var xcolumns = [], dcolumns = [];
+              response = data.detail.response || [];
+              for (var i = 0; i < response.length; i++) {
+                  x.push(response[i].datapoints.map(function(point) {
+                      return point[1]
+                  }));
+                  d.push(response[i].datapoints.map(function(point) {
+                      return point[0]
+                  }));
+                  xs[this._filterTarget(response[i].target)] = 'x' + (i + 1);
+                  xcolumns.push(['x' + (i + 1)].concat(x[i]));
+                  dcolumns.push([this._filterTarget(response[i].target)].concat(d[i]));
+              }
+              columns = xcolumns.concat(dcolumns);
+              // convert timestamp to date so it can be displayed correctly on the x axis of the graph
+              for (var k = 0; k < columns.length; k++) {
+                  if (columns[k][0].charAt(0) == 'x') {
+                      for (var j = 1; j < columns[0].length; j++) {
+                          columns[k][j] = new Date(columns[k][j] * 1000);
+                      }
+                  }
+              }
+              return {
+                  xs: xs,
+                  columns: columns
+              };
+          }
+      },
 
       _computeUrl: function(datasourceUri) {
           return this.datasourceUri + '/render';
@@ -594,69 +659,6 @@
       }
   });
 
-  function transformData(me, data) {
-      var columns = [], response,
-          xs = {}, x = [], d = [];
-      if (me.datasourceType == "mist.monitor") {
-          //for http
-          if (data.detail != null) {
-              response = data.detail.response;
-          } else {
-              response = data.metrics;
-          }
-          var k = 0;
-          for (var metr in response) {
-              x = [];
-              d = [];
-              if (response[metr] != null) {
-                  for (var i = 0; i < response[metr].datapoints.length; i++) {
-                      x.push(response[metr].datapoints[i][1]);
-                      d.push(response[metr].datapoints[i][0]);
-                      xs[me._filterTarget(response[metr].name)] = 'x' + (k + 1);
-                  }
-                  x.unshift("x" + (k + 1));
-                  d.unshift(response[metr].name);
-                  columns.splice(k, 0, x);
-                  columns.push(d);
-                  k++;
-                  for (var j = 1; j < x.length; j++) {
-                      x[j] = new Date(x[j] * 1000);
-                  }
-              }
-          }
 
-          return {
-              xs: xs,
-              columns: columns
-          };
-      } else { //for graphite
-          var xcolumns = [], dcolumns = [];
-          response = data.detail.response || [];
-          for (var i = 0; i < response.length; i++) {
-              x.push(response[i].datapoints.map(function(point) {
-                  return point[1]
-              }));
-              d.push(response[i].datapoints.map(function(point) {
-                  return point[0]
-              }));
-              xs[me._filterTarget(response[i].target)] = 'x' + (i + 1);
-              xcolumns.push(['x' + (i + 1)].concat(x[i]));
-              dcolumns.push([me._filterTarget(response[i].target)].concat(d[i]));
-          }
-          columns = xcolumns.concat(dcolumns);
-          // convert timestamp to date so it can be displayed correctly on the x axis of the graph
-          for (var k = 0; k < columns.length; k++) {
-              if (columns[k][0].charAt(0) == 'x') {
-                  for (var j = 1; j < columns[0].length; j++) {
-                      columns[k][j] = new Date(columns[k][j] * 1000);
-                  }
-              }
-          }
-          return {
-              xs: xs,
-              columns: columns
-          };
-      }
-  }
   </script>
 </dom-module>
