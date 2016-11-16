@@ -494,6 +494,9 @@
               }
           } else { // flow the new data from auto refresh
               var cols = this.transformData(data);
+              if(this.chartData.xs.length>0){
+                cols.xs=this.chartData.xs;
+              }
               //remove all the null values from the data we have drawn
               for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
                   for (var k = this.chartData.columns[j].length; k >= 0; k--) {
@@ -537,8 +540,8 @@
               }
               //console.log("null values removed from new data (cols)", cols.columns[0].length);
               //display the new data
-              if (cols.columns[0].length > 1) {
-                  console.log("flow good", cols);
+              if (cols.columns[cols.columns.length-1].length > 1) {
+                  console.log("flow good", cols ,this.chartElement!=null);
                   this.chartElement.flow(cols);
               }
               //add the new data to the old
@@ -550,6 +553,7 @@
               //remove equal number of old data from the ola array (drawn data)
               if(typeof this.chartData.columns!="undefined" || this.chartData.columns.length>0)
               for (var j = 0; j < cols.columns.length; j++) {
+                if(typeof this.chartData.columns[j]!="undefined")
                   this.chartData.columns[j].splice(1, cols.columns[j].length - 1);
               }
               //console.log("removed old data from old array (chartdata)", this.chartData.columns[0].length, cols.columns[0].length);
@@ -579,10 +583,10 @@
                           xs[this._filterTarget(response[metr].name)] = 'x' + (k + 1);
                       }
                       x.unshift("x" + (k + 1));
-                      k++;
                       d.unshift(response[metr].name);
                       columns.splice(k, 0, x);
                       columns.push(d);
+                      k++;
                       for (var j = 1; j < x.length; j++) {
                           x[j] = new Date(x[j] * 1000);
                       }
