@@ -184,7 +184,7 @@
               },
           },
           chartElement: {
-              type: Object
+              type: Object,
           },
           replaceTargets: {
               type: Object,
@@ -199,6 +199,7 @@
       observers: [
           '_updateStep(from, to, datasourceType)'
       ],
+
       deletePanel: function(e){
           window.clearTimeout(this.intervalID);
           this.chartElement.destroy();
@@ -448,6 +449,7 @@
 
       _handlePanelResponse: function(data) {
           var metricUnits="";
+          var cols=[];
           for (var p in data.metrics){
             metricUnits = data.metrics[p].unit;
           }
@@ -458,8 +460,8 @@
           }
           this.set('loading', false);
           //if refresh is on then we need to flow the data not to redraw them
-          if (!this.refreshOn || !this.chartData.columns.length) {
-              var cols = this.transformData(data);
+          if (!this.refreshOn || this.chartData.columns[this.chartData.columns.length-1]<1) {
+              cols = this.transformData(data);
               this.set('chartData', {
                   xs: cols.xs,
                   columns: cols.columns
@@ -477,7 +479,7 @@
                   }
               }
               this.chartData.size = [this.querySelector('paper-material').clientWidth, this.rowHeight];
-              this.chartElement = this.querySelector('c3-chart');
+              this.chartElement = this.querySelector('#'+this._computePanelId(this.panel.id, this.panel.title));
               if (this.chartElement) {
                   this.chartElement.axis = this.chartAxis;
                   this.chartElement.load(this.chartData);
@@ -493,11 +495,8 @@
                   this._stackIt();
               }
           } else { // flow the new data from auto refresh
-              var cols = this.transformData(data);
-              if(this.chartData.xs.length>0){
-                cols.xs=this.chartData.xs;
-              }
-              //remove all the null values from the data we have drawn
+              cols = this.transformData(data);
+              //remove the last null values from the data we have drew
               for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
                   for (var k = this.chartData.columns[j].length; k >= 0; k--) {
                       if (this.chartData.columns[j][k] == null) {
@@ -509,24 +508,28 @@
                   }
               }
               //console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
-              //get the last time value we have drawn in the graph
-              var lastdrawn = new Date(this.chartData.columns[0][this.chartData.columns[0].length - 1]).getTime();
-              //find this value in the new data
-              var index = -1;
-              for (var i = cols.columns[0].length - 1; i >= 0; i--) {
-                  if (lastdrawn == new Date(cols.columns[0][i]).getTime()) {
-                      index = i;
+              //get the last time value we have drawn in the graph for each target
+              for(var b=0; b< this.chartData.columns.length/2; b++){
+                  var lastdrawn = this.chartData.columns[b][this.chartData.columns[b].length - 1].getTime();
+                  //find this value in the new data
+                  var index = -1;
+                  for (var i = cols.columns[b].length - 1; i >= 0; i--) {
+                      if (lastdrawn ==new Date(cols.columns[b][i]).getTime()) {
+                          index = i;
+                          break;
+                      }
                   }
-              }
-              //delete all previous data from the new data
-              if (index > -1) {
-                  for (var j = 0; j < cols.columns.length; j++) {
-                      cols.columns[j].splice(1, index);
+                  //delete all previous data from the new data
+                  if (index > -1) {
+                      cols.columns[b].splice(1, index);
+                      cols.columns[(cols.columns.length/2)+b].splice(1, index);
+                  } else {
+                      cols.columns[b].splice(1, cols.columns[b].length - 1);
+                      cols.columns[(this.chartData.columns.length/2)+b].splice(1, cols.columns[b].length - 1);
                   }
-              } else {
-                  for (var j = 0; j < cols.columns.length; j++) {
-                      cols.columns[j].splice(1, cols.columns[j].length - 1);
-                  }
+                  // console.log("last drawn date of '"+ cols.columns[(cols.columns.length/2)+b][0]+"' = ", new Date(lastdrawn));
+                  // console.log("firstdate to be drawn "+ cols.columns[b][1]);
+                  // console.log("number of targets "+this.chartData.columns.length / 2," current target number ",b," charData ",this.chartData)
               }
               //console.log("new data filtered(cols)", cols.columns[0].length, index);
               //remove the null values from new arrays
@@ -534,15 +537,17 @@
                   for (var k = cols.columns[j].length; k >= 0; k--) {
                       if (cols.columns[j][k] == null) {
                           cols.columns[j].splice(k, 1);
-                          cols.columns[j - cols.columns.length / 2].splice(k, 1);
+                          cols.columns[j - (cols.columns.length / 2)].splice(k, 1);
                       }
                   }
               }
               //console.log("null values removed from new data (cols)", cols.columns[0].length);
               //display the new data
               if (cols.columns[cols.columns.length-1].length > 1) {
-                  console.log("flow good", cols ,this.chartElement!=null);
+                  this.chartElement = this.querySelector('#'+this._computePanelId(this.panel.id, this.panel.title));
+                  console.log("before flow");
                   this.chartElement.flow(cols);
+                  console.log("flow good");
               }
               //add the new data to the old
               for (var j = 0; j < cols.columns.length; j++) {

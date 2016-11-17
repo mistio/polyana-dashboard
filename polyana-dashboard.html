@@ -56,8 +56,8 @@
     </template>
 
     <iron-ajax id='requestAjax'
-      auto="[[uri]]"
-      url="[[uri]]"
+      auto
+      url="/api/dashboards/db"
       handle-as="json"
       method="GET"
       on-response="_handleResponse"
