@@ -142,7 +142,7 @@
                       type: 'timeseries',
                       tick: {
                           format: '%H:%M',
-                          fit: false
+                          fit: true
                       },
                       padding: {
                           left: 0,
@@ -221,7 +221,7 @@
                   that.set('refreshOn', true);
                   //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
                   that.to = Math.floor(new Date().getTime() / 1000);
-                  that.from = '-10min';
+                  that.from = Math.floor(that.chartData.columns[0][that.chartData.columns[0].length-1].getTime()/1000)-600;//"-10min";
                   that._refresh();
               }
           }, that.refreshInterval, that);
@@ -297,25 +297,32 @@
                   return;
               }
               //console.warn('toInSeconds', toInSeconds);
-              var timeDelta = toInSeconds - fromInSeconds;
-              if (timeDelta <= 3600) { //less than an  hour
-                  this.step = "10sec";
-                  this.chartAxis.x.tick.format = "%H:%M";
-              } else if (timeDelta < 86400) { //less than a day
-                  this.step = "1min";
-                  this.chartAxis.x.tick.format = "%H:%M";
-              } else if (timeDelta <= 2629746) { //less than a month
-                  this.step = "10min";
-                  this.chartAxis.x.tick.format = "%m-%d %H:%M";
-              } else if (timeDelta <= 2629746 * 6) { //less than 6 months
-                  this.step = "1h";
-                  this.chartAxis.x.tick.format = "%m-%d %H:%M";
-              } else if (timeDelta <= 31556952) { //less than year
-                  this.step = "5d";
-                  this.chartAxis.x.tick.format = "%m-%d";
-              } else { //more than year
-                  this.step = "1month";
-                  this.chartAxis.x.tick.format = "%Y-%m";
+              var steps=["10sec","1min","6h","1d","4d","7d","1month"];
+              if(!this.refreshOn){
+                  var timeDelta = toInSeconds - fromInSeconds;
+                  if (timeDelta <= 3600) { //less than an  hour
+                      this.step = steps[0];
+                      this.chartAxis.x.tick.format = "%H:%M";
+                  } else if (timeDelta < 86400) { //less than a day
+                      this.step = steps[1];
+                      this.chartAxis.x.tick.format = "%H:%M";
+                  } else if (timeDelta <= 2629746) { //less than a month
+                      this.step = steps[3];
+                      this.chartAxis.x.tick.format = "%m-%d %H:%M";
+                  } else if (timeDelta <= 2629746 * 6) { //less than 6 months
+                      this.step = steps[3];
+                      this.chartAxis.x.tick.format = "%m-%d %H:%M";
+                  } else if (timeDelta <= 31556952) { //less than year
+                      this.step = steps[4];
+                      this.chartAxis.x.tick.format = "%m-%d";
+                  } else { //more than year
+                      this.step = steps[6];
+                      this.chartAxis.x.tick.format = "%Y-%m";
+                  }
+              }else{
+                if(steps.indexOf(this.step)>3){
+                  this.step=steps[2];
+                }
               }
               //console.warn('calculated step', this.step);
               this._generateDataRequest();
@@ -460,7 +467,8 @@
           }
           this.set('loading', false);
           //if refresh is on then we need to flow the data not to redraw them
-          if (!this.refreshOn || this.chartData.columns[this.chartData.columns.length-1]<1) {
+
+          if (!this.refreshOn || typeof this.chartData.colums!='undefined' ||this.chartData.columns[this.chartData.columns.length-1].length<2) {
               cols = this.transformData(data);
               this.set('chartData', {
                   xs: cols.xs,
@@ -496,25 +504,15 @@
               }
           } else { // flow the new data from auto refresh
               cols = this.transformData(data);
-              //remove the last null values from the data we have drew
-              for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
-                  for (var k = this.chartData.columns[j].length; k >= 0; k--) {
-                      if (this.chartData.columns[j][k] == null) {
-                          this.chartData.columns[j].splice(k, 1);
-                          this.chartData.columns[j - this.chartData.columns.length / 2].splice(k, 1);
-                      } else {
-                          break;
-                      }
-                  }
-              }
               //console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
               //get the last time value we have drawn in the graph for each target
               for(var b=0; b< this.chartData.columns.length/2; b++){
                   var lastdrawn = this.chartData.columns[b][this.chartData.columns[b].length - 1].getTime();
                   //find this value in the new data
                   var index = -1;
-                  for (var i = cols.columns[b].length - 1; i >= 0; i--) {
-                      if (lastdrawn ==new Date(cols.columns[b][i]).getTime()) {
+                  for (var i = 1; i <cols.columns[b].length; i++) {
+                      if (new Date(cols.columns[b][i]).getTime() >= lastdrawn) {
+                        console.log("KEY DATE",new Date(cols.columns[b][i]))
                           index = i;
                           break;
                       }
@@ -539,6 +537,9 @@
                           cols.columns[j].splice(k, 1);
                           cols.columns[j - (cols.columns.length / 2)].splice(k, 1);
                       }
+                      else{
+                        break;
+                      }
                   }
               }
               //console.log("null values removed from new data (cols)", cols.columns[0].length);
@@ -549,6 +550,7 @@
                   this.chartElement.flow(cols);
                   console.log("flow good");
               }
+              console.log(cols);
               //add the new data to the old
               for (var j = 0; j < cols.columns.length; j++) {
                   for (var k = 1; k < cols.columns[j].length; k++) {
