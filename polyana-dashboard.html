@@ -40,9 +40,9 @@
     <timerange-picker from="{{from}}" to="{{to}}" refresh-interval="{{refreshInterval}}"></timerange-picker>
 
     <iron-ajax id="dataAjax"
-      url="/api/v1/dashboards/db"
+      url="[[uri]]"
       handle-as="json"
-      method="post"
+      method="POST"
       debounce-duration="300"></iron-ajax>
 
     <template is="dom-repeat" items="{{dashboard.rows}}">
@@ -57,7 +57,7 @@
 
     <iron-ajax id='requestAjax'
       auto
-      url="/api/dashboards/db"
+      url="[[uri]]"
       handle-as="json"
       method="GET"
       on-response="_handleResponse"
@@ -70,9 +70,6 @@
     is: 'polyana-dashboard',
 
     properties: {
-      dashboardPath: {
-        type: String
-      },
       dashboard: {
         type: Object,
         observer: '_dashboardUpdated'
@@ -98,11 +95,17 @@
       },
       refreshInterval: {
         type: Number
+      },
+      uri: {
+        type: String,
+        value: '/api/v1/dashboards/db'
       }
     },
+
     observers: [
       "_computeInterval(dashboard, dashboard.refresh)"
     ],
+
     listeners: {
       'end': '_saveDashboard',
       'resizeDone': '_saveDashboard',
@@ -110,27 +113,30 @@
       'delete-row': 'deleteRow',
       'delete-panel': 'panelDeleted'
     },
+
     deleteRow: function(e){
         this._saveDashboard();
     },
+
     panelDeleted: function(e){
         this._saveDashboard();
     },
+
     _computeInterval:function(dashboard, refresh){
       var res;
-      if(typeof this.dashboard.refresh ==='string'){
+      if (typeof this.dashboard.refresh ==='string') {
         var digits = parseInt(this.dashboard.refresh.match(/\d+/g));
-        if(this.dashboard.refresh.search("min")>-1){
-          res=digits*60000;
-        }
-        else if(this.dashboard.refresh.search("sec")>-1){
-          res=digits*1000;
+        if (this.dashboard.refresh.search("min")>-1) {
+          res = digits * 60000;
+        } else if(this.dashboard.refresh.search("sec")>-1) {
+          res = digits * 1000;
         }
       }
       this.set('refreshInterval',res);
     },
+
     _saveDashboard: function(e) {
-      if (this.dashboardPath) {
+      if (this.uri) {
         this.$.dataAjax.headers["Content-Type"] = 'application/json';
         this.$.dataAjax.body = {
           dashboard: this.dashboard,
@@ -138,24 +144,32 @@
         };
         this.$.dataAjax.generateRequest();
       } else {
-        this.set("dashboard",this.dashboard)
         // TODO
       }
     },
 
+    _updateDashboard: function(e){
+      this.$.requestAjax.generateRequest();
+    },
+
     _handleResponse: function(data) {
+      console.warn('data', data);
       this.meta = data.detail.response.meta;
       this.dashboard = data.detail.response.dashboard;
     },
 
     _dashboardUpdated: function(){
-      this.from = this.dashboard.time.from;
-      this.to = this.dashboard.time.to;
+      if (this.dashboard.time){
+        this.from = this.dashboard.time.from;
+        this.to = this.dashboard.time.to;
+      }
     },
 
     _getTargets: function(dashboard, datasources) {
       // Return object with all targets referenced in the dashboard, grouped by datasource
       var targets = {}, defaultDatasource;
+      if (!dashboard.rows)
+        return {}
       for (var i = 0; i < dashboard.rows.length; i++) { // iterate rows
         if (dashboard.rows[i].panels) { // if row has panels
             for (var j = 0; j < dashboard.rows[i].panels.length; j++) { // iterate panels

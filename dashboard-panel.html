@@ -63,7 +63,7 @@
     <paper-material id="paper" elevation="0">
       <div class="head layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
-        <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!panel.removable]]"></paper-icon-button>
+        <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
         <template is="dom-if" if="[[panel.editable]]">
           <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
         </template>
@@ -166,22 +166,21 @@
                                 var smallSizes =['','m','μ','n','p'];
                                 var sizes;
                                 var i = Math.floor(Math.log(datapoint) / Math.log(k));
-                                if(i>0){
+                                if (i>0) {
                                     p=i;
                                     sizes=bigSizes;
-                                }
-                                else{
+                                } else {
                                     var p=i*-1;
                                     sizes=smallSizes;
                                 }
                                 return parseFloat((datapoint / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[p];
-                            }else{
+                            } else {
                                 return datapoint;
                             }
                         },
                       }
                   }
-              },
+              }
           },
           chartElement: {
               type: Object,
@@ -193,9 +192,11 @@
           intervalID: String,
           index: Number
       },
+
       listeners: {
           'panelChanged': '_changeGraph'
       },
+
       observers: [
           '_updateStep(from, to, datasourceType)'
       ],
@@ -205,6 +206,7 @@
           this.chartElement.destroy();
           this.fire('delete-panel', {panelId: this.panel.id, index: this.index,panel:this});
       },
+
       _initRefresh: function() {
           if (this.refreshInterval > 0 && !this.refreshOn) {
               console.log('refresh',this.refreshInterval, this.refreshOn);
@@ -214,11 +216,12 @@
               this._clearRefresh();
           }
       },
+
       _refresh: function() {
           var that = this;
           this.intervalID = window.setTimeout(function() {
               if (that.refreshInterval > 0) {
-                  if (typeof that.chartData!='undefined' && that.chartData.columns[that.chartData.columns.length-1].length>1){
+                  if (typeof that.chartData!='undefined' && that.chartData.columns && that.chartData.columns.length>0 && that.chartData.columns[that.chartData.columns.length-1].length>1){
                     that.set('refreshOn', true);
                   }
                   //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
@@ -230,14 +233,16 @@
               }
           }, that.refreshInterval, that);
       },
+
       _clearRefresh: function() {
           window.clearTimeout(this.intervalID);
           this.set('refreshOn', false);
           this.set('refreshInterval', 0);
           console.log("refresh cleared");
       },
-      //TODO when we change from/to both _updateStep and _generateDataRequestFromTo are triggered
+
       _updateStep: function(from, to) {
+          // TODO when we change from/to both _updateStep and _generateDataRequestFromTo are triggered
           this.debounce('updateStep', function() {
               //console.warn('from/to updated', this.panel, from, to);
               if (this.datasourceType != 'mist.monitor')
@@ -334,12 +339,11 @@
       },
 
       _generateDataRequest: function() {
-        console.log("generating request");
-          //because autorefresh is on dashboard and we are no longer using "auto" on ajax request we need to track changes in "from" value in order to generate the request again
+          console.log("generating request");
           if (this.panel != null && this.querySelector("iron-ajax")) {
-              this.async(function(){
+              this.async(function() {
                   if (this.datasourceType == 'graphite')
-                      this.querySelector("iron-ajax").generateRequest()
+                      this.$dataRequest.generateRequest()
                   else if (this.datasourceType == 'mist.monitor') {
                       //uncomment this for http calls
                       //return '/api/v1/clouds/' + this.panel.cloudIds[0] + '/machines/' + this.panel.machineIds[0] + '/stats';
@@ -348,11 +352,10 @@
                           targets.push(this.panel.targets[i].target);
                       }
                       var socket = document.querySelector('mist-socket');
-                      if(this.panel.machineArray.length>0){
-                          var payload = [this.panel.machineArray[0][0], this.panel.machineArray[0][1], this._computeGraphiteTimestamp(this.from), this._computeGraphiteTimestamp(this.to), this.step, 0, targets];
-                          socket.getStats(payload, this._handlePanelResponse.bind(this));
-                          this.set('loading', true);
-                      }
+                      var prefix = this.panel.machine || [false, false];
+                      var payload = prefix.concat([this._computeGraphiteTimestamp(this.from), this._computeGraphiteTimestamp(this.to), this.step, 0, targets]);
+                      socket.getStats(payload, this._handlePanelResponse.bind(this));
+                      this.set('loading', true);
                   }
               }, 100);
           }
@@ -409,6 +412,7 @@
 
           this.fire('graphChanged');
       },
+
       _stackIt:function(){
           var grp = [];
           for (var i = 0; i < this.chartData.columns.length; i++) {
@@ -421,6 +425,7 @@
               this.chartElement.transform('area-spline');
           }
       },
+
       _computeParams: function(from, to, targets, datasourceType) {
           if (this.datasourceType == "graphite") {
               //some graphite versions expect 'until' paramater and others "to"
@@ -459,6 +464,8 @@
       },
 
       _handlePanelResponse: function(data) {
+          if (!this)
+              return;
           var metricUnits="";
           var cols=[];
           for (var p in data.metrics){
@@ -574,6 +581,7 @@
               }
           }
       },
+
       transformData:function(data) {
           var columns = [], response,
               xs = {}, x = [], d = [];
@@ -637,6 +645,10 @@
                   columns: columns
               };
           }
+      },
+
+      _computeIsPanelRemovable: function(panel) {
+          return panel.editable || panel.removable;
       },
 
       _computeUrl: function(datasourceUri) {
