@@ -221,10 +221,13 @@
           var that = this;
           this.intervalID = window.setTimeout(function() {
               if (that.refreshInterval > 0) {
+                  if (typeof this.chartData!='undefined' && this.chartData.columns[this.chartData.columns.length-1].length>1)
                   that.set('refreshOn', true);
                   //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
                   that.to = Math.floor(new Date().getTime() / 1000);
-                  that.from = Math.floor(that.chartData.columns[0][that.chartData.columns[0].length-1].getTime()/1000)-600;//"-10min";
+                  if(typeof that.chartData.columns[0]!="undefined" &&that.chartData.columns[0].length>1){
+                    that.from = Math.floor(that.chartData.columns[0][that.chartData.columns[0].length-1].getTime()/1000)-600;//"-10min";
+                  }
                   that._refresh();
               }
           }, that.refreshInterval, that);
@@ -471,8 +474,8 @@
           }
           this.set('loading', false);
           //if refresh is on then we need to flow the data not to redraw them
-
-          if (!this.refreshOn || typeof this.chartData.colums!='undefined' ||this.chartData.columns[this.chartData.columns.length-1].length<2) {
+          if (!this.refreshOn || (typeof this.chartData.columns=='undefined' && this.chartData.columns[this.chartData.columns.length-1].length<2)) {
+            console.log("load");
               cols = this.transformData(data);
               this.set('chartData', {
                   xs: cols.xs,
@@ -507,6 +510,7 @@
                   this._stackIt();
               }
           } else { // flow the new data from auto refresh
+            console.log("refresh");
               cols = this.transformData(data);
               //console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
               //get the last time value we have drawn in the graph for each target
