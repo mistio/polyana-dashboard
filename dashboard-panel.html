@@ -63,7 +63,7 @@
     <paper-material id="paper" elevation="0">
       <div class="head layout horizontal">
         <h3 class="flex">[[panel.title]]</h3>
-        <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[_computeIsPanelRemovable(panel)]]"></paper-icon-button>
+        <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
         <template is="dom-if" if="[[panel.editable]]">
           <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
         </template>
@@ -221,7 +221,7 @@
           var that = this;
           this.intervalID = window.setTimeout(function() {
               if (that.refreshInterval > 0) {
-                  if (typeof that.chartData!='undefined' && that.chartData.columns[that.chartData.columns.length-1].length>1){
+                  if (typeof that.chartData!='undefined' && that.chartData.columns && that.chartData.columns.length>0 && that.chartData.columns[that.chartData.columns.length-1].length>1){
                     that.set('refreshOn', true);
                   }
                   //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
@@ -412,6 +412,7 @@
 
           this.fire('graphChanged');
       },
+
       _stackIt:function(){
           var grp = [];
           for (var i = 0; i < this.chartData.columns.length; i++) {
@@ -463,6 +464,8 @@
       },
 
       _handlePanelResponse: function(data) {
+          if (!this)
+              return;
           var metricUnits="";
           var cols=[];
           for (var p in data.metrics){

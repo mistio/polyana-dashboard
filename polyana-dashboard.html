@@ -148,6 +148,10 @@
       }
     },
 
+    _updateDashboard: function(e){
+      this.$.requestAjax.generateRequest();
+    },
+
     _handleResponse: function(data) {
       console.warn('data', data);
       this.meta = data.detail.response.meta;
