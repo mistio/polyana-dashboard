@@ -142,7 +142,7 @@
                       type: 'timeseries',
                       tick: {
                           format: '%H:%M',
-                          fit: true
+                          fit: false
                       },
                       padding: {
                           left: 0,
@@ -209,10 +209,10 @@
 
       _initRefresh: function() {
           if (this.refreshInterval > 0 && !this.refreshOn) {
-              console.log('refresh',this.refreshInterval, this.refreshOn);
+              // console.log('refresh',this.refreshInterval, this.refreshOn);
               this._refresh();
           } else if(this.refreshInterval==0) {
-              console.log('refresh',this.refreshInterval)
+              // console.log('refresh',this.refreshInterval)
               this._clearRefresh();
           }
       },
@@ -238,7 +238,7 @@
           window.clearTimeout(this.intervalID);
           this.set('refreshOn', false);
           this.set('refreshInterval', 0);
-          console.log("refresh cleared");
+          // console.log("refresh cleared");
       },
 
       _updateStep: function(from, to) {
@@ -339,7 +339,7 @@
       },
 
       _generateDataRequest: function() {
-          console.log("generating request");
+          // console.log("generating request");
           if (this.panel != null && this.querySelector("iron-ajax")) {
               this.async(function() {
                   if (this.datasourceType == 'graphite')
@@ -382,7 +382,7 @@
               this.rowHeight = this.height;
               this.panel.span = ((this.width + 30) / this.offsetWidth) * this.panel.span;
               if (this.panel.span > 12) {
-                  console.log(this.panel.span, this.width, this.offsetWidth);
+                  // console.log(this.panel.span, this.width, this.offsetWidth);
                   this.panel.span = 12;
               }
           }
@@ -391,7 +391,7 @@
 
       _changeGraph: function(e) {
           if (e.detail == "step") {
-              console.log(this.step, e.detail);
+              // console.log(this.step, e.detail);
               this._generateDataRequest();
           } else if (e.detail == "dateFormat") {
               this.chartElement.load(this.chartData);
@@ -464,7 +464,7 @@
       },
 
       _handlePanelResponse: function(data) {
-          if (!this)
+          if (!this || !this.querySelector("c3-chart"))
               return;
           var metricUnits="";
           var cols=[];
@@ -479,7 +479,7 @@
           this.set('loading', false);
           //if refresh is on then we need to flow the data not to redraw them
           if (!this.refreshOn ) {
-            console.log("load");
+            // console.log("load");
               cols = this.transformData(data);
               this.set('chartData', {
                   xs: cols.xs,
@@ -514,7 +514,7 @@
                   this._stackIt();
               }
           } else { // flow the new data from auto refresh
-            console.log("refresh");
+            // console.log("refresh");
               cols = this.transformData(data);
               //console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
               //get the last time value we have drawn in the graph for each target
@@ -524,7 +524,7 @@
                   var index = -1;
                   for (var i = 1; i <cols.columns[b].length; i++) {
                       if (new Date(cols.columns[b][i]).getTime() >= lastdrawn) {
-                        console.log("KEY DATE",new Date(cols.columns[b][i]))
+                        // console.log("KEY DATE",new Date(cols.columns[b][i]))
                           index = i;
                           break;
                       }
@@ -558,11 +558,11 @@
               //display the new data
               if (cols.columns[cols.columns.length-1].length > 1) {
                   this.chartElement = this.querySelector('#'+this._computePanelId(this.panel.id, this.panel.title));
-                  console.log("before flow");
+                  // console.log("before flow");
                   this.chartElement.flow(cols);
-                  console.log("flow good");
+                  // console.log("flow good");
               }
-              console.log(cols);
+              // console.log(cols);
               //add the new data to the old
               for (var j = 0; j < cols.columns.length; j++) {
                   for (var k = 1; k < cols.columns[j].length; k++) {
