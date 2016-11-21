@@ -218,11 +218,9 @@
           var that = this;
           this.intervalID = window.setTimeout(function() {
               if (that.refreshInterval > 0) {
-                console.log(typeof that.chartData!='undefined' , that.chartData.columns[that.chartData.columns.length-1].length>1);
                   if (typeof that.chartData!='undefined' && that.chartData.columns[that.chartData.columns.length-1].length>1){
                     that.set('refreshOn', true);
                   }
-                  console.log(that.refreshOn);
                   //instead of doing the whole request (eg we are displaying -1h and we get 1h worth of data). we should request data from our max autorefresh option
                   that.to = Math.floor(new Date().getTime() / 1000);
                   if(typeof that.chartData.columns[0]!="undefined" &&that.chartData.columns[0].length>1){
