@@ -204,6 +204,7 @@
       deletePanel: function(e){
           window.clearTimeout(this.intervalID);
           //this.chartElement.destroy();
+          this.loading = true;
           this.fire('delete-panel', {panelId: this.panel.id, index: this.index,panel:this});
       },
 
@@ -346,7 +347,7 @@
           if (this.panel != null && this.querySelector("iron-ajax")) {
               this.async(function() {
                   if (this.datasourceType == 'graphite')
-                      this.$dataRequest.generateRequest()
+                      this.$dataRequest.generateRequest();
                   else if (this.datasourceType == 'mist.monitor') {
                       //uncomment this for http calls
                       //return '/api/v1/clouds/' + this.panel.cloudIds[0] + '/machines/' + this.panel.machineIds[0] + '/stats';
@@ -471,8 +472,11 @@
               return;
 
           // if no metrics are returned hide the panel
-          if (!Object.keys(data.metrics).length)
+          if (!Object.keys(data.metrics).length && this.panel.targets[0].target.indexOf('mist.python') == -1)
               this.hidden = true;
+          else if (this.hidden)
+              this.hidden = false;
+
           var metricUnits="";
           var cols=[];
           for (var p in data.metrics){
@@ -680,11 +684,12 @@
 
       _isTable: function(panel) {
           return panel.type == "table"
-
       },
+
       _computePanelId: function(id, title) {
           return title.replace(/ /g,"-")+"-panel"+id;
       },
+
       _computeTitle: function(title) {
           if (title)
               return title.replace(/_/g," ");
