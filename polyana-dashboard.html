@@ -122,7 +122,7 @@
         this._saveDashboard();
     },
     detached:function(){
-      this.refreshInterval=0;
+      this.set("refreshInterval",0);
     },
     _computeInterval:function(dashboard, refresh){
       var res;
