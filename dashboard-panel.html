@@ -469,18 +469,22 @@
       _handlePanelResponse: function(data) {
           if (!this || !this.querySelector("c3-chart"))
               return;
+
+          // if no metrics are returned hide the panel
+          if (!Object.keys(data.metrics).length)
+              this.hidden = true;
           var metricUnits="";
           var cols=[];
           for (var p in data.metrics){
-            metricUnits = data.metrics[p].unit;
+              metricUnits = data.metrics[p].unit;
           }
           this.set('chartAxis.y.label.text', metricUnits);
-          //when we get the first real response we should stop the auto attribut because machines are updated constantly
+          // when we get the first real response we should stop the auto attribut because machines are updated constantly
           if (data.metrics != null || data.detail.response != null) {
               this.querySelector('#dataRequest').removeAttribute("auto");
           }
           this.set('loading', false);
-          //if refresh is on then we need to flow the data not to redraw them
+          // if refresh is on then we need to flow the data not to redraw them
           if (!this.refreshOn ) {
               // console.log("load");
               cols = this.transformData(data);
@@ -488,14 +492,14 @@
                   xs: cols.xs,
                   columns: cols.columns
               });
-              //remove all the null values from drawn data so there is no gap when we draw the new ones
+              // remove all the null values from drawn data so there is no gap when we draw the new ones
               for (var j = this.chartData.columns.length / 2; j < this.chartData.columns.length; j++) {
                   for (var k = this.chartData.columns[j].length; k >= 0; k--) {
                       if (this.chartData.columns[j][k] == null) {
                           this.chartData.columns[j].splice(k, 1);
                           this.chartData.columns[j - this.chartData.columns.length / 2].splice(k, 1);
                       } else {
-                          //we need to break because if we get data from 7 ago there wont be any gaps between off days/hours that has null values
+                          // we need to break because if we get data from 7 ago there wont be any gaps between off days/hours that has null values
                           break;
                       }
                   }
@@ -519,15 +523,15 @@
           } else { // flow the new data from auto refresh
               // console.log("refresh");
               cols = this.transformData(data);
-              //console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
-              //get the last time value we have drawn in the graph for each target
+              // console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
+              // get the last time value we have drawn in the graph for each target
               for(var b=0; b< this.chartData.columns.length/2; b++){
                   var lastdrawn = this.chartData.columns[b][this.chartData.columns[b].length - 1].getTime();
                   //find this value in the new data
                   var index = -1;
                   for (var i = 1; i <cols.columns[b].length; i++) {
                       if (new Date(cols.columns[b][i]).getTime() >= lastdrawn) {
-                          //console.log("KEY DATE",new Date(cols.columns[b][i]))
+                          // console.log("KEY DATE",new Date(cols.columns[b][i]))
                           index = i;
                           break;
                       }
@@ -544,8 +548,8 @@
                   // console.log("firstdate to be drawn "+ cols.columns[b][1]);
                   // console.log("number of targets "+this.chartData.columns.length / 2," current target number ",b," charData ",this.chartData)
               }
-              //console.log("new data filtered(cols)", cols.columns[0].length, index);
-              //remove the null values from new arrays
+              // console.log("new data filtered(cols)", cols.columns[0].length, index);
+              // remove the null values from new arrays
               for (var j = cols.columns.length / 2; j < cols.columns.length; j++) {
                   for (var k = cols.columns[j].length; k >= 0; k--) {
                       if (cols.columns[j][k] == null) {
@@ -557,8 +561,8 @@
                       }
                   }
               }
-              //console.log("null values removed from new data (cols)", cols.columns[0].length);
-              //display the new data
+              // console.log("null values removed from new data (cols)", cols.columns[0].length);
+              // display the new data
               if (cols.columns[cols.columns.length-1].length > 1) {
                   this.chartElement = this.querySelector('#'+this._computePanelId(this.panel.id, this.panel.title));
                   // console.log("before flow");
@@ -589,7 +593,7 @@
           var columns = [], response,
               xs = {}, x = [], d = [];
           if (this.datasourceType == "mist.monitor") {
-              //for http
+              // for http
               if (data.detail != null) {
                   response = data.detail.response;
               } else {
