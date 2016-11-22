@@ -231,6 +231,9 @@
                   }
                   that._refresh();
               }
+              else{
+                that._clearRefresh();
+              }
           }, that.refreshInterval, that);
       },
 
@@ -306,13 +309,13 @@
                   return;
               }
               //console.warn('toInSeconds', toInSeconds);
-              var steps=["10sec","1min","6h","1d","4d","7d","1month"];
+              var steps=["10sec","10min","6h","1d","4d","7d","1month"];
               if(!this.refreshOn){
                   var timeDelta = toInSeconds - fromInSeconds;
                   if (timeDelta <= 3600) { //less than an  hour
                       this.step = steps[0];
                       this.chartAxis.x.tick.format = "%H:%M";
-                  } else if (timeDelta < 86400) { //less than a day
+                  } else if (timeDelta <= 86400) { //less than a day
                       this.step = steps[1];
                       this.chartAxis.x.tick.format = "%H:%M";
                   } else if (timeDelta <= 2629746) { //less than a month
@@ -479,7 +482,7 @@
           this.set('loading', false);
           //if refresh is on then we need to flow the data not to redraw them
           if (!this.refreshOn ) {
-            // console.log("load");
+              // console.log("load");
               cols = this.transformData(data);
               this.set('chartData', {
                   xs: cols.xs,
@@ -514,7 +517,7 @@
                   this._stackIt();
               }
           } else { // flow the new data from auto refresh
-            // console.log("refresh");
+              // console.log("refresh");
               cols = this.transformData(data);
               //console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
               //get the last time value we have drawn in the graph for each target
@@ -524,7 +527,7 @@
                   var index = -1;
                   for (var i = 1; i <cols.columns[b].length; i++) {
                       if (new Date(cols.columns[b][i]).getTime() >= lastdrawn) {
-                        // console.log("KEY DATE",new Date(cols.columns[b][i]))
+                          //console.log("KEY DATE",new Date(cols.columns[b][i]))
                           index = i;
                           break;
                       }

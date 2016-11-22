@@ -121,7 +121,9 @@
     panelDeleted: function(e){
         this._saveDashboard();
     },
-
+    detached:function(){
+      this.set("refreshInterval",0);
+    },
     _computeInterval:function(dashboard, refresh){
       var res;
       if (typeof this.dashboard.refresh ==='string') {
@@ -164,7 +166,6 @@
         this.to = this.dashboard.time.to;
       }
     },
-
     _getTargets: function(dashboard, datasources) {
       // Return object with all targets referenced in the dashboard, grouped by datasource
       var targets = {}, defaultDatasource;
