@@ -203,7 +203,7 @@
 
       deletePanel: function(e){
           window.clearTimeout(this.intervalID);
-          this.chartElement.destroy();
+          //this.chartElement.destroy();
           this.fire('delete-panel', {panelId: this.panel.id, index: this.index,panel:this});
       },
 
