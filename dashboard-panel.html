@@ -488,9 +488,9 @@
               this.querySelector('#dataRequest').removeAttribute("auto");
           }
           this.set('loading', false);
-          // if refresh is on then we need to flow the data not to redraw them
-          if (!this.refreshOn) {
-              // console.log("load");
+          //if refresh is on then we need to flow the data not to redraw them
+          if (!this.refreshOn ) {
+              //console.log("load");
               cols = this.transformData(data);
               this.set('chartData', {
                   xs: cols.xs,
@@ -527,17 +527,34 @@
           } else { // flow the new data from auto refresh
               // console.log("refresh");
               cols = this.transformData(data);
-              // console.log("null values from chartData removed (chartdata)", this.chartData.columns[0].length);
               // get the last time value we have drawn in the graph for each target
-              for(var b=0; b< this.chartData.columns.length/2; b++){
-                  var lastdrawn = this.chartData.columns[b][this.chartData.columns[b].length - 1].getTime();
+              for(var b = 0; b < this.chartData.columns.length/2; b++){
+                  var lastdrawn="";
+                  if(this.chartData.columns[b][this.chartData.columns[b].length - 1] instanceof Date){
+                    console.log("DATE!!!")
+                    lastdrawn = this.chartData.columns[b][this.chartData.columns[b].length - 1].getTime();
+                  }
+                  else{
+                    console.log("NOT DATE")
+                    var found = false;
+                    for(var r = this.chartData.columns[b].length-1; r >= 0; r --){
+                      if(!this.chartData.columns[b][r] instanceof Date){
+                        lastdrawn = this.chartData.columns[b][r].getTime();
+                        found = true;
+                        break;
+                      }else if(r == 0 && lastdrawn == ""){
+                        found = false;
+                      }
+                    }
+                  }
                   //find this value in the new data
                   var index = -1;
-                  for (var i = 1; i <cols.columns[b].length; i++) {
-                      if (new Date(cols.columns[b][i]).getTime() >= lastdrawn) {
-                          // console.log("KEY DATE",new Date(cols.columns[b][i]))
-                          index = i;
-                          break;
+                  if(!found){
+                      for (var i = 1; i < cols.columns[b].length; i++) {
+                          if (new Date(cols.columns[b][i]).getTime() >= lastdrawn) {
+                              index = i;
+                              break;
+                          }
                       }
                   }
                   //delete all previous data from the new data
@@ -548,11 +565,7 @@
                       cols.columns[b].splice(1, cols.columns[b].length - 1);
                       cols.columns[(this.chartData.columns.length/2)+b].splice(1, cols.columns[b].length - 1);
                   }
-                  // console.log("last drawn date of '"+ cols.columns[(cols.columns.length/2)+b][0]+"' = ", new Date(lastdrawn));
-                  // console.log("firstdate to be drawn "+ cols.columns[b][1]);
-                  // console.log("number of targets "+this.chartData.columns.length / 2," current target number ",b," charData ",this.chartData)
               }
-              // console.log("new data filtered(cols)", cols.columns[0].length, index);
               // remove the null values from new arrays
               for (var j = cols.columns.length / 2; j < cols.columns.length; j++) {
                   for (var k = cols.columns[j].length; k >= 0; k--) {
@@ -565,13 +578,11 @@
                       }
                   }
               }
-              // console.log("null values removed from new data (cols)", cols.columns[0].length);
               // display the new data
               if (cols.columns[cols.columns.length-1].length > 1) {
                   this.chartElement = this.querySelector('#'+this._computePanelId(this.panel.id, this.panel.title));
                   this.chartElement.flow(cols);
               }
-              // console.log(cols);
               //add the new data to the old
               for (var j = 0; j < cols.columns.length; j++) {
                   for (var k = 1; k < cols.columns[j].length; k++) {
