@@ -531,7 +531,6 @@
               for(var b = 0; b < this.chartData.columns.length/2; b++){
                   var lastdrawn="";
                   if(this.chartData.columns[b][this.chartData.columns[b].length - 1] instanceof Date){
-                    console.log("DATE!!!")
                     lastdrawn = this.chartData.columns[b][this.chartData.columns[b].length - 1].getTime();
                   }
                   else{
