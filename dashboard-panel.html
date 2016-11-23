@@ -489,7 +489,7 @@
           }
           this.set('loading', false);
           // if refresh is on then we need to flow the data not to redraw them
-          if (!this.refreshOn ) {
+          if (!this.refreshOn) {
               // console.log("load");
               cols = this.transformData(data);
               this.set('chartData', {
@@ -569,9 +569,7 @@
               // display the new data
               if (cols.columns[cols.columns.length-1].length > 1) {
                   this.chartElement = this.querySelector('#'+this._computePanelId(this.panel.id, this.panel.title));
-                  // console.log("before flow");
                   this.chartElement.flow(cols);
-                  // console.log("flow good");
               }
               // console.log(cols);
               //add the new data to the old
@@ -614,7 +612,7 @@
                           xs[this._filterTarget(response[metr].name)] = 'x' + (k + 1);
                       }
                       x.unshift("x" + (k + 1));
-                      d.unshift(response[metr].name);
+                      d.unshift(this._filterTarget(response[metr].name));
                       columns.splice(k, 0, x);
                       columns.push(d);
                       k++;

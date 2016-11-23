@@ -52,6 +52,7 @@
         from="[[from]]" to="[[to]]"
         datasources="[[datasources]]"
         refresh-interval="{{refreshInterval}}"
+        replace-targets="[[replaceTargets]]"
         style="height: [[item.height]]*2;"></dashboard-row>
     </template>
 
@@ -97,8 +98,10 @@
         type: Number
       },
       uri: {
-        type: String,
-        value: '/api/v1/dashboards/db'
+        type: String
+      },
+      replaceTargets: {
+        type: Object
       }
     },
 
