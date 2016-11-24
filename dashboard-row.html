@@ -30,6 +30,7 @@
             <template is="dom-repeat" items="{{row.panels}}">
               <div>
                 <dashboard-panel id="panel-[[item.id]]"
+                  index="[[index]]"
                   refresh-interval="{{refreshInterval}}"
                   datasource-uri="[[_computeDatasourceUri(datasources, item)]]"
                   datasource-type="[[_computeDatasourceType(datasources, item)]]"
@@ -37,7 +38,8 @@
                   panel="[[item]]"
                   from="[[from]]"
                   to="[[to]]"
-                  style="width: [[_elementWidth(item.span)]];"></dashboard-panel>
+                  replace-targets="[[replaceTargets]]"
+                  style$="width: {{_elementWidth(item.span)}};"></dashboard-panel>
               </div>
             </template>
         </sortable-js>
@@ -55,6 +57,30 @@
                 from: String,
                 to: String,
                 refreshInterval: Number,
+                index: Number,
+                replaceTargets: Object
+            },
+            listeners: {
+              //'delete-panel': 'deletePanel'
+            },
+            deletePanel: function(e){
+                this.splice("row.panels",e.detail.index, 1);
+                 if (this.row.panels.length > 0)
+                   this.redistributeSpace();
+                 if (this.row.panels.length == 0)
+                   this.fire('delete-row', {rowlId: this.row.id, index: this.index})
+            },
+            redistributeSpace: function(panel){
+              var totalSpan=0;
+              for(var j=0; j<this.row.panels.length; j++){
+                totalSpan+=this.row.panels[j].span;
+              }
+              var diffSpan= (12-totalSpan)/this.row.panels.length;
+              for(var i=0; i<this.row.panels.length; i++){
+                this.row.panels[i].span+=diffSpan;
+                this.querySelector("#panel-"+this.row.panels[i].id).style.width=this._elementWidth(this.row.panels[i].span);
+                this.querySelector("#panel-"+this.row.panels[i].id).chartElement.resize(this.querySelector("#panel-"+this.row.panels[i].id).style.width);
+              }
             },
             _elementWidth: function(span) {
                 return 100 * span / 12 + '%';
