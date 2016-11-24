@@ -28,7 +28,6 @@
         </template>
         <sortable-js>
             <template is="dom-repeat" items="{{row.panels}}">
-              <div>
                 <dashboard-panel id="panel-[[item.id]]"
                   index="[[index]]"
                   refresh-interval="{{refreshInterval}}"
@@ -40,7 +39,6 @@
                   to="[[to]]"
                   replace-targets="[[replaceTargets]]"
                   style$="width: {{_elementWidth(item.span)}};"></dashboard-panel>
-              </div>
             </template>
         </sortable-js>
     </div>
