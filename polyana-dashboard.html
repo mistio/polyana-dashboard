@@ -160,11 +160,7 @@
     _handleResponse: function(data) {
       console.warn('data', data);
       this.meta = data.detail.response.meta;
-      if(data.detail.response.dashboard.rows[0].panels[0].title.search("all")==-1){
-        data.detail.response.dashboard.rows[0].panels.splice(1,data.detail.response.dashboard.rows[0].panels.length-1);
-        this.dashboard = data.detail.response.dashboard;
-      }
-
+      this.dashboard = data.detail.response.dashboard;
     },
 
     _dashboardUpdated: function(){

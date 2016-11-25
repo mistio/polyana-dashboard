@@ -236,9 +236,9 @@
                         if (typeof that.chartData != 'undefined' && that.chartData.columns && that.chartData.columns.length > 0 && that.chartData.columns[that.chartData.columns.length - 1].length > 1) {
                             that.set('refreshOn', true);
                         }
-                        that.to = Math.floor(new Date().getTime() / 1000) - 20;
+                        that.to = Math.floor(new Date().getTime() / 1000)-20;
                         if (typeof that.chartData.columns[0] != "undefined" && that.chartData.columns[0].length > 1) {
-                            that.from = Math.floor(that.chartData.columns[0][that.chartData.columns[0].length - 1].getTime() / 1000) - 60; //"-10min";
+                            that.from ="-1min";// Math.floor(that.chartData.columns[0][that.chartData.columns[0].length - 1].getTime() / 1000) - 60; //"-10min";
                         }
                         that._refresh();
                     } else {
@@ -377,7 +377,7 @@
                 if (typeof timestamp != 'string')
                     return timestamp;
                 if (this.to == "now" && timestamp == "now")
-                    return Math.floor(new Date().getTime() / 1000) - 20;
+                    return Math.floor(new Date().getTime() / 1000)-20;
 
                 var ret = timestamp.replace('now-', '-');
                 if (ret.search('min') == -1)
@@ -587,6 +587,7 @@
                 for (var j = 0; j < cols.columns.length; j++) {
                     this.chartData.columns[j].concat(cols.columns[j])
                 }
+                //console.log("last date in data ",this.chartData.columns[0][this.chartData.columns[0].length-1],this.chartData.columns[0+this.chartData.columns[0].length/2][this.chartData.columns[0+this.chartData.columns[0].length/2].length-1])
                 var toberemoved = [];
                 //remove equal number of old data from the ola array (drawn data)
                 if (typeof this.chartData.columns != "undefined" || this.chartData.columns.length > 0)
@@ -597,6 +598,7 @@
                         }
                     }
                 this.chartElement.unload(toberemoved);
+
             },
 
             transformData: function(data) {
