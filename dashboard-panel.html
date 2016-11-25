@@ -188,14 +188,6 @@
                     type: Object,
                     value: {}
                 },
-                lastDrawnPoint: {
-                    type: Array,
-                    value: []
-                },
-                lastDrawnValue: {
-                    type: Array,
-                    value: []
-                },
                 intervalID: String,
                 index: Number
             },
@@ -236,9 +228,9 @@
                         if (typeof that.chartData != 'undefined' && that.chartData.columns && that.chartData.columns.length > 0 && that.chartData.columns[that.chartData.columns.length - 1].length > 1) {
                             that.set('refreshOn', true);
                         }
-                        that.to = Math.floor(new Date().getTime() / 1000)-20;
+                        that.to = Math.floor(new Date().getTime() / 1000) - 20;
                         if (typeof that.chartData.columns[0] != "undefined" && that.chartData.columns[0].length > 1) {
-                            that.from ="-1min";// Math.floor(that.chartData.columns[0][that.chartData.columns[0].length - 1].getTime() / 1000) - 60; //"-10min";
+                            that.from = "-1min"; // Math.floor(that.chartData.columns[0][that.chartData.columns[0].length - 1].getTime() / 1000) - 60; //"-10min";
                         }
                         that._refresh();
                     } else {
@@ -377,7 +369,7 @@
                 if (typeof timestamp != 'string')
                     return timestamp;
                 if (this.to == "now" && timestamp == "now")
-                    return Math.floor(new Date().getTime() / 1000)-20;
+                    return Math.floor(new Date().getTime() / 1000) - 20;
 
                 var ret = timestamp.replace('now-', '-');
                 if (ret.search('min') == -1)
@@ -481,7 +473,7 @@
                 if (!this || !this.querySelector("#" + this._computePanelId(this.panel.id, this.panel.title)))
                     return;
 
-                // if no metrics are returned hide the panel
+                //if no metrics are returned hide the panel
                 if (!Object.keys(data.metrics).length && this.panel.targets[0].target.indexOf('mist.python') == -1)
                     this.hidden = true;
                 else if (this.hidden)
@@ -490,7 +482,7 @@
                 this.set('loading', false);
                 var cols = this.transformData(data);
                 //if refresh is on then we need to flow the data not to redraw them
-                if (!this.refreshOn && typeof this.chartData.columns[0] == 'undefined') {
+                if (!this.refreshOn) {
                     this._loadDatatoGraphs(data, cols);
                     if (this.panel.stack) {
                         this._stackIt();
@@ -512,20 +504,10 @@
                     xs: cols.xs,
                     columns: cols.columns
                 });
-                this.set("lastDrawnPoint", []);
-                this.set("lastDrawnValue", []);
-                for (var r = 0; r < this.chartData.columns.length / 2; r++) {
-                    if (this.chartData.columns[r].length > 1) {
-                        var targetLastPoint = [];
-                        var targetLastValue = [];
-                        targetLastPoint.push(this.chartData.columns[r][0]);
-                        targetLastPoint.push(this.chartData.columns[r][this.chartData.columns[r].length - 1]);
-                        targetLastValue.push(this.chartData.columns[r + this.chartData.columns.length / 2][0]);
-                        targetLastValue.push(this.chartData.columns[r + this.chartData.columns.length / 2][this.chartData.columns[r + this.chartData.columns.length / 2].length - 1]);
-                        this.push("lastDrawnPoint", targetLastPoint);
-                        this.push("lastDrawnValue", targetLastValue)
-                    } else {
-                        console.log("NULL VALUE", this.chartData.columns[r], this.chartData.columns)
+                for (var t = this.chartData.columns.length / 2; t < this.chartData.columns.length; t++) {
+                    if (this.chartData.columns[t][this.chartData.columns[t].length - 1] == null) {
+                        this.chartData.columns[t].pop();
+                        this.chartData.columns[t - this.chartData.columns.length / 2].pop();
                     }
                 }
                 this.chartData.size = [this.querySelector('paper-material').clientWidth, this.rowHeight];
@@ -544,61 +526,63 @@
             },
 
             _flowDatatoGraphs: function(cols) {
-                var lastpoints = [];
-                //look in the date data columns
-                for (var i = 0; i < cols.columns.length / 2; i++) {
-                    var index = -1;
-                    if (typeof this.lastDrawnPoint[i] == 'undefined') {
-                        for (var g = 0; g < this.lastDrawnPoint.length; g++)
-                            console.log(this.lastDrawnPoint[g], this.lastDrawnValue[g])
-                    }
-                    if (cols.columns[i][0] == this.lastDrawnPoint[i][0]) {
-                        //if you find it
-                        if (cols.columns[i].map(String).indexOf(this.lastDrawnPoint[i][1].toString()) > -1) {
-                            index = cols.columns[i].map(String).indexOf(this.lastDrawnPoint[i][1].toString());
-                        } else { // else find a greater value if any
-                            for (var j = 1; j < cols.columns[i].length; j++) {
-                                if (cols.columns[i][j] >= this.lastDrawnPoint[i][1]) {
-                                    index = j;
-                                    break;
-                                }
-                            }
-                        } //if we have a matching point remove all elements up to the matching one
-                        if (index > -1) {
-                            cols.columns[i].splice(1, index);
-                            cols.columns[(cols.columns.length / 2) + i].splice(1, index);
-                            lastpoints.push([cols.columns[i][0], cols.columns[i][cols.columns[i].length - 1]]);
+                //find the last non null point from drawn data
+                var lastdot = [];
+                //console.log(this.chartData.columns[1])
+                for (var q = this.chartData.columns.length / 2; q < this.chartData.columns.length; q++) {
+                    for (var w = this.chartData.columns[q].length - 1; w > 0; w--) {
+                        if (this.chartData.columns[q][w] != null) {
+                            lastdot.push([this.chartData.columns[q - this.chartData.columns.length / 2][0], this.chartData.columns[q - this.chartData.columns.length / 2][w]]);
+                            this.chartData.columns[q - this.chartData.columns.length / 2].splice(w + 1, this.chartData.columns[q - this.chartData.columns.length / 2].length - 1)
+                            this.chartData.columns[q].splice(w + 1, this.chartData.columns[q - this.chartData.columns.length / 2].length - 1)
+                                // console.log(this.chartData.columns[this.chartData.columns.length-1],w)
+                                // console.log("Last ",this.chartData.columns[q-this.chartData.columns.length/2][w],this.chartData.columns[q-this.chartData.columns.length/2][w])
+                            break;
+                        }
+                        if (w == 1) {
+                            console.log("nulles", cols.columns[q][w])
+                            lastdot.push([this.chartData.columns[q - this.chartData.columns.length / 2][0], this.chartData.columns[q - this.chartData.columns.length / 2][this.chartData.columns[q].length - 1]]);
                         }
                     }
                 }
-                if (lastpoints != []) {
-                    this.set("lastDrawnPoint", lastpoints);
-                } else {
-                    console.log("lastDrawnPoint array was empty")
+                for (var f = 0; f < cols.columns.length; f++) {
+                    if (cols.columns[f][cols.columns[f][cols.columns[f].length - 1]] == null) {
+                        cols.columns[f].pop();
+                    }
                 }
-                if (index < 0)
-                    console.log("Minus index", index, cols)
-
-                // display the new data
-                if (cols.columns[cols.columns.length - 1].length > 1) {
+                //find the last point from above in the new data
+                var found = false;
+                for (var e = 0; e < cols.columns.length / 2; e++) {
+                    for (var r = 1; r < cols.columns[e].length / 2; r++) {
+                        if (cols.columns[e][r] > lastdot[e][1]) {
+                            //console.log("First ",cols.columns[e][r],cols.columns[e+cols.columns.length/2][r])
+                            found = true;
+                            cols.columns[e].splice(1, r);
+                            cols.columns[e + cols.columns.length / 2].splice(1, r);
+                            break;
+                        }
+                    }
+                }
+                if (found) {
                     this.chartElement.flow(cols);
-                }
-                //add the new data to the old
-                for (var j = 0; j < cols.columns.length; j++) {
-                    this.chartData.columns[j].concat(cols.columns[j])
-                }
-                //console.log("last date in data ",this.chartData.columns[0][this.chartData.columns[0].length-1],this.chartData.columns[0+this.chartData.columns[0].length/2][this.chartData.columns[0+this.chartData.columns[0].length/2].length-1])
-                var toberemoved = [];
-                //remove equal number of old data from the ola array (drawn data)
-                if (typeof this.chartData.columns != "undefined" || this.chartData.columns.length > 0)
+                    //add the new data to the old
                     for (var j = 0; j < cols.columns.length; j++) {
-                        if (typeof this.chartData.columns[j] != "undefined") {
-                            toberemoved.push(this.chartData.columns[j].splice(1, cols.columns[j].length));
-                            this.chartData.columns[j].splice(1, cols.columns[j].length - 1);
+                        for (var k = 1; k < cols.columns[j].length; k++) {
+                            this.chartData.columns[j].push(cols.columns[j][k]);
                         }
                     }
-                this.chartElement.unload(toberemoved);
-
+                    //console.log("last date in data ",this.chartData.columns[0][this.chartData.columns[0].length-1],this.chartData.columns[0+this.chartData.columns.length/2][this.chartData.columns[0+this.chartData.columns.length/2].length-1])
+                    var toberemoved = [];
+                    //remove equal number of old data from the ola array (drawn data)
+                    if (typeof this.chartData.columns != "undefined" || this.chartData.columns.length > 0)
+                        for (var j = 0; j < cols.columns.length; j++) {
+                            if (typeof this.chartData.columns[j] != "undefined") {
+                                toberemoved.push(this.chartData.columns[j].splice(1, cols.columns[j].length));
+                                this.chartData.columns[j].splice(1, cols.columns[j].length - 1);
+                            }
+                        }
+                    this.chartElement.unload(toberemoved);
+                }
             },
 
             transformData: function(data) {
