@@ -532,8 +532,7 @@
                   var lastdrawn="";
                   if(this.chartData.columns[b][this.chartData.columns[b].length - 1] instanceof Date){
                     lastdrawn = this.chartData.columns[b][this.chartData.columns[b].length - 1].getTime();
-                  }
-                  else{
+                  } else {
                     console.log("NOT DATE")
                     var found = false;
                     for(var r = this.chartData.columns[b].length-1; r >= 0; r --){
