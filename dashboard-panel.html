@@ -528,15 +528,12 @@
             _flowDatatoGraphs: function(cols) {
                 //find the last non null point from drawn data
                 var lastdot = [];
-                //console.log(this.chartData.columns[1])
                 for (var q = this.chartData.columns.length / 2; q < this.chartData.columns.length; q++) {
                     for (var w = this.chartData.columns[q].length - 1; w > 0; w--) {
                         if (this.chartData.columns[q][w] != null) {
                             lastdot.push([this.chartData.columns[q - this.chartData.columns.length / 2][0], this.chartData.columns[q - this.chartData.columns.length / 2][w]]);
                             this.chartData.columns[q - this.chartData.columns.length / 2].splice(w + 1, this.chartData.columns[q - this.chartData.columns.length / 2].length - 1)
                             this.chartData.columns[q].splice(w + 1, this.chartData.columns[q - this.chartData.columns.length / 2].length - 1)
-                                // console.log(this.chartData.columns[this.chartData.columns.length-1],w)
-                                // console.log("Last ",this.chartData.columns[q-this.chartData.columns.length/2][w],this.chartData.columns[q-this.chartData.columns.length/2][w])
                             break;
                         }
                         if (w == 1) {
@@ -555,7 +552,6 @@
                 for (var e = 0; e < cols.columns.length / 2; e++) {
                     for (var r = 1; r < cols.columns[e].length / 2; r++) {
                         if (cols.columns[e][r] > lastdot[e][1]) {
-                            //console.log("First ",cols.columns[e][r],cols.columns[e+cols.columns.length/2][r])
                             found = true;
                             cols.columns[e].splice(1, r);
                             cols.columns[e + cols.columns.length / 2].splice(1, r);
@@ -571,16 +567,17 @@
                             this.chartData.columns[j].push(cols.columns[j][k]);
                         }
                     }
-                    var toberemoved = [];
                     //remove equal number of old data from the ola array (drawn data)
                     if (typeof this.chartData.columns != "undefined" || this.chartData.columns.length > 0)
                         for (var j = 0; j < cols.columns.length; j++) {
+                            //var toberemoved = [];
                             if (typeof this.chartData.columns[j] != "undefined") {
-                                toberemoved.push(this.chartData.columns[j].splice(1, cols.columns[j].length));
+                                //toberemoved.push(this.chartData.columns[j].splice(1, cols.columns[j].length));
+                                //toberemoved.unshift(this.chartData.columns[0]);
                                 this.chartData.columns[j].splice(1, cols.columns[j].length - 1);
+                                //this.chartElement.unload(toberemoved);
                             }
                         }
-                    this.chartElement.unload(toberemoved);
                 }
             },
 
