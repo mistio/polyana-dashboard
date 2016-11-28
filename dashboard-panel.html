@@ -201,8 +201,16 @@
           '_updateStep(from, to, datasourceType)'
       ],
 
+      detached: function(){
+          console.debug('panel detached', this.panel.id);
+          clearTimeout(this.intervalID);
+          this.intervalID = 0;
+          this.remove();
+      },
+
       deletePanel: function(e){
-          window.clearTimeout(this.intervalID);
+          clearTimeout(this.intervalID);
+          this.intervalID = 0;
           //this.chartElement.destroy();
           this.loading = true;
           this.fire('delete-panel', {panelId: this.panel.id, index: this.index,panel:this});
@@ -219,8 +227,10 @@
       },
 
       _refresh: function() {
+          if (this.intervalID)
+              clearTimeout(this.intervalID);
           var that = this;
-          this.intervalID = window.setTimeout(function() {
+          this.intervalID = setTimeout(function() {
               if (that.refreshInterval > 0) {
                   if (typeof that.chartData!='undefined' && that.chartData.columns && that.chartData.columns.length>0 && that.chartData.columns[that.chartData.columns.length-1].length>1){
                     that.set('refreshOn', true);
@@ -246,7 +256,10 @@
       },
 
       _updateStep: function(from, to) {
+          if (!document.contains(this))
+              return;
           // TODO when we change from/to both _updateStep and _generateDataRequestFromTo are triggered
+          console.log('_updateStep ', this);
           this.debounce('updateStep', function() {
               //console.warn('from/to updated', this.panel, from, to);
               if (this.datasourceType != 'mist.monitor')
@@ -332,12 +345,13 @@
                       this.step = steps[6];
                       this.chartAxis.x.tick.format = "%Y-%m";
                   }
-              }else{
-                if(steps.indexOf(this.step)>3){
-                  this.step=steps[2];
+              } else {
+                if (steps.indexOf(this.step)>3) {
+                    this.step=steps[2];
                 }
               }
               //console.warn('calculated step', this.step);
+              console.log('_updateStep _generateDataRequest', this);
               this._generateDataRequest();
           }, 100);
       },
@@ -396,6 +410,7 @@
       _changeGraph: function(e) {
           if (e.detail == "step") {
               // console.log(this.step, e.detail);
+              console.log('_changeGraph _generateDataRequest');
               this._generateDataRequest();
           } else if (e.detail == "dateFormat") {
               this.chartElement.load(this.chartData);
