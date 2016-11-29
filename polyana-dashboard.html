@@ -7,203 +7,192 @@
 <link rel="import" href="dashboard-row.html">
 
 <dom-module id="polyana-dashboard">
-  <template>
-    <style>
-      :host{
-        display: block;
-      }
-      body {
-        padding: 20px;
-      }
-      .list-group-item {
-        cursor: move;
-        cursor: -webkit-grabbing;
-      }
-      paper-material {
-        width: 100%;
-        padding: 8px 0;
-        box-sizing: border-box;
-      }
-      .timerange-area {
-        justify-content: flex-end;
-      }
-      paper-card {
-        padding: 16px;
-        margin: 16px;
-      }
-      dashboard-row {
-        clear: both;
-        display: block;
-      }
-    </style>
+    <template>
+        <style>
+             :host {
+                display: block;
+            }
+            
+            body {
+                padding: 20px;
+            }
+            
+            .list-group-item {
+                cursor: move;
+                cursor: -webkit-grabbing;
+            }
+            
+            paper-material {
+                width: 100%;
+                padding: 8px 0;
+                box-sizing: border-box;
+            }
+            
+            .timerange-area {
+                justify-content: flex-end;
+            }
+            
+            paper-card {
+                padding: 16px;
+                margin: 16px;
+            }
+            
+            dashboard-row {
+                clear: both;
+                display: block;
+            }
+        </style>
 
-    <timerange-picker from="{{from}}" to="{{to}}" refresh-interval="{{refreshInterval}}"></timerange-picker>
+        <timerange-picker from="{{from}}" to="{{to}}" refresh-interval="{{refreshInterval}}"></timerange-picker>
 
-    <iron-ajax id="dataAjax"
-      url="[[uri]]"
-      handle-as="json"
-      method="POST"
-      debounce-duration="300"></iron-ajax>
+        <iron-ajax id="dataAjax" url="[[uri]]" handle-as="json" method="POST" debounce-duration="300"></iron-ajax>
 
-    <template is="dom-repeat" items="{{dashboard.rows}}">
-      <dashboard-row id="row-[[index]]" class="row"
-        index="[[index]]"
-        row="[[item]]"
-        from="[[from]]" to="[[to]]"
-        datasources="[[datasources]]"
-        refresh-interval="{{refreshInterval}}"
-        replace-targets="[[replaceTargets]]"
-        style="height: [[item.height]]*2;"></dashboard-row>
+        <template is="dom-repeat" items="{{dashboard.rows}}">
+            <dashboard-row id="row-[[index]]" class="row" index="[[index]]" row="[[item]]" from="[[from]]" to="[[to]]" datasources="[[datasources]]" refresh-interval="{{refreshInterval}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2;"></dashboard-row>
+        </template>
+
+        <iron-ajax id='requestAjax' auto url="[[uri]]" handle-as="json" method="GET" on-response="_handleResponse" debounce-duration="300">
+        </iron-ajax>
     </template>
 
-    <iron-ajax id='requestAjax'
-      auto
-      url="[[uri]]"
-      handle-as="json"
-      method="GET"
-      on-response="_handleResponse"
-      debounce-duration="300">
-    </iron-ajax>
-  </template>
+    <script>
+        Polymer({
+            is: 'polyana-dashboard',
 
-  <script>
-  Polymer({
-    is: 'polyana-dashboard',
-
-    properties: {
-      dashboard: {
-        type: Object,
-        observer: '_dashboardUpdated'
-      },
-      datasources: {
-        type: Array
-      },
-      meta: {
-        type: Object
-      },
-      targets: {
-        type: Array,
-        computed: "_getTargets(dashboard, datasources)"
-      },
-      datapoints: {
-        type: Object
-      },
-      from: {
-        type: String
-      },
-      to: {
-        type: String
-      },
-      refreshInterval: {
-        type: Number
-      },
-      uri: {
-        type: String
-      },
-      replaceTargets: {
-        type: Object
-      }
-    },
-
-    observers: [
-      "_computeInterval(dashboard, dashboard.refresh)"
-    ],
-
-    listeners: {
-      'end': '_saveDashboard',
-      'resizeDone': '_saveDashboard',
-      'graphChanged': '_saveDashboard',
-      'delete-row': 'deleteRow',
-      'delete-panel': 'panelDeleted'
-    },
-
-    deleteRow: function(e){
-        this._saveDashboard();
-    },
-
-    panelDeleted: function(e){
-        this._saveDashboard();
-    },
-    detached:function(){
-      this.set("refreshInterval",0);
-    },
-    _computeInterval:function(dashboard, refresh){
-      var res;
-      if (typeof this.dashboard.refresh ==='string') {
-        var digits = parseInt(this.dashboard.refresh.match(/\d+/g));
-        if (this.dashboard.refresh.search("min")>-1) {
-          res = digits * 60000;
-        } else if(this.dashboard.refresh.search("sec")>-1) {
-          res = digits * 1000;
-        }
-      }
-      this.set('refreshInterval',res);
-    },
-
-    _saveDashboard: function(e) {
-      if (this.uri) {
-        this.$.dataAjax.headers["Content-Type"] = 'application/json';
-        this.$.dataAjax.body = {
-          dashboard: this.dashboard,
-          overwrite: true
-        };
-        this.$.dataAjax.generateRequest();
-      } else {
-        // TODO
-      }
-    },
-
-    _updateDashboard: function(){
-      this.$.requestAjax.generateRequest();
-    },
-
-    _handleResponse: function(data) {
-      console.warn('data', data);
-      this.meta = data.detail.response.meta;
-      this.dashboard = data.detail.response.dashboard;
-    },
-
-    _dashboardUpdated: function(){
-      if (this.dashboard.time){
-        this.from = this.dashboard.time.from;
-        this.to = this.dashboard.time.to;
-      }
-    },
-    _getTargets: function(dashboard, datasources) {
-      // Return object with all targets referenced in the dashboard, grouped by datasource
-      var targets = {}, defaultDatasource;
-      if (!dashboard.rows)
-        return {}
-      for (var i = 0; i < dashboard.rows.length; i++) { // iterate rows
-        if (dashboard.rows[i].panels) { // if row has panels
-            for (var j = 0; j < dashboard.rows[i].panels.length; j++) { // iterate panels
-              if (dashboard.rows[i].panels[j] && dashboard.rows[i].panels[j].targets) { // if panel has targets
-                for (var k = 0; k < dashboard.rows[i].panels[j].targets.length; k++) { // iterate targets
-                  if (dashboard.rows[i].panels[j].datasource == null) { // if panel has no datasource set
-                    for (var p = 0; p < datasources.length; p++) { // iterate datasources
-                      if (datasources[p].isDefault) { // to find the default one
-                        defaultDatasource = datasources[p].name;
-                        break;
-                      }
-                    }
-                  }
-                  var datasource = dashboard.rows[i].panels[j].datasource || defaultDatasource;
-                  // initalize datasource targets if necessary
-                  if (targets[datasource] == undefined) {
-                    targets[datasource] = [];
-
-                  if (dashboard.rows[i].panels[j].targets[k].target && targets[datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target) == -1) {
-                    targets[datasource].push(dashboard.rows[i].panels[j].targets[k].target);
-                  }
+            properties: {
+                dashboard: {
+                    type: Object,
+                    observer: '_dashboardUpdated'
+                },
+                datasources: {
+                    type: Array
+                },
+                meta: {
+                    type: Object
+                },
+                targets: {
+                    type: Array,
+                    computed: "_getTargets(dashboard, datasources)"
+                },
+                datapoints: {
+                    type: Object
+                },
+                from: {
+                    type: String
+                },
+                to: {
+                    type: String
+                },
+                refreshInterval: {
+                    type: Number
+                },
+                uri: {
+                    type: String
+                },
+                replaceTargets: {
+                    type: Object
                 }
-              }
-            }
-          }
-        }
-      }
-      return targets
-    },
-  });
+            },
 
-  </script>
+            observers: [
+                "_computeInterval(dashboard, dashboard.refresh)"
+            ],
+
+            listeners: {
+                'end': '_saveDashboard',
+                'resizeDone': '_saveDashboard',
+                'graphChanged': '_saveDashboard',
+                'delete-row': 'deleteRow',
+                'delete-panel': 'panelDeleted'
+            },
+
+            deleteRow: function(e) {
+                this._saveDashboard();
+            },
+
+            panelDeleted: function(e) {
+                this._saveDashboard();
+            },
+            detached: function() {
+                this.set("refreshInterval", 0);
+            },
+            _computeInterval: function(dashboard, refresh) {
+                var res;
+                if (typeof this.dashboard.refresh === 'string') {
+                    var digits = parseInt(this.dashboard.refresh.match(/\d+/g));
+                    if (this.dashboard.refresh.search("min") > -1) {
+                        res = digits * 60000;
+                    } else if (this.dashboard.refresh.search("sec") > -1) {
+                        res = digits * 1000;
+                    }
+                }
+                this.set('refreshInterval', res);
+            },
+
+            _saveDashboard: function(e) {
+                if (this.uri) {
+                    this.$.dataAjax.headers["Content-Type"] = 'application/json';
+                    this.$.dataAjax.body = {
+                        dashboard: this.dashboard,
+                        overwrite: true
+                    };
+                    this.$.dataAjax.generateRequest();
+                } else {
+                    // TODO
+                }
+            },
+
+            _updateDashboard: function() {
+                this.$.requestAjax.generateRequest();
+            },
+
+            _handleResponse: function(data) {
+                console.warn('data', data);
+                this.meta = data.detail.response.meta;
+                this.dashboard = data.detail.response.dashboard;
+            },
+
+            _dashboardUpdated: function() {
+                if (this.dashboard.time) {
+                    this.from = this.dashboard.time.from;
+                    this.to = this.dashboard.time.to;
+                }
+            },
+            _getTargets: function(dashboard, datasources) {
+                // Return object with all targets referenced in the dashboard, grouped by datasource
+                var targets = {},
+                    defaultDatasource;
+                if (!dashboard.rows)
+                    return {}
+                for (var i = 0; i < dashboard.rows.length; i++) { // iterate rows
+                    if (dashboard.rows[i].panels) { // if row has panels
+                        for (var j = 0; j < dashboard.rows[i].panels.length; j++) { // iterate panels
+                            if (dashboard.rows[i].panels[j] && dashboard.rows[i].panels[j].targets) { // if panel has targets
+                                for (var k = 0; k < dashboard.rows[i].panels[j].targets.length; k++) { // iterate targets
+                                    if (dashboard.rows[i].panels[j].datasource == null) { // if panel has no datasource set
+                                        for (var p = 0; p < datasources.length; p++) { // iterate datasources
+                                            if (datasources[p].isDefault) { // to find the default one
+                                                defaultDatasource = datasources[p].name;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    var datasource = dashboard.rows[i].panels[j].datasource || defaultDatasource;
+                                    // initalize datasource targets if necessary
+                                    if (targets[datasource] == undefined) {
+                                        targets[datasource] = [];
+
+                                        if (dashboard.rows[i].panels[j].targets[k].target && targets[datasource].indexOf(dashboard.rows[i].panels[j].targets[k].target) == -1) {
+                                            targets[datasource].push(dashboard.rows[i].panels[j].targets[k].target);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return targets
+            },
+        });
+    </script>
 </dom-module>

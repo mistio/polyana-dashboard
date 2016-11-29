@@ -1,0 +1,9 @@
+{
+  "extends": ["eslint:recommended", "google"],
+  "plugins": [
+        "html"
+  ],
+  "rules": {
+    // Additional, per-project rules...
+  }
+}

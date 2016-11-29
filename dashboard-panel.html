@@ -8,79 +8,79 @@
 <link rel="import" href="panel-edit.html">
 <dom-module id="dashboard-panel">
     <template>
-      <style>
-        :host {
-          float: left;
-          display: inline-block;
-          position: relative;
-          padding: 4px;
-          box-sizing: border-box;
-          transition: height 500ms ease-in;
-        }
-        #target {
-          font-weight: bold;
-          text-align: left;
-        }
-        paper-material {
-          width: 100%;
-          padding: 0 16px 16px 16px;
-          box-sizing: border-box;
-          overflow: auto;
-          background-color: #f1f1f1;
-        }
-        h3 {
-          text-transform: uppercase;
-          font-size: 16px;
-          font-weight: 500;
-          line-height: 36px;
-          cursor: move;
-        }
-        .head {
-          align-items: center;
-        }
-        paper-spinner {
-          position: absolute;
-          left: 50%;
-          top: 24px;
-        }
-        paper-icon-button {
-          opacity: 0.32;
-        }
-      </style>
-      <iron-ajax id="dataRequest"
-        params="[[params]]"
-        url="[[_computeUrl(datasourceUri)]]"
-        handle-as="json"
-        method="GET"
-        loading="{{loading}}"
-        contentType="application/json"
-        on-response="_handlePanelResponse"
-        debounce-duration="300"></iron-ajax>
-      <paper-material id="paper" elevation="0">
-        <div class="head layout horizontal">
-          <h3 class="flex">[[panel.title]]</h3>
-          <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
-          <template is="dom-if" if="[[panel.editable]]">
-            <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
-          </template>
-        </div>
-        <template is="dom-if" if="[[_isText(panel)]]">
-          <div>[[panel.content]]</div>
-        </template>
-        <template is="dom-if" if="[[_isSinglestat(panel)]]">
-          <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
-        </template>
-        <template is="dom-if" if="[[_isGraph(panel)]]">
-          <paper-spinner active="[[loading]]"></paper-spinner>
-          <c3-chart id="[[_computePanelId(panel.id, panel.title)]]" from="[[from]]" chart-id="[[_computePanelId(panel.id, panel.title)]]"></c3-chart>
-        </template>
-        <template is="dom-if" if="[[_isDashlist(panel)]]">
-          <div><!-- TODO -->...</div>
-        </template>
-        <template is="dom-if" if="[[_isTable(panel)]]">
-          <div><!-- TODO -->...</div>
-        </template>
-      </paper-material>
+        <style>
+             :host {
+                float: left;
+                display: inline-block;
+                position: relative;
+                padding: 4px;
+                box-sizing: border-box;
+                transition: height 500ms ease-in;
+            }
+            
+            #target {
+                font-weight: bold;
+                text-align: left;
+            }
+            
+            paper-material {
+                width: 100%;
+                padding: 0 16px 16px 16px;
+                box-sizing: border-box;
+                overflow: auto;
+                background-color: #f1f1f1;
+            }
+            
+            h3 {
+                text-transform: uppercase;
+                font-size: 16px;
+                font-weight: 500;
+                line-height: 36px;
+                cursor: move;
+            }
+            
+            .head {
+                align-items: center;
+            }
+            
+            paper-spinner {
+                position: absolute;
+                left: 50%;
+                top: 24px;
+            }
+            
+            paper-icon-button {
+                opacity: 0.32;
+            }
+        </style>
+        <iron-ajax id="dataRequest" params="[[params]]" url="[[_computeUrl(datasourceUri)]]" handle-as="json" method="GET" loading="{{loading}}" contentType="application/json" on-response="_handlePanelResponse" debounce-duration="300"></iron-ajax>
+        <paper-material id="paper" elevation="0">
+            <div class="head layout horizontal">
+                <h3 class="flex">[[panel.title]]</h3>
+                <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
+                <template is="dom-if" if="[[panel.editable]]">
+                    <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
+                </template>
+            </div>
+            <template is="dom-if" if="[[_isText(panel)]]">
+                <div>[[panel.content]]</div>
+            </template>
+            <template is="dom-if" if="[[_isSinglestat(panel)]]">
+                <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
+            </template>
+            <template is="dom-if" if="[[_isGraph(panel)]]">
+                <paper-spinner active="[[loading]]"></paper-spinner>
+                <c3-chart id="[[_computePanelId(panel.id, panel.title)]]" from="[[from]]" chart-id="[[_computePanelId(panel.id, panel.title)]]"></c3-chart>
+            </template>
+            <template is="dom-if" if="[[_isDashlist(panel)]]">
+                <div>
+                    <!-- TODO -->...</div>
+            </template>
+            <template is="dom-if" if="[[_isTable(panel)]]">
+                <div>
+                    <!-- TODO -->...</div>
+            </template>
+        </paper-material>
     </template>
     <script>
         Polymer({
