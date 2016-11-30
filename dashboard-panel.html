@@ -441,15 +441,12 @@
                 for (var b = 0; b < this.chartData.datasets.length; b++) {
                     var originalLength = this.chartData.datasets[b].data.length;
                     for (var a = this.chartData.datasets[b].data.length - 1; a >= 0; a--) {
-                        //if we have greater or equl date
+                        //if we have greater or equal date
                         if (cols.datasets[b].data[0].x >= this.chartData.datasets[b].data[a].x) {
-                            //var diff=this.chartData.datasets[b].data.length-a;
                             this.chartData.datasets[b].data.splice(a, originalLength - a);
                             this.chartData.datasets[b].data = this.chartData.datasets[b].data.concat(cols.datasets[b].data);
                             var howmany = this.chartData.datasets[b].data.length - originalLength;
                             this.chartData.datasets[b].data.splice(0, howmany);
-                            // this.querySelector('chart-line').options=this.opts;
-                            // this.querySelector('chart-line').data = this.chartData;
                             break;
                         }
                     }
