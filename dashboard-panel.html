@@ -4,6 +4,8 @@
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/iron-resizable-behavior/iron-resizable-behavior.html">
+<link rel="import" href="../../bower_components/chart-elements/chart-elements.html">
 <link rel="import" href="panel-edit.html">
 <dom-module id="dashboard-panel">
     <template>
@@ -60,30 +62,30 @@
                 <template is="dom-if" if="[[panel.editable]]">
                     <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
                 </template>
-            </div>
-            <template is="dom-if" if="[[_isText(panel)]]">
+    </div>
+    <template is="dom-if" if="[[_isText(panel)]]">
                 <div>[[panel.content]]</div>
             </template>
-            <template is="dom-if" if="[[_isSinglestat(panel)]]">
+    <template is="dom-if" if="[[_isSinglestat(panel)]]">
                 <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
             </template>
-            <!-- <template is="dom-if" if="[[_isGraph(panel)]]">
+    <!-- <template is="dom-if" if="[[_isGraph(panel)]]">
                 <paper-spinner active="[[loading]]"></paper-spinner>
                 <c3-chart id="[[_computePanelId(panel.id, panel.title)]]" from="[[from]]" chart-id="[[_computePanelId(panel.id, panel.title)]]"></c3-chart>
             </template> -->
-            <template is="dom-if" if="[[_isGraph(panel)]]" data="[[chartData]]" options="[[chartOptions]]">
+    <template is="dom-if" if="[[_isGraph(panel)]]">
                 <paper-spinner active="[[loading]]"></paper-spinner>
-                <chart-line id="[[_computePanelId(panel.id, panel.title)]]"></chart-line>
+                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line"></chart-line>
             </template>
-            <template is="dom-if" if="[[_isDashlist(panel)]]">
+    <template is="dom-if" if="[[_isDashlist(panel)]]">
                 <div>
                     <!-- TODO -->...</div>
             </template>
-            <template is="dom-if" if="[[_isTable(panel)]]">
+    <template is="dom-if" if="[[_isTable(panel)]]">
                 <div>
                     <!-- TODO -->...</div>
             </template>
-        </paper-material>
+    </paper-material>
     </template>
     <script>
         Polymer({
@@ -116,6 +118,26 @@
                 },
                 panel: {
                     type: Object,
+                },
+                chartElement: Object,
+                chartData: {
+                  type:Object,
+                  value:{}
+                },
+                chartOptions: {
+                    type: Object,
+                    value: {
+                        scales: {
+                            yAxes: [{
+                                stacked: false,
+                                //display:false
+                            }],
+                            xAxes: [{
+                                type: 'time',
+                                position: 'bottom',
+                            }]
+                        }
+                    }
                 },
                 loading: {
                     type: Boolean,
@@ -161,11 +183,11 @@
                 var that = this;
                 this.intervalID = window.setTimeout(function() {
                     if (that.refreshInterval > 0) {
-                        if (typeof that.chartData != 'undefined' && that.chartData.columns && that.chartData.columns.length > 0 && that.chartData.columns[that.chartData.columns.length - 1].length > 1) {
+                        if (typeof that.chartData != 'undefined' && that.chartData.datasets.length > 0) {
                             that.set('refreshOn', true);
                         }
                         that.to = Math.floor(new Date().getTime() / 1000) - 20;
-                        if (typeof that.chartData.columns[0] != "undefined" && that.chartData.columns[0].length > 1) {
+                        if (typeof that.chartData.datasets[0].data != "undefined" && that.chartData.datasets[0].data.length > 1) {
                             that.from = "-1min"; // Math.floor(that.chartData.columns[0][that.chartData.columns[0].length - 1].getTime() / 1000) - 60; //"-10min";
                         }
                         that._refresh();
@@ -318,25 +340,25 @@
                 this.fire('resizeDone');
             },
             //_changeGraph: function(e) {
-                // if (e.detail == "step") {
-                //     // console.log(this.step, e.detail);
-                //     this._generateDataRequest();
-                // } else if (e.detail == "dateFormat") {
-                //     this.chartElement.load(this.chartData);
-                // }
-                // if (this.panel.bars) {
-                //     this.chartElement.transform('bar');
-                // } else if (this.panel.lines) {
-                //     this.chartElement.transform('spline');
-                // } else {
-                //     this.chartElement.transform('line');
-                // }
-                // if (this.panel.stack) {
-                //     this._stackIt();
-                // } else {
-                //     this.chartElement.groups(0);
-                // }
-                // this.fire('graphChanged');
+            // if (e.detail == "step") {
+            //     // console.log(this.step, e.detail);
+            //     this._generateDataRequest();
+            // } else if (e.detail == "dateFormat") {
+            //     this.chartElement.load(this.chartData);
+            // }
+            // if (this.panel.bars) {
+            //     this.chartElement.transform('bar');
+            // } else if (this.panel.lines) {
+            //     this.chartElement.transform('spline');
+            // } else {
+            //     this.chartElement.transform('line');
+            // }
+            // if (this.panel.stack) {
+            //     this._stackIt();
+            // } else {
+            //     this.chartElement.groups(0);
+            // }
+            // this.fire('graphChanged');
             //},
             // _stackIt: function() {
             //     var grp = [];
@@ -386,6 +408,7 @@
                 return target;
             },
             _handlePanelResponse: function(data) {
+                this.chartElement = this.querySelector("#" + this._computePanelId(this.panel.id, this.panel.title));
                 if (!this || !this.querySelector("#" + this._computePanelId(this.panel.id, this.panel.title)))
                     return;
                 //if no metrics are returned hide the panel
@@ -397,28 +420,48 @@
                 var cols = this.transformData(data);
                 //if refresh is on then we need to flow the data not to redraw them
                 if (!this.refreshOn) {
-                    this._loadDatatoGraphs(data, cols);
-                    // if (this.panel.stack) {
-                    //     this._stackIt();
-                    // }
+                    this._loadDatatoGraphs(cols);
                 } else { // flow the new data from auto refresh
-                    //console.log("Last Drawn Point ",this.lastDrawnPoint)
-                    //console.log("LAst Drawn Value ",this.lastDrawnValue)
+
                     this._flowDatatoGraphs(cols);
                 }
             },
-            _loadDatatoGraphs: function(data, cols) {
+            _loadDatatoGraphs: function(cols) {
+                this.set('loading', false);
+                this.chartData=cols;
 
+                if (this.panel.stack) {
+                    this.chartOptions.scales.yAxes[0].stacked = true;
+                } else {
+                    this.chartOptions.scales.yAxes[0].stacked = false;
+                }
+                this.chartElement.updateChart();
             },
             _flowDatatoGraphs: function(cols) {
-
+                for (var b = 0; b < this.chartData.datasets.length; b++) {
+                    var originalLength = this.chartData.datasets[b].data.length;
+                    for (var a = this.chartData.datasets[b].data.length - 1; a >= 0; a--) {
+                        //if we have greater or equl date
+                        if (cols.datasets[b].data[0].x >= this.chartData.datasets[b].data[a].x) {
+                            //var diff=this.chartData.datasets[b].data.length-a;
+                            this.chartData.datasets[b].data.splice(a, originalLength - a);
+                            this.chartData.datasets[b].data = this.chartData.datasets[b].data.concat(cols.datasets[b].data);
+                            var howmany = this.chartData.datasets[b].data.length - originalLength;
+                            this.chartData.datasets[b].data.splice(0, howmany);
+                            // this.querySelector('chart-line').options=this.opts;
+                            // this.querySelector('chart-line').data = this.chartData;
+                            break;
+                        }
+                    }
+                }
+                this.chartElement.updateChart();
             },
             transformData: function(data) {
                 var columns = [],
                     response,
-                    xs = {},
                     x = [],
-                    d = [];
+                    points = [],
+                    datanames = [];
                 if (this.datasourceType == "mist.monitor") {
                     // for http
                     if (data.detail != null) {
@@ -426,90 +469,91 @@
                     } else {
                         response = data.metrics;
                     }
-                    var k = 0;
                     for (var metr in response) {
                         x = [];
-                        d = [];
+                        points = [];
                         if (response[metr] != null) {
                             for (var i = 0; i < response[metr].datapoints.length; i++) {
-                                x.push(response[metr].datapoints[i][1]);
-                                d.push(response[metr].datapoints[i][0]);
-                                xs[this._filterTarget(response[metr].name)] = 'x' + (k + 1);
+                                points.push({
+                                    x: new Date(response[metr].datapoints[i][1] * 1000),
+                                    y: response[metr].datapoints[i][0]
+                                })
                             }
-                            x.unshift("x" + (k + 1));
-                            d.unshift(this._filterTarget(response[metr].name));
-                            columns.splice(k, 0, x);
-                            columns.push(d);
-                            k++;
-                            for (var j = 1; j < x.length; j++) {
-                                x[j] = new Date(x[j] * 1000);
-                            }
+                            datanames.push(response[metr].name);
+                            columns.push(points);
                         }
                     }
-                    return {
-                        xs: xs,
-                        columns: columns
+                    var ret = {
+                        labels: [],
+                        datasets: []
                     };
+                    for (var k = 0; k < datanames.length; k++) {
+                        ret.datasets.push({
+                            label: datanames[k],
+                            data: columns[k]
+                        })
+                    }
+                    return ret;
                 } else { //for graphite
-                    var xcolumns = [],
-                        dcolumns = [];
-                    response = data.detail.response || [];
-                    for (var i = 0; i < response.length; i++) {
-                        x.push(response[i].datapoints.map(function(point) {
-                            return point[1]
-                        }));
-                        d.push(response[i].datapoints.map(function(point) {
-                            return point[0]
-                        }));
-                        xs[this._filterTarget(response[i].target)] = 'x' + (i + 1);
-                        xcolumns.push(['x' + (i + 1)].concat(x[i]));
-                        dcolumns.push([this._filterTarget(response[i].target)].concat(d[i]));
-                    }
-                    columns = xcolumns.concat(dcolumns);
-                    // convert timestamp to date so it can be displayed correctly on the x axis of the graph
-                    for (var k = 0; k < columns.length; k++) {
-                        if (columns[k][0].charAt(0) == 'x') {
-                            for (var j = 1; j < columns[0].length; j++) {
-                                columns[k][j] = new Date(columns[k][j] * 1000);
-                            }
+                var xcolumns = [],
+                    dcolumns = [];
+                response = data.detail.response || [];
+                for (var i = 0; i < response.length; i++) {
+                    x.push(response[i].datapoints.map(function(point) {
+                        return point[1]
+                    }));
+                    d.push(response[i].datapoints.map(function(point) {
+                        return point[0]
+                    }));
+                    xs[this._filterTarget(response[i].target)] = 'x' + (i + 1);
+                    xcolumns.push(['x' + (i + 1)].concat(x[i]));
+                    dcolumns.push([this._filterTarget(response[i].target)].concat(d[i]));
+                }
+                columns = xcolumns.concat(dcolumns);
+                // convert timestamp to date so it can be displayed correctly on the x axis of the graph
+                for (var k = 0; k < columns.length; k++) {
+                    if (columns[k][0].charAt(0) == 'x') {
+                        for (var j = 1; j < columns[0].length; j++) {
+                            columns[k][j] = new Date(columns[k][j] * 1000);
                         }
                     }
-                    return {
-                        xs: xs,
-                        columns: columns
-                    };
                 }
-            },
-            _computeIsPanelRemovable: function(panel) {
-                return panel.editable || panel.removable;
-            },
-            _computeUrl: function(datasourceUri) {
-                return this.datasourceUri + '/render';
-            },
-            _isGraph: function(panel) {
-                return panel.type == "graph"
-            },
-            _isDashlist: function(panel) {
-                return panel.type == "dashlist"
-            },
-            _isText: function(panel) {
-                return panel.type == "text"
-            },
-            _isSinglestat: function(panel) {
-                return panel.type == "singlestat"
-            },
-            _isTable: function(panel) {
-                return panel.type == "table"
-            },
-            _computePanelId: function(id, title) {
-                return title.replace(/ /g, "-") + "-panel" + id;
-            },
-            _computeTitle: function(title) {
-                if (title)
-                    return title.replace(/_/g, " ");
-                else
-                    return "";
+                return {
+                    xs: xs,
+                    columns: columns
+                };
             }
+        },
+        _computeIsPanelRemovable: function(panel) {
+            return panel.editable || panel.removable;
+        },
+        _computeUrl: function(datasourceUri) {
+            return this.datasourceUri + '/render';
+        },
+        _isGraph: function(panel) {
+            return panel.type == "graph"
+        },
+        _isDashlist: function(panel) {
+            return panel.type == "dashlist"
+        },
+        _isText: function(panel) {
+            return panel.type == "text"
+        },
+        _isSinglestat: function(panel) {
+            return panel.type == "singlestat"
+        },
+        _isTable: function(panel) {
+            return panel.type == "table"
+        },
+        _computePanelId: function(id, title) {
+            return title.replace(/ /g, "-") + "-panel" + id;
+        },
+        _computeTitle: function(title) {
+            if (title)
+                return title.replace(/_/g, " ");
+            else
+                return "";
+        }
         });
     </script>
 </dom-module>
