@@ -4,7 +4,6 @@
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
-<link rel="import" href="../c3-chart/c3-chart.html">
 <link rel="import" href="panel-edit.html">
 <dom-module id="dashboard-panel">
     <template>
@@ -17,12 +16,12 @@
                 box-sizing: border-box;
                 transition: height 500ms ease-in;
             }
-            
+
             #target {
                 font-weight: bold;
                 text-align: left;
             }
-            
+
             paper-material {
                 width: 100%;
                 padding: 0 16px 16px 16px;
@@ -30,7 +29,7 @@
                 overflow: auto;
                 background-color: #f1f1f1;
             }
-            
+
             h3 {
                 text-transform: uppercase;
                 font-size: 16px;
@@ -38,17 +37,17 @@
                 line-height: 36px;
                 cursor: move;
             }
-            
+
             .head {
                 align-items: center;
             }
-            
+
             paper-spinner {
                 position: absolute;
                 left: 50%;
                 top: 24px;
             }
-            
+
             paper-icon-button {
                 opacity: 0.32;
             }
@@ -68,9 +67,13 @@
             <template is="dom-if" if="[[_isSinglestat(panel)]]">
                 <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
             </template>
-            <template is="dom-if" if="[[_isGraph(panel)]]">
+            <!-- <template is="dom-if" if="[[_isGraph(panel)]]">
                 <paper-spinner active="[[loading]]"></paper-spinner>
                 <c3-chart id="[[_computePanelId(panel.id, panel.title)]]" from="[[from]]" chart-id="[[_computePanelId(panel.id, panel.title)]]"></c3-chart>
+            </template> -->
+            <template is="dom-if" if="[[_isGraph(panel)]]" data="[[chartData]]" options="[[chartOptions]]">
+                <paper-spinner active="[[loading]]"></paper-spinner>
+                <chart-line id="[[_computePanelId(panel.id, panel.title)]]"></chart-line>
             </template>
             <template is="dom-if" if="[[_isDashlist(panel)]]">
                 <div>
@@ -121,63 +124,6 @@
                 datasourceUri: {
                     type: String,
                     reflectToAttribute: true
-                },
-                chartData: {
-                    type: Object,
-                    value: {
-                        xs: {},
-                        columns: []
-                    }
-                },
-                chartAxis: {
-                    type: Object,
-                    value: {
-                        x: {
-                            type: 'timeseries',
-                            tick: {
-                                format: '%H:%M',
-                                fit: false
-                            },
-                            padding: {
-                                left: 0,
-                                right: 0
-                            }
-                        },
-                        y: {
-                            label: {
-                                position: 'inner-top'
-                            },
-                            min: 0,
-                            padding: {
-                                bottom: 10
-                            },
-                            tick: {
-                                format: function(datapoint, decimals) {
-                                    if (datapoint >= 1000 || (datapoint < 0.1 && datapoint > 0)) {
-                                        var k = 1000;
-                                        var dm = decimals + 1 || 3;
-                                        var bigSizes = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
-                                        var smallSizes = ['', 'm', 'μ', 'n', 'p'];
-                                        var sizes;
-                                        var i = Math.floor(Math.log(datapoint) / Math.log(k));
-                                        if (i > 0) {
-                                            p = i;
-                                            sizes = bigSizes;
-                                        } else {
-                                            var p = i * -1;
-                                            sizes = smallSizes;
-                                        }
-                                        return parseFloat((datapoint / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[p];
-                                    } else {
-                                        return datapoint;
-                                    }
-                                },
-                            }
-                        }
-                    }
-                },
-                chartElement: {
-                    type: Object,
                 },
                 replaceTargets: {
                     type: Object,
@@ -302,22 +248,16 @@
                         var timeDelta = toInSeconds - fromInSeconds;
                         if (timeDelta <= 3600) { //less than an  hour
                             this.step = steps[0];
-                            this.chartAxis.x.tick.format = "%H:%M";
                         } else if (timeDelta <= 86400) { //less than a day
                             this.step = steps[1];
-                            this.chartAxis.x.tick.format = "%H:%M";
                         } else if (timeDelta <= 2629746) { //less than a month
                             this.step = steps[3];
-                            this.chartAxis.x.tick.format = "%m-%d %H:%M";
                         } else if (timeDelta <= 2629746 * 6) { //less than 6 months
                             this.step = steps[3];
-                            this.chartAxis.x.tick.format = "%m-%d %H:%M";
                         } else if (timeDelta <= 31556952) { //less than year
                             this.step = steps[4];
-                            this.chartAxis.x.tick.format = "%m-%d";
                         } else { //more than year
                             this.step = steps[6];
-                            this.chartAxis.x.tick.format = "%Y-%m";
                         }
                     } else {
                         if (steps.indexOf(this.step) > 3) {
@@ -377,39 +317,39 @@
                 }
                 this.fire('resizeDone');
             },
-            _changeGraph: function(e) {
-                if (e.detail == "step") {
-                    // console.log(this.step, e.detail);
-                    this._generateDataRequest();
-                } else if (e.detail == "dateFormat") {
-                    this.chartElement.load(this.chartData);
-                }
-                if (this.panel.bars) {
-                    this.chartElement.transform('bar');
-                } else if (this.panel.lines) {
-                    this.chartElement.transform('spline');
-                } else {
-                    this.chartElement.transform('line');
-                }
-                if (this.panel.stack) {
-                    this._stackIt();
-                } else {
-                    this.chartElement.groups(0);
-                }
-                this.fire('graphChanged');
-            },
-            _stackIt: function() {
-                var grp = [];
-                for (var i = 0; i < this.chartData.columns.length; i++) {
-                    if (this.chartData.columns[i][0].indexOf('x') < 0) {
-                        grp.push(this.chartData.columns[i][0].toString());
-                    }
-                }
-                this.chartElement.groups([grp]);
-                if (!this.panel.bars) {
-                    this.chartElement.transform('area-spline');
-                }
-            },
+            //_changeGraph: function(e) {
+                // if (e.detail == "step") {
+                //     // console.log(this.step, e.detail);
+                //     this._generateDataRequest();
+                // } else if (e.detail == "dateFormat") {
+                //     this.chartElement.load(this.chartData);
+                // }
+                // if (this.panel.bars) {
+                //     this.chartElement.transform('bar');
+                // } else if (this.panel.lines) {
+                //     this.chartElement.transform('spline');
+                // } else {
+                //     this.chartElement.transform('line');
+                // }
+                // if (this.panel.stack) {
+                //     this._stackIt();
+                // } else {
+                //     this.chartElement.groups(0);
+                // }
+                // this.fire('graphChanged');
+            //},
+            // _stackIt: function() {
+            //     var grp = [];
+            //     for (var i = 0; i < this.chartData.columns.length; i++) {
+            //         if (this.chartData.columns[i][0].indexOf('x') < 0) {
+            //             grp.push(this.chartData.columns[i][0].toString());
+            //         }
+            //     }
+            //     this.chartElement.groups([grp]);
+            //     if (!this.panel.bars) {
+            //         this.chartElement.transform('area-spline');
+            //     }
+            // },
             _computeParams: function(from, to, targets, datasourceType) {
                 if (this.datasourceType == "graphite") {
                     //some graphite versions expect 'until' paramater and others "to"
@@ -458,9 +398,9 @@
                 //if refresh is on then we need to flow the data not to redraw them
                 if (!this.refreshOn) {
                     this._loadDatatoGraphs(data, cols);
-                    if (this.panel.stack) {
-                        this._stackIt();
-                    }
+                    // if (this.panel.stack) {
+                    //     this._stackIt();
+                    // }
                 } else { // flow the new data from auto refresh
                     //console.log("Last Drawn Point ",this.lastDrawnPoint)
                     //console.log("LAst Drawn Value ",this.lastDrawnValue)
@@ -468,89 +408,10 @@
                 }
             },
             _loadDatatoGraphs: function(data, cols) {
-                var metricUnits = "";
-                for (var p in data.metrics) {
-                    metricUnits = data.metrics[p].unit;
-                }
-                this.set('chartAxis.y.label.text', metricUnits);
-                this.set('chartData', {
-                    xs: cols.xs,
-                    columns: cols.columns
-                });
-                for (var t = this.chartData.columns.length / 2; t < this.chartData.columns.length; t++) {
-                    if (this.chartData.columns[t][this.chartData.columns[t].length - 1] == null) {
-                        this.chartData.columns[t].pop();
-                        this.chartData.columns[t - this.chartData.columns.length / 2].pop();
-                    }
-                }
-                this.chartData.size = [this.querySelector('paper-material').clientWidth, this.rowHeight];
-                this.chartElement = this.querySelector('#' + this._computePanelId(this.panel.id, this.panel.title));
-                if (this.chartElement) {
-                    this.chartElement.axis = this.chartAxis;
-                    this.chartElement.load(this.chartData);
-                }
-                if (this.panel.bars) {
-                    this.chartData.type = "bar";
-                    this.chartElement.transform('bar');
-                } else if (this.panel.lines) {
-                    this.chartData.type = "spline";
-                    this.chartElement.transform('spline');
-                }
+
             },
             _flowDatatoGraphs: function(cols) {
-                //find the last non null point from drawn data
-                var lastdot = [];
-                for (var q = this.chartData.columns.length / 2; q < this.chartData.columns.length; q++) {
-                    for (var w = this.chartData.columns[q].length - 1; w > 0; w--) {
-                        if (this.chartData.columns[q][w] != null) {
-                            lastdot.push([this.chartData.columns[q - this.chartData.columns.length / 2][0], this.chartData.columns[q - this.chartData.columns.length / 2][w]]);
-                            this.chartData.columns[q - this.chartData.columns.length / 2].splice(w + 1, this.chartData.columns[q - this.chartData.columns.length / 2].length - 1)
-                            this.chartData.columns[q].splice(w + 1, this.chartData.columns[q - this.chartData.columns.length / 2].length - 1)
-                            break;
-                        }
-                        if (w == 1) {
-                            console.log("nulles", cols.columns[q][w])
-                            lastdot.push([this.chartData.columns[q - this.chartData.columns.length / 2][0], this.chartData.columns[q - this.chartData.columns.length / 2][this.chartData.columns[q].length - 1]]);
-                        }
-                    }
-                }
-                for (var f = 0; f < cols.columns.length; f++) {
-                    if (cols.columns[f][cols.columns[f][cols.columns[f].length - 1]] == null) {
-                        cols.columns[f].pop();
-                    }
-                }
-                //find the last point from above in the new data
-                var found = false;
-                for (var e = 0; e < cols.columns.length / 2; e++) {
-                    for (var r = 1; r < cols.columns[e].length / 2; r++) {
-                        if (cols.columns[e][r] > lastdot[e][1]) {
-                            found = true;
-                            cols.columns[e].splice(1, r);
-                            cols.columns[e + cols.columns.length / 2].splice(1, r);
-                            break;
-                        }
-                    }
-                }
-                if (found) {
-                    this.chartElement.flow(cols);
-                    //add the new data to the old
-                    for (var j = 0; j < cols.columns.length; j++) {
-                        for (var k = 1; k < cols.columns[j].length; k++) {
-                            this.chartData.columns[j].push(cols.columns[j][k]);
-                        }
-                    }
-                    //remove equal number of old data from the ola array (drawn data)
-                    if (typeof this.chartData.columns != "undefined" || this.chartData.columns.length > 0)
-                        for (var j = 0; j < cols.columns.length; j++) {
-                            //var toberemoved = [];
-                            if (typeof this.chartData.columns[j] != "undefined") {
-                                //toberemoved.push(this.chartData.columns[j].splice(1, cols.columns[j].length));
-                                //toberemoved.unshift(this.chartData.columns[0]);
-                                this.chartData.columns[j].splice(1, cols.columns[j].length - 1);
-                                //this.chartElement.unload(toberemoved);
-                            }
-                        }
-                }
+
             },
             transformData: function(data) {
                 var columns = [],
