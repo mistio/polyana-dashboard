@@ -75,7 +75,7 @@
             </template> -->
     <template is="dom-if" if="[[_isGraph(panel)]]">
                 <paper-spinner active="[[loading]]"></paper-spinner>
-                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line"></chart-line>
+                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line" style="max-width:500px; max-height:500px"></chart-line>
             </template>
     <template is="dom-if" if="[[_isDashlist(panel)]]">
                 <div>
@@ -127,6 +127,10 @@
                 chartOptions: {
                     type: Object,
                     value: {
+                      global: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                      },
                         scales: {
                             yAxes: [{
                                 stacked: false,
@@ -148,6 +152,9 @@
                                             }
                                             return parseFloat((label / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[p];
                                         } else {
+                                            if(label!=null && Number.isInteger(label)==false){
+                                              label.toFixed(3);
+                                            }
                                             return label;
                                         }
                                     },
@@ -477,6 +484,8 @@
                     this.chartData.datasets[i].backgroundColor = this.colorArray[color];
                 }
                 this.chartElement.options.scales.yAxes[0].scaleLabel.labelString = this.labelString(this.chartData.datasets);
+                this.chartElement.querySelector("canvas").width="500";
+                this.chartElement.querySelector("canvas").height="500";
                 this.chartElement.updateChart();
             },
             _flowDatatoGraphs: function(cols) {
