@@ -12,31 +12,31 @@
              :host {
                 display: block;
             }
-            
+
             body {
                 padding: 20px;
             }
-            
+
             .list-group-item {
                 cursor: move;
                 cursor: -webkit-grabbing;
             }
-            
+
             paper-material {
                 width: 100%;
                 padding: 8px 0;
                 box-sizing: border-box;
             }
-            
+
             .timerange-area {
                 justify-content: flex-end;
             }
-            
+
             paper-card {
                 padding: 16px;
                 margin: 16px;
             }
-            
+
             dashboard-row {
                 clear: both;
                 display: block;
@@ -45,14 +45,19 @@
 
         <timerange-picker from="{{from}}" to="{{to}}" refresh-interval="{{refreshInterval}}"></timerange-picker>
 
-        <iron-ajax id="dataAjax" url="[[uri]]" handle-as="json" method="POST" debounce-duration="300"></iron-ajax>
-
         <template is="dom-repeat" items="{{dashboard.rows}}">
             <dashboard-row id="row-[[index]]" class="row" index="[[index]]" row="[[item]]" from="[[from]]" to="[[to]]" datasources="[[datasources]]" refresh-interval="{{refreshInterval}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2;"></dashboard-row>
         </template>
 
-        <iron-ajax id='requestAjax' auto url="[[uri]]" handle-as="json" method="GET" on-response="_handleResponse" debounce-duration="300">
+        <iron-ajax id="getDashboardAjax" handle-as="json" method="GET"
+            url="[[uri]]" auto on-request="_clearDashboard"
+            on-response="_handleDashboardResponse"
+            debounce-duration="300">
         </iron-ajax>
+
+        <iron-ajax id="postDashboardAjax" handle-as="json" method="POST"
+            url="[[uri]]" debounce-duration="300"></iron-ajax>
+
     </template>
 
     <script>
@@ -94,10 +99,6 @@
                 }
             },
 
-            observers: [
-                "_computeInterval(dashboard, dashboard.refresh)"
-            ],
-
             listeners: {
                 'end': '_saveDashboard',
                 'resizeDone': '_saveDashboard',
@@ -113,49 +114,56 @@
             panelDeleted: function(e) {
                 this._saveDashboard();
             },
-            detached: function() {
-                this.set("refreshInterval", 0);
+
+            attached: function() {
+                console.debug('dashboard attached');
             },
-            _computeInterval: function(dashboard, refresh) {
-                var res;
+
+            detached: function() {
+                console.debug('dashboard detached');
+            },
+
+            _computeRefreshInterval: function(dashboard) {
                 if (typeof this.dashboard.refresh === 'string') {
                     var digits = parseInt(this.dashboard.refresh.match(/\d+/g));
                     if (this.dashboard.refresh.search("min") > -1) {
-                        res = digits * 60000;
-                    } else if (this.dashboard.refresh.search("sec") > -1) {
-                        res = digits * 1000;
+                        return digits * 60000;
+                    } else if (this.dashboard.refresh.search("sec") > -1 || this.dashboard.refresh.endsWith('s')) {
+                        return digits * 1000;
                     }
                 }
-                this.set('refreshInterval', res);
+                return 0;
             },
 
             _saveDashboard: function(e) {
                 if (this.uri) {
-                    this.$.dataAjax.headers["Content-Type"] = 'application/json';
-                    this.$.dataAjax.body = {
+                    this.$.postDashboardAjax.headers["Content-Type"] = 'application/json';
+                    this.$.postDashboardAjax.body = {
                         dashboard: this.dashboard,
                         overwrite: true
                     };
-                    this.$.dataAjax.generateRequest();
+                    this.$.postDashboardAjax.generateRequest();
                 } else {
                     // TODO
                 }
             },
 
-            _updateDashboard: function() {
-                this.$.requestAjax.generateRequest();
+            _clearDashboard: function() {
+                this.set('dashboard', {});
             },
 
-            _handleResponse: function(data) {
-                console.warn('data', data);
-                this.meta = data.detail.response.meta;
-                this.dashboard = data.detail.response.dashboard;
+            _handleDashboardResponse: function(data) {
+                if (data.detail.response) {
+                    this.meta = data.detail.response.meta;
+                    this.dashboard = data.detail.response.dashboard;
+                }
             },
 
             _dashboardUpdated: function() {
                 if (this.dashboard.time) {
                     this.from = this.dashboard.time.from;
                     this.to = this.dashboard.time.to;
+                    this.refreshInterval = this._computeRefreshInterval(this.dashboard);
                 }
             },
             _getTargets: function(dashboard, datasources) {
