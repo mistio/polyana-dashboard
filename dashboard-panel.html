@@ -62,30 +62,24 @@
                 <template is="dom-if" if="[[panel.editable]]">
                     <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
                 </template>
-    </div>
-    <template is="dom-if" if="[[_isText(panel)]]">
+            </div>
+            <template is="dom-if" if="[[_isText(panel)]]">
                 <div>[[panel.content]]</div>
             </template>
-    <template is="dom-if" if="[[_isSinglestat(panel)]]">
+            <template is="dom-if" if="[[_isSinglestat(panel)]]">
                 <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
             </template>
-    <!-- <template is="dom-if" if="[[_isGraph(panel)]]">
+            <template is="dom-if" if="[[_isGraph(panel)]]">
                 <paper-spinner active="[[loading]]"></paper-spinner>
-                <c3-chart id="[[_computePanelId(panel.id, panel.title)]]" from="[[from]]" chart-id="[[_computePanelId(panel.id, panel.title)]]"></c3-chart>
-            </template> -->
-    <template is="dom-if" if="[[_isGraph(panel)]]">
-                <paper-spinner active="[[loading]]"></paper-spinner>
-                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line" style="max-width:500px; max-height:500px"></chart-line>
+                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line" style="width:100%; height:500px"></chart-line>
             </template>
-    <template is="dom-if" if="[[_isDashlist(panel)]]">
-                <div>
-                    <!-- TODO -->...</div>
+            <template is="dom-if" if="[[_isDashlist(panel)]]">
+                <div><!-- TODO -->...</div>
             </template>
-    <template is="dom-if" if="[[_isTable(panel)]]">
-                <div>
-                    <!-- TODO -->...</div>
+            <template is="dom-if" if="[[_isTable(panel)]]">
+                <div><!-- TODO -->...</div>
             </template>
-    </paper-material>
+        </paper-material>
     </template>
     <script>
         Polymer({
@@ -127,10 +121,10 @@
                 chartOptions: {
                     type: Object,
                     value: {
-                      global: {
+                        //global: {
                         responsive: true,
-                        maintainAspectRatio: false
-                      },
+                        maintainAspectRatio: false,
+                        //},
                         scales: {
                             yAxes: [{
                                 stacked: false,
@@ -152,8 +146,8 @@
                                             }
                                             return parseFloat((label / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[p];
                                         } else {
-                                            if(label!=null && Number.isInteger(label)==false){
-                                              label.toFixed(3);
+                                            if (label != null && Number.isInteger(label) == false) {
+                                                return parseFloat(label.toFixed(3));
                                             }
                                             return label;
                                         }
@@ -484,8 +478,8 @@
                     this.chartData.datasets[i].backgroundColor = this.colorArray[color];
                 }
                 this.chartElement.options.scales.yAxes[0].scaleLabel.labelString = this.labelString(this.chartData.datasets);
-                this.chartElement.querySelector("canvas").width="500";
-                this.chartElement.querySelector("canvas").height="500";
+                this.chartElement.querySelector("canvas").width = "600";
+                this.chartElement.querySelector("canvas").height = "500";
                 this.chartElement.updateChart();
             },
             _flowDatatoGraphs: function(cols) {
@@ -517,31 +511,31 @@
                 }
                 if (max > 1) {
                     if (max > Math.pow(10, 3) && max < Math.pow(10, 6)) {
-                        text = '1K=10^3';
+                        text = '1K = 10 ^ 3';
                     } else if (max > Math.pow(10, 6) && max < Math.pow(10, 9)) {
-                        text = '1M=10^6';
+                        text = '1M = 10 ^ 6';
                     } else if (max > Math.pow(10, 9) && max < Math.pow(10, 12)) {
-                        text = '1G=10^9';
+                        text = '1 G= 10 ^ 9';
                     } else if (max > Math.pow(10, 12) && max < Math.pow(10, 15)) {
-                        text = '1T=10^12';
+                        text = '1T = 10 ^ 12';
                     } else if (max > Math.pow(10, 15) && max < Math.pow(10, 18)) {
-                        text = '1P=10^15';
+                        text = '1P = 10 ^ 15';
                     } else if (max > Math.pow(10, 18) && max < Math.pow(10, 21)) {
-                        text = '1E=10^18';
+                        text = '1E = 10 ^ 18';
                     } else if (max > Math.pow(10, 21) && max < Math.pow(10, 24)) {
-                        text = '1Z=10^24';
+                        text = '1Z = 10 ^ 24';
                     } else if (max > Math.pow(10, 24) && max < Math.pow(10, 27)) {
-                        text = '1Y=10^24';
+                        text = '1Y = 10 ^ 27';
                     }
                 } else {
                     if (max > Math.pow(10, -3) && max < Math.pow(10, -6)) {
-                        text = '1m=10^-3';
+                        text = '1m = 10 ^ -3';
                     } else if (max > Math.pow(10, -6) && max < Math.pow(10, -9)) {
-                        text = '1μ=10^-6';
+                        text = '1μ = 10 ^ -6';
                     } else if (max > Math.pow(10, -9) && max < Math.pow(10, -12)) {
-                        text = '1n=10^-9';
+                        text = '1n = 10 ^ -9';
                     } else if (max > Math.pow(10, -12) && max < Math.pow(10, -15)) {
-                        text = '1p=10^-12';
+                        text = '1p = 10 ^ -12';
                     }
                 }
                 return text;
