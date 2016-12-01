@@ -100,9 +100,7 @@
                     type: String,
                 },
                 params: {
-                    type: Object,
-                    computed: "_computeParams(from, to, panel.targets, datasourceType)",
-                    observer: "_timeRangeUpdated"
+                    type: Object
                 },
                 rowHeight: {
                     type: Number,
@@ -110,9 +108,10 @@
                 },
                 refreshInterval: {
                     type: Number,
-                    observer: "_refreshIntervalUpdated"
+                    value: 0,
+                    //observer: "_refreshIntervalUpdated"
                 },
-                refreshOn: {
+                hasRenderedData: {
                     type: Boolean,
                     value: false
                 },
@@ -191,22 +190,28 @@
                 intervalId: String,
                 index: Number
             },
+
             listeners: {
                 'panelChanged': '_updatePanel'
             },
+
             observers: [
-                '_updateStep(from, to, datasourceType)'
+                '_updateStep(from, to, datasourceType)',
+                '_updateParams(from, to, refreshInterval, panel.targets, datasourceType)'
             ],
+
             attached: function() {
                 console.debug('panel attached', this.panel.id, this.datasourceType);
             },
+
             detached: function() {
+                this.chartElement.destroy();
                 console.debug('panel detached', this.panel.id, this.datasourceType);
             },
+
             deletePanel: function(e) {
                 this.cancelAsync(this.intervalId);
                 this.intervalId = 0;
-                //this.chartElement.destroy();
                 this.loading = true;
                 this.fire('delete-panel', {
                     panelId: this.panel.id,
@@ -214,10 +219,12 @@
                     panel: this
                 });
             },
+
             _refreshIntervalUpdated: function() {
                 console.debug("_refreshIntervalUpdated", this.refreshInterval);
                 this._timeRangeUpdated();
             },
+
             _timeRangeUpdated: function() {
                 console.debug("_timeRangeUpdated", this.to, this.from);
                 // clear previous async task
@@ -225,8 +232,11 @@
                     this.cancelAsync(this.intervalId);
                     this.intervalId = 0;
                 }
+                this.hasRenderedData = false;
+                // TODO unload existing chart data
                 this._generateDataRequest();
             },
+
             _updateStep: function(from, to, datasourceType) {
                 return;
                 console.debug('_updateStep', this.panel.id, from, to, datasourceType);
@@ -321,26 +331,26 @@
                     }
                 }, 100);
             },
+
             _generateDataRequest: function() {
                 console.debug("generating data request");
                 this.async(function() {
-                    if (this.datasourceType == 'graphite')
+                    if (this.datasourceType == 'graphite') {
+                        this.$.panelDataRequest.lastRequest.abort()
                         this.$.panelDataRequest.generateRequest();
-                    else if (this.datasourceType == 'mist.monitor') {
+                    } else if (this.datasourceType == 'mist.monitor') {
                         //uncomment this for http calls
                         //return '/api/v1/clouds/' + this.panel.cloudIds[0] + '/machines/' + this.panel.machineIds[0] + '/stats';
-                        var targets = [];
-                        for (var i = 0; i < this.panel.targets.length; i++) {
-                            targets.push(this.panel.targets[i].target);
-                        }
                         var socket = document.querySelector('mist-socket');
                         var prefix = this.panel.machine || [false, false];
-                        var payload = prefix.concat([this._computeGraphiteTimestamp(this.from), this._computeGraphiteTimestamp(this.to), this.step, 0, targets]);
+                        var payload = prefix.concat([this.params.start, this.params.stop, this.step, 0, params.metrics]);
+                        // TODO abort last request
                         socket.getStats(payload, this._handlePanelResponse.bind(this));
                         this.set('loading', true);
                     }
                 }, 200);
             },
+
             _computeGraphiteTimestamp: function(timestamp) {
                 if (typeof timestamp != 'string')
                     return timestamp;
@@ -350,6 +360,7 @@
                 ret = ret.replace("now", "");
                 return ret;
             },
+
             resizeChart: function(e, detail, sender) {
                 if (this.chartElement != null) {
                     this.width = this.querySelector('paper-material').clientWidth;
@@ -366,6 +377,7 @@
                 }
                 this.fire('resizeDone');
             },
+
             _updatePanel: function(e) {/*
                 if (e.detail == "step") {
                     // console.log(this.step, e.detail);
@@ -388,6 +400,7 @@
                 this.fire('graphChanged');
                 */
             },
+
             _stackIt: function() {
                 var grp = [];
                 for (var i = 0; i < this.chartData.columns.length; i++) {
@@ -400,11 +413,12 @@
                     this.chartElement.transform('area-spline');
                 }
             },
-            _computeParams: function(from, to, targets, datasourceType) {
+
+            _updateParams: function(from, to, refreshInterval, targets, datasourceType) {
                 console.debug("_computeParams", from, to, targets, datasourceType);
                 if (this.datasourceType == "graphite") {
                     //some graphite versions expect 'until' paramater and others "to"
-                    var ret = {
+                    var params = {
                             'format': 'json',
                             'from': this._computeGraphiteTimestamp(from),
                             'to': this._computeGraphiteTimestamp(to),
@@ -414,10 +428,9 @@
                     for (var i = 0; i < targets.length; i++) {
                         tlist.push(targets[i].target)
                     }
-                    ret['target'] = tlist;
-                    return ret;
+                    params['target'] = tlist;
                 } else if (this.datasourceType == "mist.monitor") {
-                    var ret = {
+                    var params = {
                             'start': this._computeGraphiteTimestamp(from),
                             'stop': this._computeGraphiteTimestamp(to)
                         },
@@ -425,10 +438,12 @@
                     for (var i = 0; i < targets.length; i++) {
                         tlist.push(targets[i].target)
                     }
-                    ret['metrics'] = tlist;
-                    return ret;
+                    params['metrics'] = tlist;
                 }
+                this.set('params', params);
+                this._timeRangeUpdated();
             },
+
             _filterTarget: function(target) {
                 var k = Object.keys(this.get('replaceTargets'));
                 for (var i = 0; i < k.length; i++) {
@@ -436,6 +451,7 @@
                 }
                 return target;
             },
+
             _handlePanelResponse: function(e) {
                 if (!this || !this.querySelector("#" + this._computePanelId(this.panel.id, this.panel.title)))
                     return;
@@ -450,21 +466,30 @@
                 this.set('loading', false);
                 var cols = this.transformData(data);
                 //if refresh is on then we need to flow the data not to redraw them
-                if (!this.refreshOn) {
+                if (!this.hasRenderedData) {
                     this._loadDatatoGraphs(data, cols);
                     if (this.panel.stack) {
                         this._stackIt();
                     }
+                    this.hasRenderedData = true;
                 } else { // flow the new data from auto refresh
                     this._flowDatatoGraphs(cols);
                 }
 
                 if (this.refreshInterval) {
-                    this.async(function() {
-                        // TODO
-                    }, this.refreshInterval);
+                    var to = this.to;
+                    if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == ""))
+                        this.async(function() {
+                          if (this.datasourceType == "graphite") {
+                              this.set("params.from", "-2min");
+                          } else if (this.datasourceType == "mist.monitor") {
+                              this.set("params.start", "-2min");
+                          }
+                          this._generateDataRequest();
+                        }, this.refreshInterval);
                 }
             },
+
             _loadDatatoGraphs: function(data, cols) {
                 var metricUnits = "";
                 for (var p in data.metrics) {
