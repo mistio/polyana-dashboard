@@ -121,8 +121,8 @@
                 },
                 chartElement: Object,
                 chartData: {
-                  type:Object,
-                  value:{}
+                    type: Object,
+                    value: {}
                 },
                 chartOptions: {
                     type: Object,
@@ -130,6 +130,32 @@
                         scales: {
                             yAxes: [{
                                 stacked: false,
+                                ticks: {
+                                    callback: function(label, decimals) {
+                                        if (label >= 1000 || (label < 0.1 && label > 0)) {
+                                            var k = 1000;
+                                            var dm = decimals + 1 || 3;
+                                            var bigSizes = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
+                                            var smallSizes = ['', 'm', 'μ', 'n', 'p'];
+                                            var sizes;
+                                            var i = Math.floor(Math.log(label) / Math.log(k));
+                                            if (i > 0) {
+                                                p = i;
+                                                sizes = bigSizes;
+                                            } else {
+                                                var p = i * -1;
+                                                sizes = smallSizes;
+                                            }
+                                            return parseFloat((label / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[p];
+                                        } else {
+                                            return label;
+                                        }
+                                    },
+                                },
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: ''
+                                }
                                 //display:false
                             }],
                             xAxes: [{
@@ -138,6 +164,12 @@
                             }]
                         }
                     }
+                },
+                colorArray: {
+                    type: Array,
+                    value: ["rgba(0,155,155,0.6)", "rgba(153,255,51,0.6)", "rgba(255,153,0,0.6)", "rgba(155,0,155,0.6)", "rgba(155,0,0,0.6)", "rgba(0,155,0,0.6)", "rgba(0,0,0,0.6)", "rgba(0,0,200,0.6)", "rgba(200,0,200,0.6)",
+                        "rgba(255,255,0,0.6)"
+                    ]
                 },
                 loading: {
                     type: Boolean,
@@ -428,13 +460,23 @@
             },
             _loadDatatoGraphs: function(cols) {
                 this.set('loading', false);
-                this.chartData=cols;
+                this.chartData = cols;
 
                 if (this.panel.stack) {
                     this.chartOptions.scales.yAxes[0].stacked = true;
                 } else {
                     this.chartOptions.scales.yAxes[0].stacked = false;
                 }
+                var color;
+                for (var i = 0; i < this.chartData.datasets.length; i++) {
+                    if (i > 10) {
+                        color = 0;
+                    } else {
+                        color = i;
+                    }
+                    this.chartData.datasets[i].backgroundColor = this.colorArray[color];
+                }
+                this.chartElement.options.scales.yAxes[0].scaleLabel.labelString = this.labelString(this.chartData.datasets);
                 this.chartElement.updateChart();
             },
             _flowDatatoGraphs: function(cols) {
@@ -452,6 +494,49 @@
                     }
                 }
                 this.chartElement.updateChart();
+            },
+
+            labelString: function(data) {
+                var max = data[0].data[0].y;
+                var text = ' ';
+                for (var i = 0; i < data.length; i++) {
+                    for (var j = 0; j < data[i].data.length; j++) {
+                        if (data[i].data[j].y > max) {
+                            max = data[i].data[j].y;
+                        }
+                    }
+                }
+                if (max > 1) {
+                    if (max > Math.pow(10, 3) && max < Math.pow(10, 6)) {
+                        text = '1K=10^3';
+                    } else if (max > Math.pow(10, 6) && max < Math.pow(10, 9)) {
+                        text = '1M=10^6';
+                    } else if (max > Math.pow(10, 9) && max < Math.pow(10, 12)) {
+                        text = '1G=10^9';
+                    } else if (max > Math.pow(10, 12) && max < Math.pow(10, 15)) {
+                        text = '1T=10^12';
+                    } else if (max > Math.pow(10, 15) && max < Math.pow(10, 18)) {
+                        text = '1P=10^15';
+                    } else if (max > Math.pow(10, 18) && max < Math.pow(10, 21)) {
+                        text = '1E=10^18';
+                    } else if (max > Math.pow(10, 21) && max < Math.pow(10, 24)) {
+                        text = '1Z=10^24';
+                    } else if (max > Math.pow(10, 24) && max < Math.pow(10, 27)) {
+                        text = '1Y=10^24';
+                    }
+                } else {
+                    if (max > Math.pow(10, -3) && max < Math.pow(10, -6)) {
+                        text = '1m=10^-3';
+                    } else if (max > Math.pow(10, -6) && max < Math.pow(10, -9)) {
+                        text = '1μ=10^-6';
+                    } else if (max > Math.pow(10, -9) && max < Math.pow(10, -12)) {
+                        text = '1n=10^-9';
+                    } else if (max > Math.pow(10, -12) && max < Math.pow(10, -15)) {
+                        text = '1p=10^-12';
+                    }
+                }
+                return text;
+
             },
             transformData: function(data) {
                 var columns = [],
@@ -492,65 +577,65 @@
                     }
                     return ret;
                 } else { //for graphite
-                var xcolumns = [],
-                    dcolumns = [];
-                response = data.detail.response || [];
-                for (var i = 0; i < response.length; i++) {
-                    x.push(response[i].datapoints.map(function(point) {
-                        return point[1]
-                    }));
-                    d.push(response[i].datapoints.map(function(point) {
-                        return point[0]
-                    }));
-                    xs[this._filterTarget(response[i].target)] = 'x' + (i + 1);
-                    xcolumns.push(['x' + (i + 1)].concat(x[i]));
-                    dcolumns.push([this._filterTarget(response[i].target)].concat(d[i]));
-                }
-                columns = xcolumns.concat(dcolumns);
-                // convert timestamp to date so it can be displayed correctly on the x axis of the graph
-                for (var k = 0; k < columns.length; k++) {
-                    if (columns[k][0].charAt(0) == 'x') {
-                        for (var j = 1; j < columns[0].length; j++) {
-                            columns[k][j] = new Date(columns[k][j] * 1000);
+                    var xcolumns = [],
+                        dcolumns = [];
+                    response = data.detail.response || [];
+                    for (var i = 0; i < response.length; i++) {
+                        x.push(response[i].datapoints.map(function(point) {
+                            return point[1]
+                        }));
+                        d.push(response[i].datapoints.map(function(point) {
+                            return point[0]
+                        }));
+                        xs[this._filterTarget(response[i].target)] = 'x' + (i + 1);
+                        xcolumns.push(['x' + (i + 1)].concat(x[i]));
+                        dcolumns.push([this._filterTarget(response[i].target)].concat(d[i]));
+                    }
+                    columns = xcolumns.concat(dcolumns);
+                    // convert timestamp to date so it can be displayed correctly on the x axis of the graph
+                    for (var k = 0; k < columns.length; k++) {
+                        if (columns[k][0].charAt(0) == 'x') {
+                            for (var j = 1; j < columns[0].length; j++) {
+                                columns[k][j] = new Date(columns[k][j] * 1000);
+                            }
                         }
                     }
+                    return {
+                        xs: xs,
+                        columns: columns
+                    };
                 }
-                return {
-                    xs: xs,
-                    columns: columns
-                };
+            },
+            _computeIsPanelRemovable: function(panel) {
+                return panel.editable || panel.removable;
+            },
+            _computeUrl: function(datasourceUri) {
+                return this.datasourceUri + '/render';
+            },
+            _isGraph: function(panel) {
+                return panel.type == "graph"
+            },
+            _isDashlist: function(panel) {
+                return panel.type == "dashlist"
+            },
+            _isText: function(panel) {
+                return panel.type == "text"
+            },
+            _isSinglestat: function(panel) {
+                return panel.type == "singlestat"
+            },
+            _isTable: function(panel) {
+                return panel.type == "table"
+            },
+            _computePanelId: function(id, title) {
+                return title.replace(/ /g, "-") + "-panel" + id;
+            },
+            _computeTitle: function(title) {
+                if (title)
+                    return title.replace(/_/g, " ");
+                else
+                    return "";
             }
-        },
-        _computeIsPanelRemovable: function(panel) {
-            return panel.editable || panel.removable;
-        },
-        _computeUrl: function(datasourceUri) {
-            return this.datasourceUri + '/render';
-        },
-        _isGraph: function(panel) {
-            return panel.type == "graph"
-        },
-        _isDashlist: function(panel) {
-            return panel.type == "dashlist"
-        },
-        _isText: function(panel) {
-            return panel.type == "text"
-        },
-        _isSinglestat: function(panel) {
-            return panel.type == "singlestat"
-        },
-        _isTable: function(panel) {
-            return panel.type == "table"
-        },
-        _computePanelId: function(id, title) {
-            return title.replace(/ /g, "-") + "-panel" + id;
-        },
-        _computeTitle: function(title) {
-            if (title)
-                return title.replace(/_/g, " ");
-            else
-                return "";
-        }
         });
     </script>
 </dom-module>
