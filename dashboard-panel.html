@@ -29,7 +29,6 @@
                 padding: 0 16px 16px 16px;
                 box-sizing: border-box;
                 overflow: auto;
-                background-color: #f1f1f1;
             }
 
             h3 {
@@ -63,7 +62,6 @@
 
         <paper-material elevation="0">
             <div class="head layout horizontal">
-                <h3 class="flex">[[panel.title]]</h3>
                 <template is="dom-if" if="[[panel.editable]]">
                     <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
                 </template>
@@ -77,7 +75,7 @@
             </template>
             <template is="dom-if" if="[[_isGraph(panel)]]">
                 <paper-spinner active="[[loading]]"></paper-spinner>
-                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line" style="width:100%; height:500px"></chart-line>
+                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line" style="width:100%;"></chart-line>
             </template>
             <template is="dom-if" if="[[_isDashlist(panel)]]">
                 <!-- TODO -->
@@ -110,7 +108,6 @@
                 refreshInterval: {
                     type: Number,
                     value: 0,
-                    //observer: "_refreshIntervalUpdated"
                 },
                 hasRenderedData: {
                     type: Boolean,
@@ -119,7 +116,6 @@
                 panel: {
                     type: Object,
                 },
-                chartElement: Object,
                 chartData: {
                     type: Object,
                     value: {}
@@ -127,10 +123,27 @@
                 chartOptions: {
                     type: Object,
                     value: {
+                        title: {
+                            display: true,
+                            text: this.panel ? this.panel.title : ''
+                        },
+                        legend: {
+                            position: "bottom"
+                        },
+                        tooltips: {
+                            intersect: false
+                        },
                         //global: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        //events: ["mousemove", "mouseout", "click", "touchstart", "touchmove", "touchend"],
+                        //hover: {mode: "nearest"},
+                        elements: {point: { radius: 1 }},
+                        //animation: {easing: "easeInOutCirc", duration: 200},
+                        //line: {fill: false},
+                        //fill: false,
                         //},
+                        cubicInterpolationMode: "monotone",
                         scales: {
                             yAxes: [{
                                 stacked: false,
@@ -174,8 +187,8 @@
                 },
                 colorArray: {
                     type: Array,
-                    value: ["rgba(0,155,155,0.6)", "rgba(153,255,51,0.6)", "rgba(255,153,0,0.6)", "rgba(155,0,155,0.6)", "rgba(155,0,0,0.6)", "rgba(0,155,0,0.6)", "rgba(0,0,0,0.6)", "rgba(0,0,200,0.6)", "rgba(200,0,200,0.6)",
-                        "rgba(255,255,0,0.6)"
+                    value: ["rgba(0,155,155,0.1)", "rgba(153,255,51,0.1)", "rgba(255,153,0,0.1)", "rgba(155,0,155,0.1)", "rgba(155,0,0,0.1)", "rgba(0,155,0,0.1)", "rgba(0,0,0,0.1)", "rgba(0,0,200,0.1)", "rgba(200,0,200,0.1)",
+                        "rgba(255,255,0,0.1)"
                     ]
                 },
                 loading: {
@@ -199,8 +212,8 @@
             },
 
             observers: [
-                '_updateStep(from, to, datasourceType)',
-                '_updateParams(from, to, refreshInterval, panel.targets, datasourceType)'
+                '_updateParams(from, to, refreshInterval, panel.targets, datasourceType)',
+                '_updatePanel(panel)'
             ],
 
             attached: function() {
@@ -222,11 +235,6 @@
                 });
             },
 
-            _refreshIntervalUpdated: function() {
-                console.debug("_refreshIntervalUpdated", this.refreshInterval);
-                this._timeRangeUpdated();
-            },
-
             _timeRangeUpdated: function() {
                 console.debug("_timeRangeUpdated", this.to, this.from);
                 // clear previous async task
@@ -236,96 +244,95 @@
                 }
                 this.hasRenderedData = false;
                 // TODO unload existing chart data
+                this._updateStep();
                 this._generateDataRequest();
             },
 
-            _updateStep: function(from, to, datasourceType) {
-                //return;
+            _updateStep: function() {
+                var from = this.from, to = this.to, datasourceType = this.datasourceType;
                 console.debug('_updateStep', this.panel.id, from, to, datasourceType);
-                this.debounce('updateStep', function() {
-                    //console.warn('from/to updated', this.panel, from, to);
-                    if (this.datasourceType != 'mist.monitor')
-                        return; // step is needed only for mist.monitor datasource
-                    // We need to calculate "from" and "to" in seconds in order to
-                    // subtract them
-                    var fromInSeconds, toInSeconds, parsedDigits,
-                        now = Math.floor(new Date().getTime() / 1000);
-                    if (typeof from === "string") {
+                //console.warn('from/to updated', this.panel, from, to);
+                if (this.datasourceType != 'mist.monitor')
+                    return; // step is needed only for mist.monitor datasource
+                // We need to calculate "from" and "to" in seconds in order to
+                // subtract them
+                var fromInSeconds, toInSeconds, parsedDigits,
+                    now = Math.floor(new Date().getTime() / 1000);
+                if (typeof from === "string") {
+                    // get digits in string
+                    parsedDigits = parseInt(from.match(/\d+/g));
+                    if (from.search("y") >= 0) { // time in years
+                        fromInSeconds = now - parsedDigits * 31556952;
+                    } else if (from.search("month") >= 0) { // time in months
+                        fromInSeconds = now - parsedDigits * 2629746;
+                    } else if (from.search("d") >= 0) { // time in days
+                        fromInSeconds = now - parsedDigits * 86400;
+                    } else if (from.search("h") >= 0) { // time in hours
+                        fromInSeconds = now - parsedDigits * 3600;
+                    } else if (from.search("m") >= 0) { // time in mins
+                        fromInSeconds = now - parsedDigits * 60;
+                    } else { // time in secs
+                        fromInSeconds = parsedDigits;
+                    }
+                } else if (typeof from === 'number') {
+                    fromInSeconds = from;
+                } else {
+                    //console.error('Unsupported type for "from"', typeof from);
+                    return;
+                }
+                //console.warn('fromInSeconds string', fromInSeconds);
+                if (typeof to === "string") {
+                    if (to == 'now') {
+                        toInSeconds = now;
+                    } else {
                         // get digits in string
-                        parsedDigits = parseInt(from.match(/\d+/g));
-                        if (from.search("y") >= 0) { // time in years
-                            fromInSeconds = now - parsedDigits * 31556952;
-                        } else if (from.search("month") >= 0) { // time in months
-                            fromInSeconds = now - parsedDigits * 2629746;
-                        } else if (from.search("d") >= 0) { // time in days
-                            fromInSeconds = now - parsedDigits * 86400;
-                        } else if (from.search("h") >= 0) { // time in hours
-                            fromInSeconds = now - parsedDigits * 3600;
-                        } else if (from.search("m") >= 0) { // time in mins
-                            fromInSeconds = now - parsedDigits * 60;
+                        parsedDigits = parseInt(to.match(/\d+/g));
+                        if (!parsedDigits || parsedDigits === NaN) {
+                            console.error('Invalid value for "to"', to);
+                            return;
+                        }
+                        if (to.search("y") >= 0) { // time in years
+                            toInSeconds = now - parsedDigits * 31556952;
+                        } else if (to.search("month") >= 0) { // time in months
+                            toInSeconds = now - parsedDigits * 2629746;
+                        } else if (to.search("d") >= 0) { // time in days
+                            toInSeconds = now - parsedDigits * 86400;
+                        } else if (to.search("h") >= 0) { // time in hours
+                            toInSeconds = now - parsedDigits * 3600;
+                        } else if (to.search("m") >= 0) { // time in mins
+                            toInSeconds = now - parsedDigits * 60;
                         } else { // time in secs
-                            fromInSeconds = parsedDigits;
-                        }
-                    } else if (typeof from === 'number') {
-                        fromInSeconds = from;
-                    } else {
-                        //console.error('Unsupported type for "from"', typeof from);
-                        return;
-                    }
-                    //console.warn('fromInSeconds string', fromInSeconds);
-                    if (typeof to === "string") {
-                        if (to == 'now') {
-                            toInSeconds = now;
-                        } else {
-                            // get digits in string
-                            parsedDigits = parseInt(to.match(/\d+/g));
-                            if (!parsedDigits || parsedDigits === NaN) {
-                                console.error('Invalid value for "to"', to);
-                                return;
-                            }
-                            if (to.search("y") >= 0) { // time in years
-                                toInSeconds = now - parsedDigits * 31556952;
-                            } else if (to.search("month") >= 0) { // time in months
-                                toInSeconds = now - parsedDigits * 2629746;
-                            } else if (to.search("d") >= 0) { // time in days
-                                toInSeconds = now - parsedDigits * 86400;
-                            } else if (to.search("h") >= 0) { // time in hours
-                                toInSeconds = now - parsedDigits * 3600;
-                            } else if (to.search("m") >= 0) { // time in mins
-                                toInSeconds = now - parsedDigits * 60;
-                            } else { // time in secs
-                                toInSeconds = now - parsedDigits;
-                            }
-                        }
-                    } else if (typeof to === 'number') {
-                        toInSeconds = to;
-                    } else {
-                        console.error('Unsupported type for "to"', typeof to);
-                        return;
-                    }
-                    //console.warn('toInSeconds', toInSeconds);
-                    var steps = ["10sec", "10min", "6h", "1d", "4d", "7d", "1month"];
-                    if (!this.refreshOn) {
-                        var timeDelta = toInSeconds - fromInSeconds;
-                        if (timeDelta <= 3600) { //less than an  hour
-                            this.step = steps[0];
-                        } else if (timeDelta <= 86400) { //less than a day
-                            this.step = steps[1];
-                        } else if (timeDelta <= 2629746) { //less than a month
-                            this.step = steps[3];
-                        } else if (timeDelta <= 2629746 * 6) { //less than 6 months
-                            this.step = steps[3];
-                        } else if (timeDelta <= 31556952) { //less than year
-                            this.step = steps[4];
-                        } else { //more than year
-                            this.step = steps[6];
-                        }
-                    } else {
-                        if (steps.indexOf(this.step) > 3) {
-                            this.step = steps[2];
+                            toInSeconds = now - parsedDigits;
                         }
                     }
-                }, 100);
+                } else if (typeof to === 'number') {
+                    toInSeconds = to;
+                } else {
+                    console.error('Unsupported type for "to"', typeof to);
+                    return;
+                }
+                //console.warn('toInSeconds', toInSeconds);
+                var steps = ["10sec", "10min", "6h", "1d", "4d", "7d", "1month"];
+                if (!this.refreshOn) {
+                    var timeDelta = toInSeconds - fromInSeconds;
+                    if (timeDelta <= 3600) { //less than an  hour
+                        this.step = steps[0];
+                    } else if (timeDelta <= 86400) { //less than a day
+                        this.step = steps[1];
+                    } else if (timeDelta <= 2629746) { //less than a month
+                        this.step = steps[3];
+                    } else if (timeDelta <= 2629746 * 6) { //less than 6 months
+                        this.step = steps[3];
+                    } else if (timeDelta <= 31556952) { //less than year
+                        this.step = steps[4];
+                    } else { //more than year
+                        this.step = steps[6];
+                    }
+                } else {
+                    if (steps.indexOf(this.step) > 3) {
+                        this.step = steps[2];
+                    }
+                }
             },
 
             _generateDataRequest: function() {
@@ -359,56 +366,26 @@
             },
 
             resizeChart: function(e, detail, sender) {
-                if (this.chartElement != null) {
-                    this.width = this.querySelector('paper-material').clientWidth;
-                    this.height = this.querySelector('paper-material').clientHeight;
-                    this.chartElement.resize({
-                        height: this.height - 140,
-                        width: this.width - 20
-                    });
-                    this.rowHeight = this.height;
-                    this.panel.span = ((this.width + 30) / this.offsetWidth) * this.panel.span;
-                    if (this.panel.span > 12) {
-                        this.panel.span = 12;
-                    }
+                var chartElement = this.querySelector('chart-line');
+                this.width = this.querySelector('paper-material').clientWidth;
+                this.height = this.querySelector('paper-material').clientHeight;
+                chartElement.resize({
+                    height: this.height - 140,
+                    width: this.width - 20
+                });
+                this.rowHeight = this.height;
+                this.panel.span = ((this.width + 30) / this.offsetWidth) * this.panel.span;
+                if (this.panel.span > 12) {
+                    this.panel.span = 12;
                 }
                 this.fire('resizeDone');
             },
 
-            _updatePanel: function(e) {/*
-                if (e.detail == "step") {
-                    // console.log(this.step, e.detail);
-                    this._generateDataRequest();
-                } else if (e.detail == "dateFormat") {
-                    this.chartElement.load(this.chartData);
-                }
-                if (this.panel.bars) {
-                    this.chartElement.transform('bar');
-                } else if (this.panel.lines) {
-                    this.chartElement.transform('spline');
-                } else {
-                    this.chartElement.transform('line');
-                }
-                if (this.panel.stack) {
-                    this._stackIt();
-                } else {
-                    this.chartElement.groups(0);
-                }
-                this.fire('graphChanged');
-                */
-            },
-
-            _stackIt: function() {
-                var grp = [];
-                for (var i = 0; i < this.chartData.columns.length; i++) {
-                    if (this.chartData.columns[i][0].indexOf('x') < 0) {
-                        grp.push(this.chartData.columns[i][0].toString());
-                    }
-                }
-                this.chartElement.groups([grp]);
-                if (!this.panel.bars) {
-                    this.chartElement.transform('area-spline');
-                }
+            _updatePanel: function(e) {
+                console.log('_updatePanel');
+                var chartElement = this.querySelector('chart-line');
+                if (chartElement)
+                    chartElement.options.title.text = this.panel.title;
             },
 
             _updateParams: function(from, to, refreshInterval, targets, datasourceType) {
@@ -448,9 +425,9 @@
                 }
                 return target;
             },
+
             _handlePanelResponse: function(e) {
-                this.chartElement = this.querySelector("#" + this._computePanelId(this.panel.id, this.panel.title));
-                if (!this || !this.querySelector("#" + this._computePanelId(this.panel.id, this.panel.title)))
+                if (!this)
                     return;
                 // get data from response
                 var data = e.detail ? e.detail.response : e;
@@ -486,6 +463,7 @@
             },
 
             _loadDatatoGraphs: function(cols) {
+                this.querySelector('chart-line').options.title.text = this.panel.title;
                 this.set('loading', false);
                 this.chartData = cols;
 
@@ -504,9 +482,9 @@
                     this.chartData.datasets[i].backgroundColor = this.colorArray[color];
                 }
                 //this.chartElement.options.scales.yAxes[0].scaleLabel.labelString = this.labelString(this.chartData.datasets);
-                this.chartElement.querySelector("canvas").width = "600";
-                this.chartElement.querySelector("canvas").height = "500";
-                this.chartElement.updateChart();
+                //this.chartElement.querySelector("canvas").width = "600";
+                //this.chartElement.querySelector("canvas").height = "500";
+                this.querySelector('chart-line').updateChart();
             },
 
             _flowDatatoGraphs: function(cols) {
@@ -523,7 +501,7 @@
                         }
                     }
                 }
-                this.chartElement.updateChart();
+                this.querySelector('chart-line').updateChart();
             },
 
             labelString: function(data) {
@@ -608,64 +586,74 @@
                     }
                     return ret;
                 } else { //for graphite
-                    var xcolumns = [],
-                        dcolumns = [];
-                    for (var i = 0; i < data.length; i++) {
-                        x.push(data[i].datapoints.map(function(point) {
-                            return point[1]
-                        }));
-                        d.push(data[i].datapoints.map(function(point) {
-                            return point[0]
-                        }));
-                        xs[this._filterTarget(data[i].target)] = 'x' + (i + 1);
-                        xcolumns.push(['x' + (i + 1)].concat(x[i]));
-                        dcolumns.push([this._filterTarget(data[i].target)].concat(d[i]));
-                    }
-                    columns = xcolumns.concat(dcolumns);
-                    // convert timestamp to date so it can be displayed correctly on the x axis of the graph
-                    for (var k = 0; k < columns.length; k++) {
-                        if (columns[k][0].charAt(0) == 'x') {
-                            for (var j = 1; j < columns[0].length; j++) {
-                                columns[k][j] = new Date(columns[k][j] * 1000);
+                    for (var j = 0; j < data.length; j++) {
+                        x = [];
+                        points = [];
+                        if (data[j] != null) {
+                            for (var i = 0; i < data[j].datapoints.length; i++) {
+                                points.push({
+                                    x: new Date(data[j].datapoints[i][1] * 1000),
+                                    y: data[j].datapoints[i][0]
+                                })
                             }
+                            datanames.push(data[j].target);
+                            columns.push(points);
                         }
                     }
-                    return {
-                        xs: xs,
-                        columns: columns
+                    var ret = {
+                        labels: [],
+                        datasets: []
                     };
+                    for (var k = 0; k < datanames.length; k++) {
+                        ret.datasets.push({
+                            label: datanames[k],
+                            data: columns[k]
+                        })
+                    }
+                    return ret;
+
                 }
             },
+
             _computeIsPanelRemovable: function(panel) {
                 return panel.editable || panel.removable;
             },
+
             _computeUrl: function(datasourceUri) {
                 return this.datasourceUri + '/render';
             },
+
             _isGraph: function(panel) {
                 return panel.type == "graph"
             },
+
             _isDashlist: function(panel) {
                 return panel.type == "dashlist"
             },
+
             _isText: function(panel) {
                 return panel.type == "text"
             },
+
             _isSinglestat: function(panel) {
                 return panel.type == "singlestat"
             },
+
             _isTable: function(panel) {
                 return panel.type == "table"
             },
+
             _computePanelId: function(id, title) {
                 return title.replace(/ /g, "-") + "-panel" + id;
             },
+
             _computeTitle: function(title) {
                 if (title)
                     return title.replace(/_/g, " ");
                 else
                     return "";
             }
+
         });
     </script>
 </dom-module>
