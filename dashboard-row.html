@@ -11,16 +11,16 @@
                 width: 100%;
                 display: inline-block;
             }
-            
+
             body {
                 padding: 20px;
             }
-            
+
             .list-group-item {
                 cursor: move;
                 cursor: -webkit-grabbing;
             }
-            
+
             dashboard-panel {
                 display: block;
             }
@@ -31,7 +31,7 @@
             </template>
             <sortable-js>
                 <template is="dom-repeat" items="{{row.panels}}">
-                    <dashboard-panel id="panel-[[item.id]]" index="[[index]]" refresh-interval="{{refreshInterval}}" datasource-uri="[[_computeDatasourceUri(datasources, item)]]" datasource-type="[[_computeDatasourceType(datasources, item)]]" row-height="{{row.height}}" panel="[[item]]" from="[[from]]" to="[[to]]" replace-targets="[[replaceTargets]]" style$="width: {{_elementWidth(item.span)}}; min-width: 300px"></dashboard-panel>
+                    <dashboard-panel id="panel-[[item.id]]" index="[[index]]" refresh-interval=[[refreshInterval]] datasource-uri="[[_computeDatasourceUri(datasources, item)]]" datasource-type="[[_computeDatasourceType(datasources, item)]]" row-height="{{row.height}}" panel="[[item]]" from="[[from]]" to="[[to]]" replace-targets="[[replaceTargets]]" style$="width: {{_elementWidth(item.span)}}; min-width: 300px"></dashboard-panel>
                 </template>
             </sortable-js>
         </div>

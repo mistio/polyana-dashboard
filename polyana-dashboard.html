@@ -43,10 +43,10 @@
             }
         </style>
 
-        <timerange-picker from="{{from}}" to="{{to}}" refresh-interval="{{refreshInterval}}"></timerange-picker>
+        <timerange-picker from="{{from}}" to="{{to}}" refresh-interval={{refreshInterval}}></timerange-picker>
 
         <template is="dom-repeat" items="{{dashboard.rows}}">
-            <dashboard-row id="row-[[index]]" class="row" index="[[index]]" row="[[item]]" from="[[from]]" to="[[to]]" datasources="[[datasources]]" refresh-interval="{{refreshInterval}}" replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2;"></dashboard-row>
+            <dashboard-row id="row-[[index]]" class="row" index="[[index]]" row="[[item]]" from="[[from]]" to="[[to]]" datasources="[[datasources]]" refresh-interval=[[refreshInterval]] replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2;"></dashboard-row>
         </template>
 
         <iron-ajax id="getDashboardAjax" handle-as="json" method="GET"
@@ -166,6 +166,7 @@
                     this.refreshInterval = this._computeRefreshInterval(this.dashboard);
                 }
             },
+
             _getTargets: function(dashboard, datasources) {
                 // Return object with all targets referenced in the dashboard, grouped by datasource
                 var targets = {},
