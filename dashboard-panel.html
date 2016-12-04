@@ -389,7 +389,7 @@
                     this.chartElement.options.title.text = this.panel.title;
                     this.async(function() {
                         // set y-axis labelString - for some reason we need to wait until the chart is ready for it to get updated
-                        unit = this.panel.yaxes[0].label || this.panel.yaxes[0].format || "";
+                        unit = this.panel.yaxes ? (this.panel.yaxes[0].label || this.panel.yaxes[0].format) : "";
                         this.chartElement.chart.scales['y-axis-0'].options.scaleLabel.labelString = unit;
                     }, 500);
                     this.chartElement.updateChart();

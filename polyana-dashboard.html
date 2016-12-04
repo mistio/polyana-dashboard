@@ -123,6 +123,10 @@
                 console.debug('dashboard detached');
             },
 
+            _updateDashboard: function() {
+                this.$.getDashboardAjax.generateRequest();
+            },
+
             _computeRefreshInterval: function(dashboard) {
                 if (typeof this.dashboard.refresh === 'string') {
                     var digits = parseInt(this.dashboard.refresh.match(/\d+/g));
