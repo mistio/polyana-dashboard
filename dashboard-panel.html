@@ -29,7 +29,6 @@
                 padding: 0 16px 16px 16px;
                 box-sizing: border-box;
                 overflow: auto;
-                background-color: #f1f1f1;
             }
 
             h3 {
@@ -42,6 +41,7 @@
 
             .head {
                 align-items: center;
+                float: right;
             }
 
             paper-spinner {
@@ -54,14 +54,19 @@
                 opacity: 0.32;
             }
         </style>
-        <iron-ajax id="dataRequest" params="[[params]]" url="[[_computeUrl(datasourceUri)]]" handle-as="json" method="GET" loading="{{loading}}" contentType="application/json" on-response="_handlePanelResponse" debounce-duration="300"></iron-ajax>
-        <paper-material id="paper" elevation="0">
+        <iron-ajax id="panelDataRequest" handle-as="json" method="GET"
+            contentType="application/json"
+            url="[[_computeUrl(datasourceUri)]]"
+            params="[[params]]" loading="{{loading}}"
+            on-response="_handlePanelResponse"
+            debounce-duration="300"></iron-ajax>
+
+        <paper-material elevation="0">
             <div class="head layout horizontal">
-                <h3 class="flex">[[panel.title]]</h3>
-                <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
                 <template is="dom-if" if="[[panel.editable]]">
                     <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
                 </template>
+                <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
             </div>
             <template is="dom-if" if="[[_isText(panel)]]">
                 <div>[[panel.content]]</div>
@@ -71,17 +76,34 @@
             </template>
             <template is="dom-if" if="[[_isGraph(panel)]]">
                 <paper-spinner active="[[loading]]"></paper-spinner>
-                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line" style="width:100%; height:500px"></chart-line>
+                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line" style$="width:100%; height: [[rowHeight]]"></chart-line>
             </template>
             <template is="dom-if" if="[[_isDashlist(panel)]]">
-                <div><!-- TODO -->...</div>
+                <!-- TODO -->
             </template>
             <template is="dom-if" if="[[_isTable(panel)]]">
-                <div><!-- TODO -->...</div>
+                <!-- TODO -->
             </template>
         </paper-material>
     </template>
     <script>
+        function nFormatter(num, digits) {
+            var si = [
+                { value: 1E18, symbol: "E" },
+                { value: 1E15, symbol: "P" },
+                { value: 1E12, symbol: "T" },
+                { value: 1E9,  symbol: "G" },
+                { value: 1E6,  symbol: "M" },
+                { value: 1E3,  symbol: "k" }
+            ], rx = /\.0+$|(\.[0-9]*[1-9])0+$/, i;
+            for (i = 0; i < si.length; i++) {
+                if (num >= si[i].value) {
+                    return (num / si[i].value).toFixed(digits).replace(rx, "$1") + si[i].symbol;
+                }
+            }
+            return num.toFixed(digits).replace(rx, "$1");
+        }
+        var unit = "";
         Polymer({
             is: 'dashboard-panel',
             properties: {
@@ -95,8 +117,7 @@
                     type: String,
                 },
                 params: {
-                    type: Object,
-                    computed: '_computeParams(from, to, panel.targets, datasourceType)',
+                    type: Object
                 },
                 rowHeight: {
                     type: Number,
@@ -104,16 +125,18 @@
                 },
                 refreshInterval: {
                     type: Number,
-                    observer: "_initRefresh"
+                    value: 0,
                 },
-                refreshOn: {
+                hasRenderedData: {
                     type: Boolean,
                     value: false
                 },
                 panel: {
                     type: Object,
                 },
-                chartElement: Object,
+                chartElement: {
+                    type: Object
+                },
                 chartData: {
                     type: Object,
                     value: {}
@@ -121,55 +144,50 @@
                 chartOptions: {
                     type: Object,
                     value: {
-                        //global: {
+                        title: {
+                            display: true,
+                            text: this.panel ? this.panel.title : ''
+                        },
+                        legend: {
+                            position: "bottom"
+                        },
+                        tooltips: {
+                            intersect: false,
+                            filter: function(tooltip) {
+                                tooltip.yLabel = nFormatter(Number(tooltip.yLabel), 5) + unit;
+                                return tooltip;
+                            }
+                        },
                         responsive: true,
                         maintainAspectRatio: false,
-                        //},
+                        elements: {point: { radius: 1 }},
+                        //animation: {easing: "easeInOutCirc", duration: 200},
+                        cubicInterpolationMode: "monotone",
+                        gridLines: {drawOnChartArea: false},
                         scales: {
                             yAxes: [{
                                 stacked: false,
                                 ticks: {
-                                    callback: function(label, decimals) {
-                                        if (label >= 1000 || (label < 0.1 && label > 0)) {
-                                            var k = 1000;
-                                            var dm = decimals + 1 || 3;
-                                            var bigSizes = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
-                                            var smallSizes = ['', 'm', 'μ', 'n', 'p'];
-                                            var sizes;
-                                            var i = Math.floor(Math.log(label) / Math.log(k));
-                                            if (i > 0) {
-                                                p = i;
-                                                sizes = bigSizes;
-                                            } else {
-                                                var p = i * -1;
-                                                sizes = smallSizes;
-                                            }
-                                            return parseFloat((label / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[p];
-                                        } else {
-                                            if (label != null && Number.isInteger(label) == false) {
-                                                return parseFloat(label.toFixed(3));
-                                            }
-                                            return label;
-                                        }
-                                    },
+                                    callback: function(label, index, labels) {
+                                        return nFormatter(label, 5);
+                                    }
                                 },
                                 scaleLabel: {
                                     display: true,
-                                    labelString: ''
+                                    labelString: ""
                                 }
-                                //display:false
                             }],
                             xAxes: [{
                                 type: 'time',
-                                position: 'bottom',
+                                position: 'bottom'
                             }]
                         }
                     }
                 },
                 colorArray: {
                     type: Array,
-                    value: ["rgba(0,155,155,0.6)", "rgba(153,255,51,0.6)", "rgba(255,153,0,0.6)", "rgba(155,0,155,0.6)", "rgba(155,0,0,0.6)", "rgba(0,155,0,0.6)", "rgba(0,0,0,0.6)", "rgba(0,0,200,0.6)", "rgba(200,0,200,0.6)",
-                        "rgba(255,255,0,0.6)"
+                    value: ["rgba(0,155,155,0.1)", "rgba(153,255,51,0.1)", "rgba(255,153,0,0.1)", "rgba(155,0,155,0.1)", "rgba(155,0,0,0.1)", "rgba(0,155,0,0.1)", "rgba(0,0,0,0.1)", "rgba(0,0,200,0.1)", "rgba(200,0,200,0.1)",
+                        "rgba(255,255,0,0.1)"
                     ]
                 },
                 loading: {
@@ -184,18 +202,34 @@
                     type: Object,
                     value: {}
                 },
-                intervalID: String,
+                intervalId: String,
                 index: Number
             },
+
             listeners: {
-                'panelChanged': '_changeGraph'
+                'panelChanged': '_updatePanel'
             },
+
             observers: [
-                '_updateStep(from, to, datasourceType)'
+                '_updateParams(from, to, refreshInterval, panel.targets, datasourceType)',
+                '_updatePanel(panel)'
             ],
+
+            attached: function() {
+                console.debug('panel attached', this.panel.id, this.datasourceType);
+            },
+
+            detached: function() {
+                console.debug('panel detached', this.panel.id, this.datasourceType);
+            },
+
+            ready: function() {
+                this.chartElement = this.querySelector("chart-line");
+            },
+
             deletePanel: function(e) {
-                window.clearTimeout(this.intervalID);
-                //this.chartElement.destroy();
+                this.cancelAsync(this.intervalId);
+                this.intervalId = 0;
                 this.loading = true;
                 this.fire('delete-panel', {
                     panelId: this.panel.id,
@@ -203,212 +237,170 @@
                     panel: this
                 });
             },
-            _initRefresh: function() {
-                if (this.refreshInterval > 0 && !this.refreshOn) {
-                    // console.log('refresh',this.refreshInterval, this.refreshOn);
-                    this._refresh();
-                } else if (this.refreshInterval == 0) {
-                    // console.log('refresh',this.refreshInterval)
-                    this._clearRefresh();
+
+            _timeRangeUpdated: function() {
+                console.debug("_timeRangeUpdated", this.to, this.from);
+                // clear previous async task
+                if (this.intervalId){
+                    this.cancelAsync(this.intervalId);
+                    this.intervalId = 0;
                 }
+                this.hasRenderedData = false;
+                // TODO unload existing chart data
+                this._updateStep();
+                this._generateDataRequest();
             },
-            _refresh: function() {
-                var that = this;
-                this.intervalID = window.setTimeout(function() {
-                    if (that.refreshInterval > 0) {
-                        if (typeof that.chartData != 'undefined' && that.chartData.datasets.length > 0) {
-                            that.set('refreshOn', true);
-                        }
-                        that.to = Math.floor(new Date().getTime() / 1000) - 20;
-                        if (typeof that.chartData.datasets[0].data != "undefined" && that.chartData.datasets[0].data.length > 1) {
-                            that.from = "-1min"; // Math.floor(that.chartData.columns[0][that.chartData.columns[0].length - 1].getTime() / 1000) - 60; //"-10min";
-                        }
-                        that._refresh();
-                    } else {
-                        that._clearRefresh();
+
+            _updateStep: function() {
+                var from = this.from, to = this.to, datasourceType = this.datasourceType;
+                console.debug('_updateStep', this.panel.id, from, to, datasourceType);
+                //console.warn('from/to updated', this.panel, from, to);
+                if (this.datasourceType != 'mist.monitor')
+                    return; // step is needed only for mist.monitor datasource
+                // We need to calculate "from" and "to" in seconds in order to
+                // subtract them
+                var fromInSeconds, toInSeconds, parsedDigits,
+                    now = Math.floor(new Date().getTime() / 1000);
+                if (typeof from === "string") {
+                    // get digits in string
+                    parsedDigits = parseInt(from.match(/\d+/g));
+                    if (from.search("y") >= 0) { // time in years
+                        fromInSeconds = now - parsedDigits * 31556952;
+                    } else if (from.search("month") >= 0) { // time in months
+                        fromInSeconds = now - parsedDigits * 2629746;
+                    } else if (from.search("d") >= 0) { // time in days
+                        fromInSeconds = now - parsedDigits * 86400;
+                    } else if (from.search("h") >= 0) { // time in hours
+                        fromInSeconds = now - parsedDigits * 3600;
+                    } else if (from.search("m") >= 0) { // time in mins
+                        fromInSeconds = now - parsedDigits * 60;
+                    } else { // time in secs
+                        fromInSeconds = parsedDigits;
                     }
-                }, that.refreshInterval, that);
-            },
-            _clearRefresh: function() {
-                window.clearTimeout(this.intervalID);
-                this.set('refreshOn', false);
-                this.set('refreshInterval', 0);
-                console.log("refresh cleared");
-            },
-            _updateStep: function(from, to) {
-                this.debounce('updateStep', function() {
-                    //console.warn('from/to updated', this.panel, from, to);
-                    if (this.datasourceType != 'mist.monitor')
-                        return; // step is needed only for mist.monitor datasource
-                    // We need to calculate "from" and "to" in seconds in order to
-                    // subtract them
-                    var fromInSeconds, toInSeconds, parsedDigits,
-                        now = Math.floor(new Date().getTime() / 1000);
-                    if (typeof from === "string") {
+                } else if (typeof from === 'number') {
+                    fromInSeconds = from;
+                } else {
+                    //console.error('Unsupported type for "from"', typeof from);
+                    return;
+                }
+                //console.warn('fromInSeconds string', fromInSeconds);
+                if (typeof to === "string") {
+                    if (to == "now" || to == "") {
+                        toInSeconds = now;
+                    } else {
                         // get digits in string
-                        parsedDigits = parseInt(from.match(/\d+/g));
-                        if (from.search("y") >= 0) { // time in years
-                            fromInSeconds = now - parsedDigits * 31556952;
-                        } else if (from.search("month") >= 0) { // time in months
-                            fromInSeconds = now - parsedDigits * 2629746;
-                        } else if (from.search("d") >= 0) { // time in days
-                            fromInSeconds = now - parsedDigits * 86400;
-                        } else if (from.search("h") >= 0) { // time in hours
-                            fromInSeconds = now - parsedDigits * 3600;
-                        } else if (from.search("m") >= 0) { // time in mins
-                            fromInSeconds = now - parsedDigits * 60;
+                        parsedDigits = parseInt(to.match(/\d+/g));
+                        if (!parsedDigits || parsedDigits === NaN) {
+                            console.error('Invalid value for "to"', to);
+                            return;
+                        }
+                        if (to.search("y") >= 0) { // time in years
+                            toInSeconds = now - parsedDigits * 31556952;
+                        } else if (to.search("month") >= 0) { // time in months
+                            toInSeconds = now - parsedDigits * 2629746;
+                        } else if (to.search("d") >= 0) { // time in days
+                            toInSeconds = now - parsedDigits * 86400;
+                        } else if (to.search("h") >= 0) { // time in hours
+                            toInSeconds = now - parsedDigits * 3600;
+                        } else if (to.search("m") >= 0) { // time in mins
+                            toInSeconds = now - parsedDigits * 60;
                         } else { // time in secs
-                            fromInSeconds = parsedDigits;
-                        }
-                    } else if (typeof from === 'number') {
-                        fromInSeconds = from;
-                    } else {
-                        //console.error('Unsupported type for "from"', typeof from);
-                        return;
-                    }
-                    //console.warn('fromInSeconds string', fromInSeconds);
-                    if (typeof to === "string") {
-                        if (to == 'now') {
-                            toInSeconds = now;
-                        } else {
-                            // get digits in string
-                            parsedDigits = parseInt(to.match(/\d+/g));
-                            if (!parsedDigits || parsedDigits === NaN) {
-                                console.error('Invalid value for "to"', to);
-                                return;
-                            }
-                            if (to.search("y") >= 0) { // time in years
-                                toInSeconds = now - parsedDigits * 31556952;
-                            } else if (to.search("month") >= 0) { // time in months
-                                toInSeconds = now - parsedDigits * 2629746;
-                            } else if (to.search("d") >= 0) { // time in days
-                                toInSeconds = now - parsedDigits * 86400;
-                            } else if (to.search("h") >= 0) { // time in hours
-                                toInSeconds = now - parsedDigits * 3600;
-                            } else if (to.search("m") >= 0) { // time in mins
-                                toInSeconds = now - parsedDigits * 60;
-                            } else { // time in secs
-                                toInSeconds = now - parsedDigits;
-                            }
-                        }
-                    } else if (typeof to === 'number') {
-                        toInSeconds = to;
-                    } else {
-                        console.error('Unsupported type for "to"', typeof to);
-                        return;
-                    }
-                    //console.warn('toInSeconds', toInSeconds);
-                    var steps = ["10sec", "10min", "6h", "1d", "4d", "7d", "1month"];
-                    if (!this.refreshOn) {
-                        var timeDelta = toInSeconds - fromInSeconds;
-                        if (timeDelta <= 3600) { //less than an  hour
-                            this.step = steps[0];
-                        } else if (timeDelta <= 86400) { //less than a day
-                            this.step = steps[1];
-                        } else if (timeDelta <= 2629746) { //less than a month
-                            this.step = steps[3];
-                        } else if (timeDelta <= 2629746 * 6) { //less than 6 months
-                            this.step = steps[3];
-                        } else if (timeDelta <= 31556952) { //less than year
-                            this.step = steps[4];
-                        } else { //more than year
-                            this.step = steps[6];
-                        }
-                    } else {
-                        if (steps.indexOf(this.step) > 3) {
-                            this.step = steps[2];
+                            toInSeconds = now - parsedDigits;
                         }
                     }
-                    //console.warn('calculated step', this.step);
-                    this._generateDataRequest();
-                }, 100);
-            },
-            _generateDataRequest: function() {
-                // console.log("generating request");
-                if (this.panel != null && this.querySelector("iron-ajax")) {
-                    this.async(function() {
-                        if (this.datasourceType == 'graphite')
-                            this.$dataRequest.generateRequest();
-                        else if (this.datasourceType == 'mist.monitor') {
-                            //uncomment this for http calls
-                            //return '/api/v1/clouds/' + this.panel.cloudIds[0] + '/machines/' + this.panel.machineIds[0] + '/stats';
-                            var targets = [];
-                            for (var i = 0; i < this.panel.targets.length; i++) {
-                                targets.push(this.panel.targets[i].target);
-                            }
-                            var socket = document.querySelector('mist-socket');
-                            var prefix = this.panel.machine || [false, false];
-                            var payload = prefix.concat([this._computeGraphiteTimestamp(this.from), this._computeGraphiteTimestamp(this.to), this.step, 0, targets]);
-                            socket.getStats(payload, this._handlePanelResponse.bind(this));
-                            this.set('loading', true);
-                        }
-                    }, 100);
+                } else if (typeof to === 'number') {
+                    toInSeconds = to;
+                } else {
+                    console.error('Unsupported type for "to"', typeof to);
+                    return;
+                }
+                //console.warn('toInSeconds', toInSeconds);
+                var steps = ["10sec", "10min", "6h", "1d", "4d", "7d", "1month"];
+                if (!this.refreshOn) {
+                    var timeDelta = toInSeconds - fromInSeconds;
+                    if (timeDelta <= 3600) { //less than an  hour
+                        this.step = steps[0];
+                    } else if (timeDelta <= 86400) { //less than a day
+                        this.step = steps[1];
+                    } else if (timeDelta <= 2629746) { //less than a month
+                        this.step = steps[3];
+                    } else if (timeDelta <= 2629746 * 6) { //less than 6 months
+                        this.step = steps[3];
+                    } else if (timeDelta <= 31556952) { //less than year
+                        this.step = steps[4];
+                    } else { //more than year
+                        this.step = steps[6];
+                    }
+                } else {
+                    if (steps.indexOf(this.step) > 3) {
+                        this.step = steps[2];
+                    }
                 }
             },
+
+            _generateDataRequest: function() {
+                console.debug("generating data request");
+                this.async(function() {
+                    if (this.datasourceType == 'graphite') {
+                        if (this.$.panelDataRequest.lastRequest)
+                            this.$.panelDataRequest.lastRequest.abort()
+                        this.$.panelDataRequest.generateRequest();
+                    } else if (this.datasourceType == 'mist.monitor') {
+                        //uncomment this for http calls
+                        //return '/api/v1/clouds/' + this.panel.cloudIds[0] + '/machines/' + this.panel.machineIds[0] + '/stats';
+                        var socket = document.querySelector('mist-socket');
+                        var prefix = this.panel.machine || [false, false];
+                        var payload = prefix.concat([this.params.start, this.params.stop, this.step, 0, this.params.metrics]);
+                        // TODO abort last request
+                        socket.getStats(payload, this._handlePanelResponse.bind(this));
+                        this.set('loading', true);
+                    }
+                }, 200);
+            },
+
             _computeGraphiteTimestamp: function(timestamp) {
                 if (typeof timestamp != 'string')
                     return timestamp;
-                if (this.to == "now" && timestamp == "now")
-                    return Math.floor(new Date().getTime() / 1000) - 20;
-                var ret = timestamp.replace('now-', '-');
-                if (ret.search('min') == -1)
-                    ret = ret.replace('m', 'min');
+                ret = timestamp;
+                if (ret.endsWith("m"))
+                    ret = ret.replace("m", "min");
+                ret = ret.replace("now", "");
                 return ret;
             },
+
             resizeChart: function(e, detail, sender) {
-                if (this.chartElement != null) {
-                    this.width = this.querySelector('paper-material').clientWidth;
-                    this.height = this.querySelector('paper-material').clientHeight;
-                    this.chartElement.resize({
-                        height: this.height - 140,
-                        width: this.width - 20
-                    });
-                    this.rowHeight = this.height;
-                    this.panel.span = ((this.width + 30) / this.offsetWidth) * this.panel.span;
-                    if (this.panel.span > 12) {
-                        // console.log(this.panel.span, this.width, this.offsetWidth);
-                        this.panel.span = 12;
-                    }
+                this.width = this.querySelector('paper-material').clientWidth;
+                this.height = this.querySelector('paper-material').clientHeight;
+                this.chartElement.resize({
+                    height: this.height - 140,
+                    width: this.width - 20
+                });
+                //this.rowHeight = this.height;
+                this.panel.span = ((this.width + 30) / this.offsetWidth) * this.panel.span;
+                if (this.panel.span > 12) {
+                    this.panel.span = 12;
                 }
                 this.fire('resizeDone');
             },
-            //_changeGraph: function(e) {
-            // if (e.detail == "step") {
-            //     // console.log(this.step, e.detail);
-            //     this._generateDataRequest();
-            // } else if (e.detail == "dateFormat") {
-            //     this.chartElement.load(this.chartData);
-            // }
-            // if (this.panel.bars) {
-            //     this.chartElement.transform('bar');
-            // } else if (this.panel.lines) {
-            //     this.chartElement.transform('spline');
-            // } else {
-            //     this.chartElement.transform('line');
-            // }
-            // if (this.panel.stack) {
-            //     this._stackIt();
-            // } else {
-            //     this.chartElement.groups(0);
-            // }
-            // this.fire('graphChanged');
-            //},
-            // _stackIt: function() {
-            //     var grp = [];
-            //     for (var i = 0; i < this.chartData.columns.length; i++) {
-            //         if (this.chartData.columns[i][0].indexOf('x') < 0) {
-            //             grp.push(this.chartData.columns[i][0].toString());
-            //         }
-            //     }
-            //     this.chartElement.groups([grp]);
-            //     if (!this.panel.bars) {
-            //         this.chartElement.transform('area-spline');
-            //     }
-            // },
-            _computeParams: function(from, to, targets, datasourceType) {
+
+            _updatePanel: function(e) {
+                console.log('_updatePanel');
+                if (this.chartElement){
+                    this.chartElement.options.title.text = this.panel.title;
+                    this.async(function() {
+                        // set y-axis labelString - for some reason we need to wait until the chart is ready for it to get updated
+                        unit = this.panel.yaxes ? (this.panel.yaxes[0].label || this.panel.yaxes[0].format) : "";
+                        this.chartElement.chart.scales['y-axis-0'].options.scaleLabel.labelString = unit;
+                    }, 500);
+                    this.chartElement.updateChart();
+                }
+            },
+
+            _updateParams: function(from, to, refreshInterval, targets, datasourceType) {
+                console.debug("_computeParams", from, to, targets, datasourceType);
                 if (this.datasourceType == "graphite") {
                     //some graphite versions expect 'until' paramater and others "to"
-                    var ret = {
+                    var params = {
                             'format': 'json',
                             'from': this._computeGraphiteTimestamp(from),
                             'to': this._computeGraphiteTimestamp(to),
@@ -418,10 +410,9 @@
                     for (var i = 0; i < targets.length; i++) {
                         tlist.push(targets[i].target)
                     }
-                    ret['target'] = tlist;
-                    return ret;
+                    params['target'] = tlist;
                 } else if (this.datasourceType == "mist.monitor") {
-                    var ret = {
+                    var params = {
                             'start': this._computeGraphiteTimestamp(from),
                             'stop': this._computeGraphiteTimestamp(to)
                         },
@@ -429,10 +420,12 @@
                     for (var i = 0; i < targets.length; i++) {
                         tlist.push(targets[i].target)
                     }
-                    ret['metrics'] = tlist;
-                    return ret;
+                    params['metrics'] = tlist;
                 }
+                this.set('params', params);
+                this._timeRangeUpdated();
             },
+
             _filterTarget: function(target) {
                 var k = Object.keys(this.get('replaceTargets'));
                 for (var i = 0; i < k.length; i++) {
@@ -440,26 +433,48 @@
                 }
                 return target;
             },
-            _handlePanelResponse: function(data) {
-                this.chartElement = this.querySelector("#" + this._computePanelId(this.panel.id, this.panel.title));
-                if (!this || !this.querySelector("#" + this._computePanelId(this.panel.id, this.panel.title)))
+
+            _handlePanelResponse: function(e) {
+                if (!this)
                     return;
-                //if no metrics are returned hide the panel
-                if (!Object.keys(data.metrics).length && this.panel.targets[0].target.indexOf('mist.python') == -1)
+
+                if (!this.chartElement)
+                    this.chartElement = this.querySelector("chart-line");
+
+                // get data from response
+                var data = e.detail ? e.detail.response : e;
+
+                // if no metrics are returned hide the panel, except if it's a custom python plugin
+                if (!data.length && !Object.keys(data.metrics).length && this.panel.targets[0].target.indexOf('mist.python') == -1)
                     this.hidden = true;
                 else if (this.hidden)
                     this.hidden = false;
                 this.set('loading', false);
                 var cols = this.transformData(data);
-                //if refresh is on then we need to flow the data not to redraw them
-                if (!this.refreshOn) {
-                    this._loadDatatoGraphs(cols);
-                } else { // flow the new data from auto refresh
 
+                if (!this.hasRenderedData) {
+                    this._loadDatatoGraphs(cols);
+                    this.hasRenderedData = true;
+                } else { // flow the new data if we auto refresh
                     this._flowDatatoGraphs(cols);
                 }
+
+                if (this.refreshInterval > 0 && document.contains(this)) {
+                    var to = this.to;
+                    if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == ""))
+                        this.async(function() {
+                          if (this.datasourceType == "graphite") {
+                              this.set("params.from", "-2min");
+                          } else if (this.datasourceType == "mist.monitor") {
+                              this.set("params.start", "-2min");
+                          }
+                          this._generateDataRequest();
+                        }, this.refreshInterval);
+                }
             },
+
             _loadDatatoGraphs: function(cols) {
+                this.chartOptions.title.text = this.panel.title;
                 this.set('loading', false);
                 this.chartData = cols;
 
@@ -468,30 +483,29 @@
                 } else {
                     this.chartOptions.scales.yAxes[0].stacked = false;
                 }
-                var color;
                 for (var i = 0; i < this.chartData.datasets.length; i++) {
-                    if (i > 10) {
-                        color = 0;
-                    } else {
-                        color = i;
-                    }
-                    this.chartData.datasets[i].backgroundColor = this.colorArray[color];
+                    this.chartData.datasets[i].backgroundColor = this.colorArray[i%10];
+                    this.chartData.datasets[i].label = this._filterTarget(this.chartData.datasets[i].label);
                 }
-                this.chartElement.options.scales.yAxes[0].scaleLabel.labelString = this.labelString(this.chartData.datasets);
-                this.chartElement.querySelector("canvas").width = "600";
-                this.chartElement.querySelector("canvas").height = "500";
-                this.chartElement.updateChart();
+                this._updatePanel();
             },
+
             _flowDatatoGraphs: function(cols) {
                 for (var b = 0; b < this.chartData.datasets.length; b++) {
                     var originalLength = this.chartData.datasets[b].data.length;
+
+                    // Remove trailing nulls from the end
+                    /*for (var c = cols.datasets[b].data.length - 1; c > 0; c--)
+                        if (cols.datasets[b].data[c].y == null)
+                            cols.datasets[b].data.pop();*/
                     for (var a = this.chartData.datasets[b].data.length - 1; a >= 0; a--) {
                         //if we have greater or equal date
-                        if (cols.datasets[b].data[0].x >= this.chartData.datasets[b].data[a].x) {
+                        if (cols.datasets[b].data.length && cols.datasets[b].data[0].x >= this.chartData.datasets[b].data[a].x) {
                             this.chartData.datasets[b].data.splice(a, originalLength - a);
                             this.chartData.datasets[b].data = this.chartData.datasets[b].data.concat(cols.datasets[b].data);
-                            var howmany = this.chartData.datasets[b].data.length - originalLength;
-                            this.chartData.datasets[b].data.splice(0, howmany);
+                            // remove as many datapoints from the beggining of the series as we added in the end
+                            // FIXME we should only remove those that shouldn't be in the time window any more
+                            this.chartData.datasets[b].data.splice(0, this.chartData.datasets[b].data.length - originalLength);
                             break;
                         }
                     }
@@ -499,48 +513,6 @@
                 this.chartElement.updateChart();
             },
 
-            labelString: function(data) {
-                var max = data[0].data[0].y;
-                var text = ' ';
-                for (var i = 0; i < data.length; i++) {
-                    for (var j = 0; j < data[i].data.length; j++) {
-                        if (data[i].data[j].y > max) {
-                            max = data[i].data[j].y;
-                        }
-                    }
-                }
-                if (max > 1) {
-                    if (max > Math.pow(10, 3) && max < Math.pow(10, 6)) {
-                        text = '1K = 10 ^ 3';
-                    } else if (max > Math.pow(10, 6) && max < Math.pow(10, 9)) {
-                        text = '1M = 10 ^ 6';
-                    } else if (max > Math.pow(10, 9) && max < Math.pow(10, 12)) {
-                        text = '1 G= 10 ^ 9';
-                    } else if (max > Math.pow(10, 12) && max < Math.pow(10, 15)) {
-                        text = '1T = 10 ^ 12';
-                    } else if (max > Math.pow(10, 15) && max < Math.pow(10, 18)) {
-                        text = '1P = 10 ^ 15';
-                    } else if (max > Math.pow(10, 18) && max < Math.pow(10, 21)) {
-                        text = '1E = 10 ^ 18';
-                    } else if (max > Math.pow(10, 21) && max < Math.pow(10, 24)) {
-                        text = '1Z = 10 ^ 24';
-                    } else if (max > Math.pow(10, 24) && max < Math.pow(10, 27)) {
-                        text = '1Y = 10 ^ 27';
-                    }
-                } else {
-                    if (max > Math.pow(10, -3) && max < Math.pow(10, -6)) {
-                        text = '1m = 10 ^ -3';
-                    } else if (max > Math.pow(10, -6) && max < Math.pow(10, -9)) {
-                        text = '1μ = 10 ^ -6';
-                    } else if (max > Math.pow(10, -9) && max < Math.pow(10, -12)) {
-                        text = '1n = 10 ^ -9';
-                    } else if (max > Math.pow(10, -12) && max < Math.pow(10, -15)) {
-                        text = '1p = 10 ^ -12';
-                    }
-                }
-                return text;
-
-            },
             transformData: function(data) {
                 var columns = [],
                     response,
@@ -559,10 +531,11 @@
                         points = [];
                         if (response[metr] != null) {
                             for (var i = 0; i < response[metr].datapoints.length; i++) {
-                                points.push({
-                                    x: new Date(response[metr].datapoints[i][1] * 1000),
-                                    y: response[metr].datapoints[i][0]
-                                })
+                                if (response[metr].datapoints[i][0])
+                                    points.push({
+                                        x: new Date(response[metr].datapoints[i][1] * 1000),
+                                        y: response[metr].datapoints[i][0]
+                                    })
                             }
                             datanames.push(response[metr].name);
                             columns.push(points);
@@ -580,65 +553,74 @@
                     }
                     return ret;
                 } else { //for graphite
-                    var xcolumns = [],
-                        dcolumns = [];
-                    response = data.detail.response || [];
-                    for (var i = 0; i < response.length; i++) {
-                        x.push(response[i].datapoints.map(function(point) {
-                            return point[1]
-                        }));
-                        d.push(response[i].datapoints.map(function(point) {
-                            return point[0]
-                        }));
-                        xs[this._filterTarget(response[i].target)] = 'x' + (i + 1);
-                        xcolumns.push(['x' + (i + 1)].concat(x[i]));
-                        dcolumns.push([this._filterTarget(response[i].target)].concat(d[i]));
-                    }
-                    columns = xcolumns.concat(dcolumns);
-                    // convert timestamp to date so it can be displayed correctly on the x axis of the graph
-                    for (var k = 0; k < columns.length; k++) {
-                        if (columns[k][0].charAt(0) == 'x') {
-                            for (var j = 1; j < columns[0].length; j++) {
-                                columns[k][j] = new Date(columns[k][j] * 1000);
+                    for (var j = 0; j < data.length; j++) {
+                        x = [];
+                        points = [];
+                        if (data[j] != null) {
+                            for (var i = 0; i < data[j].datapoints.length; i++) {
+                                points.push({
+                                    x: new Date(data[j].datapoints[i][1] * 1000),
+                                    y: data[j].datapoints[i][0]
+                                })
                             }
+                            datanames.push(data[j].target);
+                            columns.push(points);
                         }
                     }
-                    return {
-                        xs: xs,
-                        columns: columns
+                    var ret = {
+                        labels: [],
+                        datasets: []
                     };
+                    for (var k = 0; k < datanames.length; k++) {
+                        ret.datasets.push({
+                            label: datanames[k],
+                            data: columns[k]
+                        })
+                    }
+                    return ret;
+
                 }
             },
+
             _computeIsPanelRemovable: function(panel) {
                 return panel.editable || panel.removable;
             },
+
             _computeUrl: function(datasourceUri) {
                 return this.datasourceUri + '/render';
             },
+
             _isGraph: function(panel) {
                 return panel.type == "graph"
             },
+
             _isDashlist: function(panel) {
                 return panel.type == "dashlist"
             },
+
             _isText: function(panel) {
                 return panel.type == "text"
             },
+
             _isSinglestat: function(panel) {
                 return panel.type == "singlestat"
             },
+
             _isTable: function(panel) {
                 return panel.type == "table"
             },
+
             _computePanelId: function(id, title) {
                 return title.replace(/ /g, "-") + "-panel" + id;
             },
+
             _computeTitle: function(title) {
                 if (title)
                     return title.replace(/_/g, " ");
                 else
                     return "";
             }
+
         });
     </script>
 </dom-module>
