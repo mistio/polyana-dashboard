@@ -203,7 +203,8 @@
                     value: {}
                 },
                 intervalId: String,
-                index: Number
+                index: Number,
+                panelDataTimeDiff:Array
             },
 
             listeners: {
@@ -390,7 +391,7 @@
                     this.async(function() {
                         // set y-axis labelString - for some reason we need to wait until the chart is ready for it to get updated
                         unit = this.panel.yaxes ? (this.panel.yaxes[0].label || this.panel.yaxes[0].format) : "";
-                        this.chartElement.chart.scales['y-axis-0'].options.scaleLabel.labelString = unit;
+                        this.chartOptions.scales.yAxes[0].scaleLabel.labelString = unit;
                     }, 500);
                     this.chartElement.updateChart();
                 }
@@ -466,11 +467,21 @@
                           if (this.datasourceType == "graphite") {
                               this.set("params.from", "-2min");
                           } else if (this.datasourceType == "mist.monitor") {
-                              this.set("params.start", "-2min");
+                              this.set("params.start", this._lastDrawnPoint()-120);
                           }
                           this._generateDataRequest();
                         }, this.refreshInterval);
                 }
+            },
+
+            _lastDrawnPoint:function(){
+                var max=0;
+                for (var i=0; i<this.chartData.datasets.length; i++){
+                  if(this.chartData.datasets[i].data[this.chartData.datasets[i].data.length-1].x.getTime()/1000 >max){
+                    max=this.chartData.datasets[i].data[this.chartData.datasets[i].data.length-1].x.getTime()/1000;
+                  }
+                }
+                return max;
             },
 
             _loadDatatoGraphs: function(cols) {
@@ -483,9 +494,11 @@
                 } else {
                     this.chartOptions.scales.yAxes[0].stacked = false;
                 }
+                this.panelDataTimeDiff=[];
                 for (var i = 0; i < this.chartData.datasets.length; i++) {
                     this.chartData.datasets[i].backgroundColor = this.colorArray[i%10];
                     this.chartData.datasets[i].label = this._filterTarget(this.chartData.datasets[i].label);
+                    this.panelDataTimeDiff.push((this.chartData.datasets[i].data[this.chartData.datasets[i].data.length-1].x.getTime()/1000)-this.chartData.datasets[i].data[0].x.getTime()/1000);
                 }
                 this._updatePanel();
             },
@@ -505,7 +518,14 @@
                             this.chartData.datasets[b].data = this.chartData.datasets[b].data.concat(cols.datasets[b].data);
                             // remove as many datapoints from the beggining of the series as we added in the end
                             // FIXME we should only remove those that shouldn't be in the time window any more
-                            this.chartData.datasets[b].data.splice(0, this.chartData.datasets[b].data.length - originalLength);
+                            //this.chartData.datasets[b].data.splice(0, this.chartData.datasets[b].data.length - originalLength);
+                            for(var c=0; c<this.chartData.datasets[b].data.length; c++){
+                              var timeDiff=(this.chartData.datasets[b].data[this.chartData.datasets[b].data.length-1].x.getTime()/1000)-this.chartData.datasets[b].data[c].x.getTime()/1000;
+                              if(timeDiff <=this.panelDataTimeDiff[b]){
+                                this.chartData.datasets[b].data.splice(0, c);
+                                break;
+                              }
+                            }
                             break;
                         }
                     }
