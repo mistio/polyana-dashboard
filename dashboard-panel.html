@@ -88,14 +88,27 @@
     </template>
     <script>
         function nFormatter(num, digits) {
-            var si = [
-                { value: 1E18, symbol: "E" },
-                { value: 1E15, symbol: "P" },
-                { value: 1E12, symbol: "T" },
-                { value: 1E9,  symbol: "G" },
-                { value: 1E6,  symbol: "M" },
-                { value: 1E3,  symbol: "k" }
-            ], rx = /\.0+$|(\.[0-9]*[1-9])0+$/, i;
+            var si = [{
+                    value: 1E18,
+                    symbol: "E"
+                }, {
+                    value: 1E15,
+                    symbol: "P"
+                }, {
+                    value: 1E12,
+                    symbol: "T"
+                }, {
+                    value: 1E9,
+                    symbol: "G"
+                }, {
+                    value: 1E6,
+                    symbol: "M"
+                }, {
+                    value: 1E3,
+                    symbol: "k"
+                }],
+                rx = /\.0+$|(\.[0-9]*[1-9])0+$/,
+                i;
             for (i = 0; i < si.length; i++) {
                 if (num >= si[i].value) {
                     return (num / si[i].value).toFixed(digits).replace(rx, "$1") + si[i].symbol;
@@ -160,10 +173,16 @@
                         },
                         responsive: true,
                         maintainAspectRatio: false,
-                        elements: {point: { radius: 1 }},
+                        elements: {
+                            point: {
+                                radius: 1
+                            }
+                        },
                         //animation: {easing: "easeInOutCirc", duration: 200},
                         cubicInterpolationMode: "monotone",
-                        gridLines: {drawOnChartArea: false},
+                        gridLines: {
+                            drawOnChartArea: false
+                        },
                         scales: {
                             yAxes: [{
                                 stacked: false,
@@ -204,7 +223,7 @@
                 },
                 intervalId: String,
                 index: Number,
-                panelDataTimeDiff:Array
+                panelDataTimeDiff: Number
             },
 
             listeners: {
@@ -242,7 +261,7 @@
             _timeRangeUpdated: function() {
                 console.debug("_timeRangeUpdated", this.to, this.from);
                 // clear previous async task
-                if (this.intervalId){
+                if (this.intervalId) {
                     this.cancelAsync(this.intervalId);
                     this.intervalId = 0;
                 }
@@ -253,7 +272,9 @@
             },
 
             _updateStep: function() {
-                var from = this.from, to = this.to, datasourceType = this.datasourceType;
+                var from = this.from,
+                    to = this.to,
+                    datasourceType = this.datasourceType;
                 console.debug('_updateStep', this.panel.id, from, to, datasourceType);
                 //console.warn('from/to updated', this.panel, from, to);
                 if (this.datasourceType != 'mist.monitor')
@@ -386,7 +407,7 @@
 
             _updatePanel: function(e) {
                 console.log('_updatePanel');
-                if (this.chartElement){
+                if (this.chartElement) {
                     this.chartElement.options.title.text = this.panel.title;
                     this.async(function() {
                         // set y-axis labelString - for some reason we need to wait until the chart is ready for it to get updated
@@ -464,22 +485,22 @@
                     var to = this.to;
                     if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == ""))
                         this.async(function() {
-                          if (this.datasourceType == "graphite") {
-                              this.set("params.from", "-2min");
-                          } else if (this.datasourceType == "mist.monitor") {
-                              this.set("params.start", this._lastDrawnPoint()-120);
-                          }
-                          this._generateDataRequest();
+                            if (this.datasourceType == "graphite") {
+                                this.set("params.from", "-2min");
+                            } else if (this.datasourceType == "mist.monitor") {
+                                this.set("params.start", this._lastDrawnPoint() - 120);
+                            }
+                            this._generateDataRequest();
                         }, this.refreshInterval);
                 }
             },
 
-            _lastDrawnPoint:function(){
-                var max=0;
-                for (var i=0; i<this.chartData.datasets.length; i++){
-                  if(this.chartData.datasets[i].data[this.chartData.datasets[i].data.length-1].x.getTime()/1000 >max){
-                    max=this.chartData.datasets[i].data[this.chartData.datasets[i].data.length-1].x.getTime()/1000;
-                  }
+            _lastDrawnPoint: function() {
+                var max = 0;
+                for (var i = 0; i < this.chartData.datasets.length; i++) {
+                    if (this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000 > max) {
+                        max = this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000;
+                    }
                 }
                 return max;
             },
@@ -494,11 +515,12 @@
                 } else {
                     this.chartOptions.scales.yAxes[0].stacked = false;
                 }
-                this.panelDataTimeDiff=[];
+                this.panelDataTimeDiff = 0;
                 for (var i = 0; i < this.chartData.datasets.length; i++) {
-                    this.chartData.datasets[i].backgroundColor = this.colorArray[i%10];
+                    this.chartData.datasets[i].backgroundColor = this.colorArray[i % 10];
                     this.chartData.datasets[i].label = this._filterTarget(this.chartData.datasets[i].label);
-                    this.panelDataTimeDiff.push((this.chartData.datasets[i].data[this.chartData.datasets[i].data.length-1].x.getTime()/1000)-this.chartData.datasets[i].data[0].x.getTime()/1000);
+                    if((this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000) - this.chartData.datasets[i].data[0].x.getTime() / 1000>this.panelDataTimeDiff || this.panelDataTimeDiff==0)
+                        this.panelDataTimeDiff=(this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000) - this.chartData.datasets[i].data[0].x.getTime() / 1000;
                 }
                 this._updatePanel();
             },
@@ -519,12 +541,12 @@
                             // remove as many datapoints from the beggining of the series as we added in the end
                             // FIXME we should only remove those that shouldn't be in the time window any more
                             //this.chartData.datasets[b].data.splice(0, this.chartData.datasets[b].data.length - originalLength);
-                            for(var c=0; c<this.chartData.datasets[b].data.length; c++){
-                              var timeDiff=(this.chartData.datasets[b].data[this.chartData.datasets[b].data.length-1].x.getTime()/1000)-this.chartData.datasets[b].data[c].x.getTime()/1000;
-                              if(timeDiff <=this.panelDataTimeDiff[b]){
-                                this.chartData.datasets[b].data.splice(0, c);
-                                break;
-                              }
+                            for (var c = 0; c < this.chartData.datasets[b].data.length; c++) {
+                                var timeDiff = (this.chartData.datasets[b].data[this.chartData.datasets[b].data.length - 1].x.getTime() / 1000) - (this.chartData.datasets[b].data[c].x.getTime() / 1000);
+                                if (timeDiff <= this.panelDataTimeDiff) {
+                                    this.chartData.datasets[b].data.splice(0, c);
+                                    break;
+                                }
                             }
                             break;
                         }
