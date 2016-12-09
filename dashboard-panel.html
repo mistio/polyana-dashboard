@@ -111,12 +111,12 @@
                 i;
             for (i = 0; i < si.length; i++) {
                 if (num >= si[i].value) {
-                    return (num / si[i].value).toFixed(digits).replace(rx, "$1") + si[i].symbol;
+                    return (num / si[i].value).toFixed(digits).replace(rx, "$1") + " " + si[i].symbol;
                 }
             }
-            return num.toFixed(digits).replace(rx, "$1");
+            return num.toFixed(digits).replace(rx, "$1")+" ";
         }
-        var unit = "";
+        // var unit = "";
         Polymer({
             is: 'dashboard-panel',
             properties: {
@@ -166,15 +166,15 @@
                         },
                         tooltips: {
                             intersect: false,
-                            filter: function(tooltip) {
-                                tooltip.yLabel = nFormatter(Number(tooltip.yLabel), 5) + unit;
+                            filter: function(tooltip,data) {
+                                tooltip.yLabel = nFormatter(Number(tooltip.yLabel), 5) + data.unit;
                                 return tooltip;
                             }
                         },
                         defaults:{
                           global:{
                             responsive: true,
-                            maintainAspectRatio: true
+                            maintainAspectRatio: true,
                           }
                         },
 
@@ -228,7 +228,10 @@
                 },
                 intervalId: String,
                 index: Number,
-                panelDataTimeDiff: Number
+                panelDataTimeDiff: {
+                  type:Number,
+                  value:0
+                }
             },
 
             listeners: {
@@ -414,11 +417,13 @@
                 console.log('_updatePanel');
                 if (this.chartElement) {
                     this.chartElement.options.title.text = this.panel.title;
-                    this.async(function() {
+                    // this.async(function() {
                         // set y-axis labelString - for some reason we need to wait until the chart is ready for it to get updated
-                        unit = this.panel.yaxes ? (this.panel.yaxes[0].label || this.panel.yaxes[0].format) : "";
-                        this.chartOptions.scales.yAxes[0].scaleLabel.labelString = unit;
-                    }, 500);
+                        // unit = this.panel.yaxes ? (this.panel.yaxes[0].label || this.panel.yaxes[0].format) : "";
+                        // if(this.chartOptions.scales.yAxes[0].scaleLabel.labelString="")
+                        //     this.chartOptions.scales.yAxes[0].scaleLabel.labelString = unit;
+
+                    // }, 500);
                     this.chartElement.updateChart();
                 }
             },
@@ -478,7 +483,6 @@
                     this.hidden = false;
                 this.set('loading', false);
                 var cols = this.transformData(data);
-
                 if (!this.hasRenderedData) {
                     this._loadDatatoGraphs(cols);
                     this.hasRenderedData = true;
@@ -503,7 +507,8 @@
             _lastDrawnPoint: function() {
                 var max = 0;
                 for (var i = 0; i < this.chartData.datasets.length; i++) {
-                    if (this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000 > max) {
+
+                    if (this.chartData.datasets[i].data.length>0 && this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000 > max) {
                         max = this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000;
                     }
                 }
@@ -517,13 +522,18 @@
 
                 if (this.panel.stack) {
                     this.chartOptions.scales.yAxes[0].stacked = true;
+                    for (var i=0; i<this.chartData.datasets.length; i++){
+                      this.chartData.datasets[i].fill=true;
+                    }
                 } else {
                     this.chartOptions.scales.yAxes[0].stacked = false;
                 }
                 this.panelDataTimeDiff = 0;
                 for (var i = 0; i < this.chartData.datasets.length; i++) {
                     this.chartData.datasets[i].backgroundColor = this.colorArray[i % 10];
+                    this.chartData.datasets[i].borderColor = this.colorArray[i % 10];
                     this.chartData.datasets[i].label = this._filterTarget(this.chartData.datasets[i].label);
+                    if(this.chartData.datasets[i].data.length>0)
                     if((this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000) - this.chartData.datasets[i].data[0].x.getTime() / 1000>this.panelDataTimeDiff || this.panelDataTimeDiff==0)
                         this.panelDataTimeDiff=(this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000) - this.chartData.datasets[i].data[0].x.getTime() / 1000;
                 }
@@ -578,24 +588,27 @@
                         points = [];
                         if (response[metr] != null) {
                             for (var i = 0; i < response[metr].datapoints.length; i++) {
-                                if (response[metr].datapoints[i][0])
+                                //if (response[metr].datapoints[i][0])
                                     points.push({
                                         x: new Date(response[metr].datapoints[i][1] * 1000),
                                         y: response[metr].datapoints[i][0]
                                     })
                             }
+                            this.chartOptions.scales.yAxes[0].scaleLabel.labelString=response[metr].unit;
                             datanames.push(response[metr].name);
                             columns.push(points);
                         }
                     }
                     var ret = {
                         labels: [],
-                        datasets: []
+                        datasets: [],
+                        unit:this.chartOptions.scales.yAxes[0].scaleLabel.labelString
                     };
                     for (var k = 0; k < datanames.length; k++) {
                         ret.datasets.push({
                             label: datanames[k],
-                            data: columns[k]
+                            data: columns[k],
+                            fill:false
                         })
                     }
                     return ret;
