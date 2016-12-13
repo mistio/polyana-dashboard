@@ -466,6 +466,21 @@
                 return target;
             },
 
+            _getUnit:function(data){
+                if (data.detail != null) {
+                    response = data.detail.response;
+                } else {
+                    response = data.metrics;
+                }
+                  for (var metr in response) {
+                      if(response[metr]){
+                          this.chartOptions.scales.yAxes[0].scaleLabel.labelString=response[metr].unit;
+                          break;
+                      }
+                  }
+                  return this.chartOptions.scales.yAxes[0].scaleLabel.labelString;
+            },
+
             _handlePanelResponse: function(e) {
                 if (!this)
                     return;
@@ -484,6 +499,7 @@
                 this.set('loading', false);
                 var cols = this.transformData(data);
                 if (!this.hasRenderedData) {
+                    cols.unit=this._getUnit(data);
                     this._loadDatatoGraphs(cols);
                     this.hasRenderedData = true;
                 } else { // flow the new data if we auto refresh
@@ -507,9 +523,11 @@
             _lastDrawnPoint: function() {
                 var max = 0;
                 for (var i = 0; i < this.chartData.datasets.length; i++) {
-
-                    if (this.chartData.datasets[i].data.length>0 && this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000 > max) {
-                        max = this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000;
+                    if(this.chartData.datasets[i].data.length>0){
+                        var lastpoint=this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000 ;
+                        if (this.chartData.datasets[i].data.length>0 && lastpoint> max) {
+                            max = lastpoint;
+                        }
                     }
                 }
                 return max;
@@ -533,9 +551,12 @@
                     this.chartData.datasets[i].backgroundColor = this.colorArray[i % 10];
                     this.chartData.datasets[i].borderColor = this.colorArray[i % 10];
                     this.chartData.datasets[i].label = this._filterTarget(this.chartData.datasets[i].label);
-                    if(this.chartData.datasets[i].data.length>0)
-                    if((this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000) - this.chartData.datasets[i].data[0].x.getTime() / 1000>this.panelDataTimeDiff || this.panelDataTimeDiff==0)
-                        this.panelDataTimeDiff=(this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000) - this.chartData.datasets[i].data[0].x.getTime() / 1000;
+                    if(this.chartData.datasets[i].data.length>0){
+                    var targetDiff=(this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000) - this.chartData.datasets[i].data[0].x.getTime() / 1000;
+                    //we find the target with the biggest timediff
+                    if(targetDiff>this.panelDataTimeDiff || this.panelDataTimeDiff==0)
+                        this.panelDataTimeDiff=targetDiff;
+                    }
                 }
                 this._updatePanel();
             },
@@ -545,9 +566,6 @@
                     var originalLength = this.chartData.datasets[b].data.length;
 
                     // Remove trailing nulls from the end
-                    /*for (var c = cols.datasets[b].data.length - 1; c > 0; c--)
-                        if (cols.datasets[b].data[c].y == null)
-                            cols.datasets[b].data.pop();*/
                     for (var a = this.chartData.datasets[b].data.length - 1; a >= 0; a--) {
                         //if we have greater or equal date
                         if (cols.datasets[b].data.length && cols.datasets[b].data[0].x >= this.chartData.datasets[b].data[a].x) {
@@ -557,8 +575,8 @@
                             // FIXME we should only remove those that shouldn't be in the time window any more
                             //this.chartData.datasets[b].data.splice(0, this.chartData.datasets[b].data.length - originalLength);
                             for (var c = 0; c < this.chartData.datasets[b].data.length; c++) {
-                                var timeDiff = (this.chartData.datasets[b].data[this.chartData.datasets[b].data.length - 1].x.getTime() / 1000) - (this.chartData.datasets[b].data[c].x.getTime() / 1000);
-                                if (timeDiff <= this.panelDataTimeDiff) {
+                                var timeDiff_c = (this.chartData.datasets[b].data[this.chartData.datasets[b].data.length - 1].x.getTime() / 1000) - (this.chartData.datasets[b].data[c].x.getTime() / 1000);
+                                if (timeDiff_c <= this.panelDataTimeDiff) {
                                     this.chartData.datasets[b].data.splice(0, c);
                                     break;
                                 }
@@ -588,13 +606,13 @@
                         points = [];
                         if (response[metr] != null) {
                             for (var i = 0; i < response[metr].datapoints.length; i++) {
-                                //if (response[metr].datapoints[i][0])
+                                //if we commment out the line bellow we get gaps to our charts due to null values. if not all points in graph are connectedz
+                                if (response[metr].datapoints[i][0])
                                     points.push({
                                         x: new Date(response[metr].datapoints[i][1] * 1000),
                                         y: response[metr].datapoints[i][0]
                                     })
                             }
-                            this.chartOptions.scales.yAxes[0].scaleLabel.labelString=response[metr].unit;
                             datanames.push(response[metr].name);
                             columns.push(points);
                         }
@@ -602,7 +620,7 @@
                     var ret = {
                         labels: [],
                         datasets: [],
-                        unit:this.chartOptions.scales.yAxes[0].scaleLabel.labelString
+                        unit:null
                     };
                     for (var k = 0; k < datanames.length; k++) {
                         ret.datasets.push({
