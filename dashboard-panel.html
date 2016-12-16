@@ -53,6 +53,11 @@
             paper-icon-button {
                 opacity: 0.32;
             }
+
+            chart-line {
+                width: 100%;
+            }
+
         </style>
         <iron-ajax id="panelDataRequest" handle-as="json" method="GET"
             contentType="application/json"
@@ -76,7 +81,8 @@
             </template>
             <template is="dom-if" if="[[_isGraph(panel)]]">
                 <paper-spinner active="[[loading]]"></paper-spinner>
-                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line" style$="width:100%; height: [[rowHeight]]"></chart-line>
+                <chart-line id="[[_computePanelId(panel.id, panel.title)]]"
+                    data="[[chartData]]" options="[[chartOptions]]" type="line" style$="height: [[rowHeight]]px"></chart-line>
             </template>
             <template is="dom-if" if="[[_isDashlist(panel)]]">
                 <!-- TODO -->
@@ -159,6 +165,7 @@
                             }
                         },
                         responsive: true,
+                        //onResize: function(chart, newSize) {},
                         maintainAspectRatio: false,
                         elements: {point: { radius: 1 }},
                         //animation: {easing: "easeInOutCirc", duration: 200},
@@ -217,6 +224,8 @@
 
             attached: function() {
                 console.debug('panel attached', this.panel.id, this.datasourceType);
+                if (this.rowHeight == undefined)
+                    this.rowHeight = 0;
             },
 
             detached: function() {
@@ -283,7 +292,6 @@
                     //console.error('Unsupported type for "from"', typeof from);
                     return;
                 }
-                //console.warn('fromInSeconds string', fromInSeconds);
                 if (typeof to === "string") {
                     if (to == "now" || to == "") {
                         toInSeconds = now;
@@ -314,7 +322,6 @@
                     console.error('Unsupported type for "to"', typeof to);
                     return;
                 }
-                //console.warn('toInSeconds', toInSeconds);
                 var steps = ["10sec", "10min", "6h", "1d", "4d", "7d", "1month"];
                 if (!this.refreshOn) {
                     var timeDelta = toInSeconds - fromInSeconds;
@@ -368,36 +375,24 @@
                 return ret;
             },
 
-            resizeChart: function(e, detail, sender) {
-                this.width = this.querySelector('paper-material').clientWidth;
-                this.height = this.querySelector('paper-material').clientHeight;
-                this.chartElement.resize({
-                    height: this.height - 140,
-                    width: this.width - 20
-                });
-                //this.rowHeight = this.height;
-                this.panel.span = ((this.width + 30) / this.offsetWidth) * this.panel.span;
-                if (this.panel.span > 12) {
-                    this.panel.span = 12;
-                }
-                this.fire('resizeDone');
-            },
-
             _updatePanel: function(e) {
-                console.log('_updatePanel');
                 if (this.chartElement){
                     this.chartElement.options.title.text = this.panel.title;
                     this.async(function() {
                         // set y-axis labelString - for some reason we need to wait until the chart is ready for it to get updated
                         unit = this.panel.yaxes ? (this.panel.yaxes[0].label || this.panel.yaxes[0].format) : "";
-                        this.chartElement.chart.scales['y-axis-0'].options.scaleLabel.labelString = unit;
+                        if (this.chartElement.chart)
+                            this.chartElement.chart.scales['y-axis-0'].options.scaleLabel.labelString = unit;
                     }, 500);
+
+                    var newHeight = Math.max(this.offsetWidth * 0.5 + (this.chartData.datasets ? Math.floor(this.chartData.datasets.length/5) : 0) * 60, this.rowHeight);
+                    if (newHeight > this.rowHeight)
+                        this.set('rowHeight', newHeight);
                     this.chartElement.updateChart();
                 }
             },
 
             _updateParams: function(from, to, refreshInterval, targets, datasourceType) {
-                console.debug("_computeParams", from, to, targets, datasourceType);
                 if (this.datasourceType == "graphite") {
                     //some graphite versions expect 'until' paramater and others "to"
                     var params = {
@@ -445,16 +440,15 @@
                 var data = e.detail ? e.detail.response : e;
 
                 // if no metrics are returned hide the panel, except if it's a custom python plugin
-                if (!data.length && !Object.keys(data.metrics).length && this.panel.targets[0].target.indexOf('mist.python') == -1)
-                    this.hidden = true;
-                else if (this.hidden)
-                    this.hidden = false;
+                //if (!data.length && !Object.keys(data.metrics).length && this.panel.targets[0].target.indexOf('mist.python') == -1)
+                //    this.hidden = true;
+                //if (this.hidden)
+                //    this.hidden = false;
                 this.set('loading', false);
                 var cols = this.transformData(data);
 
                 if (!this.hasRenderedData) {
                     this._loadDatatoGraphs(cols);
-                    this.hasRenderedData = true;
                 } else { // flow the new data if we auto refresh
                     this._flowDatatoGraphs(cols);
                 }
@@ -463,12 +457,14 @@
                     var to = this.to;
                     if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == ""))
                         this.async(function() {
-                          if (this.datasourceType == "graphite") {
-                              this.set("params.from", "-2min");
-                          } else if (this.datasourceType == "mist.monitor") {
-                              this.set("params.start", "-2min");
-                          }
-                          this._generateDataRequest();
+                            if (this.hasRenderedData){
+                                if (this.datasourceType == "graphite") {
+                                    this.set("params.from", "-2min");
+                                } else if (this.datasourceType == "mist.monitor") {
+                                    this.set("params.start", "-2min");
+                                }
+                            }
+                            this._generateDataRequest();
                         }, this.refreshInterval);
                 }
             },
@@ -488,6 +484,9 @@
                     this.chartData.datasets[i].label = this._filterTarget(this.chartData.datasets[i].label);
                 }
                 this._updatePanel();
+                if (this.chartData.datasets.length) {
+                    this.hasRenderedData = true;
+                }
             },
 
             _flowDatatoGraphs: function(cols) {
