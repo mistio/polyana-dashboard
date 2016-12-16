@@ -49,6 +49,15 @@
                 left: 50%;
                 top: 24px;
             }
+            span{
+                display: inline-block  ;
+                width: 12px ;
+                height: 12px ;
+                margin-right: 5px ;
+            }
+            li {
+                list-style-type: none ;
+            }
 
             paper-icon-button {
                 opacity: 0.32;
@@ -76,7 +85,8 @@
             </template>
             <template is="dom-if" if="[[_isGraph(panel)]]">
                 <paper-spinner active="[[loading]]"></paper-spinner>
-                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" data="[[chartData]]" options="[[chartOptions]]" type="line" style$="width:100%; height: [[rowHeight]]"></chart-line>
+                <chart-line id="[[_computePanelId(panel.id, panel.title)]]" chart="[[chartObject]]"  type="line" style$="box-sizing:border-box; width:100%; height: [[rowHeight]];"></chart-line>
+                <div id="js-legend" style="overflow: auto;"></div>
             </template>
             <template is="dom-if" if="[[_isDashlist(panel)]]">
                 <!-- TODO -->
@@ -116,6 +126,26 @@
             }
             return num.toFixed(digits).replace(rx, "$1")+" ";
         }
+        // Show/hide chart by click legend
+         function updateDataset(e, datasetIndex,ch,that) {
+            if(that.style.textDecoration!="line-through"){
+                that.style.textDecoration="line-through";
+            }else{
+                that.style.textDecoration="";
+            }
+            var titleModified=ch.replace(/ /g,"-");
+            console.log(titleModified);
+            var graph=document.querySelector("chart-line[id^='"+titleModified+"']");
+            var index = datasetIndex;
+            var chart = graph.chart;
+            var meta = chart.getDatasetMeta(index);
+
+            // See controller.isDatasetVisible comment
+            meta.hidden = meta.hidden === null? !chart.data.datasets[index].hidden : null;
+
+            // We hid a dataset ... rerender the chart
+            chart.update();
+        }
         // var unit = "";
         Polymer({
             is: 'dashboard-panel',
@@ -150,6 +180,9 @@
                 chartElement: {
                     type: Object
                 },
+                chartObject:{
+                  type:Object
+                },
                 chartData: {
                     type: Object,
                     value: {}
@@ -162,7 +195,23 @@
                             text: this.panel ? this.panel.title : ''
                         },
                         legend: {
-                            position: "bottom"
+                            position: "bottom",
+                            display:false,
+                        },
+                        legendCallback: function(chart) {
+                          console.log(chart);
+                          var legendHtml = [];
+                          legendHtml.push('<div style=" height:70px; overflow-x: hidden;">');
+                          for (var i=0; i<chart.data.datasets.length; i++) {
+                              legendHtml.push('<div style="float:left; white-space:nowrap; margin-right:5px;">');
+                              legendHtml.push('<div style="background-color:' + chart.data.datasets[i].backgroundColor + '; float:left; width: 12px;  height: 12px; margin-right: 5px; "></div>');
+                              if (chart.data.datasets[i].label) {
+                                legendHtml.push('<div title="'+chart.data.datasets[i].label+'" style="cursor: pointer; white-space:nowrap; display:inline-block" onclick="updateDataset(event,' + chart.legend.legendItems[i].datasetIndex +','+ '\'' +chart.options.title.text+ '\'' +',this)">' + chart.data.datasets[i].label + '</div>');
+                              }
+                              legendHtml.push("</div>");
+                          }
+                          legendHtml.push('</div">');
+                          return legendHtml.join("");
                         },
                         tooltips: {
                             intersect: false,
@@ -174,7 +223,7 @@
                         defaults:{
                           global:{
                             responsive: true,
-                            maintainAspectRatio: true,
+                            maintainAspectRatio: false,
                           }
                         },
 
@@ -415,8 +464,8 @@
 
             _updatePanel: function(e) {
                 console.log('_updatePanel');
-                if (this.chartElement) {
-                    this.chartElement.options.title.text = this.panel.title;
+                //if (this.chartElement) {
+                    //this.chartElement.options.title.text = this.panel.title;
                     // this.async(function() {
                         // set y-axis labelString - for some reason we need to wait until the chart is ready for it to get updated
                         // unit = this.panel.yaxes ? (this.panel.yaxes[0].label || this.panel.yaxes[0].format) : "";
@@ -424,8 +473,8 @@
                         //     this.chartOptions.scales.yAxes[0].scaleLabel.labelString = unit;
 
                     // }, 500);
-                    this.chartElement.updateChart();
-                }
+                    //this.chartElement.updateChart();
+                //}
             },
 
             _updateParams: function(from, to, refreshInterval, targets, datasourceType) {
@@ -473,7 +522,7 @@
                     response = data.metrics;
                 }
                   for (var metr in response) {
-                      if(response[metr]){
+                      if(typeof response[metr].unit !=='undefined' && response[metr].unit!==null){
                           this.chartOptions.scales.yAxes[0].scaleLabel.labelString=response[metr].unit;
                           break;
                       }
@@ -508,7 +557,7 @@
 
                 if (this.refreshInterval > 0 && document.contains(this)) {
                     var to = this.to;
-                    if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == ""))
+                    if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == "")){
                         this.async(function() {
                             if (this.datasourceType == "graphite") {
                                 this.set("params.from", "-2min");
@@ -517,6 +566,7 @@
                             }
                             this._generateDataRequest();
                         }, this.refreshInterval);
+                    }
                 }
             },
 
@@ -524,8 +574,8 @@
                 var max = 0;
                 for (var i = 0; i < this.chartData.datasets.length; i++) {
                     if(this.chartData.datasets[i].data.length>0){
-                        var lastpoint=this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000 ;
-                        if (this.chartData.datasets[i].data.length>0 && lastpoint> max) {
+                        var lastpoint = this.chartData.datasets[i].data[this.chartData.datasets[i].data.length - 1].x.getTime() / 1000 ;
+                        if (this.chartData.datasets[i].data.length > 0 && lastpoint > max) {
                             max = lastpoint;
                         }
                     }
@@ -537,7 +587,6 @@
                 this.chartOptions.title.text = this.panel.title;
                 this.set('loading', false);
                 this.chartData = cols;
-
                 if (this.panel.stack) {
                     this.chartOptions.scales.yAxes[0].stacked = true;
                     for (var i=0; i<this.chartData.datasets.length; i++){
@@ -547,6 +596,7 @@
                     this.chartOptions.scales.yAxes[0].stacked = false;
                 }
                 this.panelDataTimeDiff = 0;
+                this.chartOptions.title.text = this.panel.title;
                 for (var i = 0; i < this.chartData.datasets.length; i++) {
                     this.chartData.datasets[i].backgroundColor = this.colorArray[i % 10];
                     this.chartData.datasets[i].borderColor = this.colorArray[i % 10];
@@ -558,18 +608,27 @@
                         this.panelDataTimeDiff=targetDiff;
                     }
                 }
-                this._updatePanel();
+                var ctx = this.querySelector('canvas').getContext('2d');
+                this.chartObject = new Chart(ctx,{
+                    type: "line",
+                    data: this.chartData,
+                    options:this.chartOptions
+                });
+                this.querySelector('#js-legend').innerHTML=this.chartObject.generateLegend();
+                this.chartElement.updateChart();
+                //this._updatePanel();
             },
 
             _flowDatatoGraphs: function(cols) {
                 for (var b = 0; b < this.chartData.datasets.length; b++) {
                     var originalLength = this.chartData.datasets[b].data.length;
 
-                    // Remove trailing nulls from the end
                     for (var a = this.chartData.datasets[b].data.length - 1; a >= 0; a--) {
                         //if we have greater or equal date
                         if (cols.datasets[b].data.length && cols.datasets[b].data[0].x >= this.chartData.datasets[b].data[a].x) {
+                            //remove all the elements from this one to the end of the  array
                             this.chartData.datasets[b].data.splice(a, originalLength - a);
+                            //merge the two arrays
                             this.chartData.datasets[b].data = this.chartData.datasets[b].data.concat(cols.datasets[b].data);
                             // remove as many datapoints from the beggining of the series as we added in the end
                             // FIXME we should only remove those that shouldn't be in the time window any more
@@ -620,7 +679,7 @@
                     var ret = {
                         labels: [],
                         datasets: [],
-                        unit:null
+                        unit:""
                     };
                     for (var k = 0; k < datanames.length; k++) {
                         ret.datasets.push({
