@@ -385,7 +385,7 @@
                             this.chartElement.chart.scales['y-axis-0'].options.scaleLabel.labelString = unit;
                     }, 500);
 
-                    var newHeight = Math.max(this.offsetWidth * 0.5 + (this.chartData.datasets ? Math.floor(this.chartData.datasets.length/5) : 0) * 60, this.rowHeight);
+                    var newHeight = Math.max(this.offsetWidth * 0.5 + (this.chartData.datasets ? Math.floor(this.chartData.datasets.length / 5) : 0) * 30, this.rowHeight);
                     if (newHeight > this.rowHeight)
                         this.set('rowHeight', newHeight);
                     this.chartElement.updateChart();
@@ -526,6 +526,8 @@
                         response = data.metrics;
                     }
                     for (var metr in response) {
+                        if (columns.length >= 20) // no more than 20 metrics per graph
+                            break;
                         x = [];
                         points = [];
                         if (response[metr] != null) {
