@@ -46,7 +46,7 @@
 
             paper-spinner {
                 position: absolute;
-                left: 50%;
+                left: calc(50% - 14px);
                 top: 24px;
             }
 
@@ -225,7 +225,7 @@
             attached: function() {
                 console.debug('panel attached', this.panel.id, this.datasourceType);
                 if (this.rowHeight == undefined)
-                    this.rowHeight = 0;
+                    this.rowHeight = 100;
             },
 
             detached: function() {
@@ -233,6 +233,7 @@
             },
 
             ready: function() {
+                // console.log("dashboard panel ready",this.querySelector("chart-line"));
                 this.chartElement = this.querySelector("chart-line");
             },
 
@@ -384,11 +385,16 @@
                         if (this.chartElement.chart)
                             this.chartElement.chart.scales['y-axis-0'].options.scaleLabel.labelString = unit;
                     }, 500);
+                    //do this if there is a rendered panel
+                    if (parseInt(this.offsetWidth)) {
+                        var newHeight = Math.max(this.offsetWidth * 0.5 + (this.chartData.datasets ? Math.floor(this.chartData.datasets.length / 5) : 0) * 30, this.rowHeight);
+                        if (newHeight > this.rowHeight)
+                            this.set('rowHeight', newHeight);
+                        // console.log("dashboard panel this.chartData", newHeight, this.offsetWidth, this.chartData.datasets, this.chartData.datasets.length);
 
-                    var newHeight = Math.max(this.offsetWidth * 0.5 + (this.chartData.datasets ? Math.floor(this.chartData.datasets.length / 5) : 0) * 30, this.rowHeight);
-                    if (newHeight > this.rowHeight)
-                        this.set('rowHeight', newHeight);
-                    this.chartElement.updateChart();
+                        if(this.chartData)
+                            this.chartElement.updateChart();
+                    }
                 }
             },
 
@@ -433,8 +439,10 @@
                 if (!this)
                     return;
 
-                if (!this.chartElement)
+                if (!this.chartElement){
+                    // console.log("dashboard panel ready",this.querySelector("chart-line"));
                     this.chartElement = this.querySelector("chart-line");
+                }
 
                 // get data from response
                 var data = e.detail ? e.detail.response : e;
@@ -447,9 +455,13 @@
                 this.set('loading', false);
                 var cols = this.transformData(data);
 
+                // console.log("dashboard panel cols", cols);
                 if (!this.hasRenderedData) {
+                    // console.log("!this.hasRenderedData");
+                    this.chartData = cols;
                     this._loadDatatoGraphs(cols);
                 } else { // flow the new data if we auto refresh
+                    // console.log("this.hasRenderedData");
                     this._flowDatatoGraphs(cols);
                 }
 
@@ -472,8 +484,7 @@
             _loadDatatoGraphs: function(cols) {
                 this.chartOptions.title.text = this.panel.title;
                 this.set('loading', false);
-                this.chartData = cols;
-
+                // console.log('_loadDatatoGraphs', cols)
                 if (this.panel.stack) {
                     this.chartOptions.scales.yAxes[0].stacked = true;
                 } else {
@@ -509,10 +520,12 @@
                         }
                     }
                 }
-                this.chartElement.updateChart();
+                if (this.chartElement)
+                    this.chartElement.updateChart();
             },
 
             transformData: function(data) {
+                // console.log('transformData',data);
                 var columns = [],
                     response,
                     x = [],
