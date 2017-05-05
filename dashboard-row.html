@@ -38,8 +38,8 @@
             <template is="dom-if" if="[[row.showTitle]]">
                 <h2 id="show">[[row.title]]</h2>
             </template>
-            <sortable-js>
-                <template is="dom-repeat" items="{{row.panels}}">
+    <sortable-js>
+        <template is="dom-repeat" items="{{row.panels}}">
                     <dashboard-panel id="panel-[[item.id]]" index="[[index]]"
                       refresh-interval=[[refreshInterval]]
                       datasource-uri="[[_computeDatasourceUri(datasources, item)]]"
@@ -49,8 +49,8 @@
                       time-range-duration-in-minutes=[[timeRangeDurationInMinutes]]
                       replace-targets="[[replaceTargets]]"></dashboard-panel>
                 </template>
-            </sortable-js>
-        </div>
+    </sortable-js>
+    </div>
     </template>
     <script>
         Polymer({
@@ -71,7 +71,7 @@
                 replaceTargets: Object,
                 width: Number
             },
-            behaviors: [ Polymer.IronResizableBehavior ],
+            behaviors: [Polymer.IronResizableBehavior],
             listeners: {
                 "iron-resize": "onWidthChange",
                 //'delete-panel': 'deletePanel'

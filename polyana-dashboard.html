@@ -60,16 +60,12 @@
         <template is="dom-repeat" items="{{dashboard.rows}}">
             <dashboard-row id="row-[[index]]" class="row" index="[[index]]" row="[[item]]" from="[[from]]" to="[[to]]" time-range-duration-in-minutes=[[timeRangeDurationInMinutes]] datasources="[[datasources]]" refresh-interval=[[refreshInterval]] replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2;"></dashboard-row>
         </template>
-        </div>
+    </div>
 
-        <iron-ajax id="getDashboardAjax" handle-as="json" method="GET"
-            url="[[uri]]" auto on-request="_clearDashboard"
-            on-response="_handleDashboardResponse"
-            debounce-duration="300">
-        </iron-ajax>
+    <iron-ajax id="getDashboardAjax" handle-as="json" method="GET" url="[[uri]]" auto on-request="_clearDashboard" on-response="_handleDashboardResponse" debounce-duration="300">
+    </iron-ajax>
 
-        <iron-ajax id="postDashboardAjax" handle-as="json" method="POST"
-            url="[[uri]]" debounce-duration="300"></iron-ajax>
+    <iron-ajax id="postDashboardAjax" handle-as="json" method="POST" url="[[uri]]" debounce-duration="300"></iron-ajax>
 
     </template>
 

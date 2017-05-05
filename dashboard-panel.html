@@ -49,26 +49,39 @@
             <template is="dom-if" if="[[panel.editable]]">
                 <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
             </template>
-            <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
-        </div>
-        <template is="dom-if" if="[[_isText(panel)]]">
+    <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
+    </div>
+    <template is="dom-if" if="[[_isText(panel)]]">
             <div>[[panel.content]]</div>
         </template>
-        <template is="dom-if" if="[[_isSinglestat(panel)]]">
+    <template is="dom-if" if="[[_isSinglestat(panel)]]">
             <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
         </template>
-        <paper-spinner active="[[loading]]"></paper-spinner>
+    <paper-spinner active="[[loading]]"></paper-spinner>
     </template>
     <script>
         function nFormatter(num, digits) {
-            var si = [
-                { value: 1E18, symbol: "E" },
-                { value: 1E15, symbol: "P" },
-                { value: 1E12, symbol: "T" },
-                { value: 1E9, symbol: "G" },
-                { value: 1E6, symbol: "M" },
-                { value: 1E3, symbol: "k" }
-            ], rx = /\.0+$|(\.[0-9]*[1-9])0+$/, i;
+            var si = [{
+                    value: 1E18,
+                    symbol: "E"
+                }, {
+                    value: 1E15,
+                    symbol: "P"
+                }, {
+                    value: 1E12,
+                    symbol: "T"
+                }, {
+                    value: 1E9,
+                    symbol: "G"
+                }, {
+                    value: 1E6,
+                    symbol: "M"
+                }, {
+                    value: 1E3,
+                    symbol: "k"
+                }],
+                rx = /\.0+$|(\.[0-9]*[1-9])0+$/,
+                i;
             for (i = 0; i < si.length; i++) {
                 if (num >= si[i].value) {
                     return (num / si[i].value).toFixed(digits).replace(rx, "$1") + si[i].symbol;
@@ -115,7 +128,7 @@
                 },
                 chartData: {
                     type: Object,
-                    value: function () {
+                    value: function() {
                         return {
                             'datasets': []
                         }
@@ -133,7 +146,7 @@
                         },
                         tooltips: {
                             intersect: false,
-                            filter: function (tooltip, data) {
+                            filter: function(tooltip, data) {
                                 // ugly hack to get unit from Y axis scaleLabel
                                 var unit = Object.values(data.datasets[0]._meta)[0].controller.chart.options.scales.yAxes[0].scaleLabel.labelString;
                                 tooltip.yLabel = nFormatter(Number(tooltip.yLabel), 5) + unit;
@@ -142,15 +155,24 @@
                         },
                         responsive: true,
                         maintainAspectRatio: false,
-                        elements: { point: { radius: 1 } },
-                        animation: { easing: "linear", duration: 200 },
+                        elements: {
+                            point: {
+                                radius: 1
+                            }
+                        },
+                        animation: {
+                            easing: "linear",
+                            duration: 200
+                        },
                         cubicInterpolationMode: "monotone",
-                        gridLines: { drawOnChartArea: false },
+                        gridLines: {
+                            drawOnChartArea: false
+                        },
                         scales: {
                             yAxes: [{
                                 stacked: false,
                                 ticks: {
-                                    callback: function (label, index, labels) {
+                                    callback: function(label, index, labels) {
                                         return nFormatter(label, 5);
                                     },
                                     beginAtZero: true
@@ -212,19 +234,19 @@
                 '_updateParams(from, to, refreshInterval, panel.targets, datasourceType)'
             ],
 
-            attached: function () {
+            attached: function() {
                 console.debug('panel attached', this.panel.id, this.datasourceType);
             },
 
-            detached: function () {
+            detached: function() {
                 console.debug('panel detached', this.panel.id, this.datasourceType);
             },
 
-            ready: function () {
+            ready: function() {
 
             },
 
-            deletePanel: function (e) {
+            deletePanel: function(e) {
                 this.cancelAsync(this.intervalId);
                 this.intervalId = 0;
                 this.loading = true;
@@ -235,7 +257,7 @@
                 });
             },
 
-            _timeRangeUpdated: function () {
+            _timeRangeUpdated: function() {
                 console.debug("_timeRangeUpdated", this.to, this.from);
                 // clear previous async task
                 if (this.intervalId) {
@@ -248,8 +270,10 @@
                 this._generateDataRequest();
             },
 
-            _updateStep: function () {
-                var from = this.from, to = this.to, datasourceType = this.datasourceType;
+            _updateStep: function() {
+                var from = this.from,
+                    to = this.to,
+                    datasourceType = this.datasourceType;
                 if (this.datasourceType != 'mist.monitor')
                     return; // step is needed only for mist.monitor datasource
                 var steps = ["10sec", "10min", "6h", "1d", "4d", "7d", "1month"];
@@ -271,9 +295,9 @@
                 }
             },
 
-            _generateDataRequest: function () {
+            _generateDataRequest: function() {
                 console.debug("generating data request");
-                this.async(function () {
+                this.async(function() {
                     if (this.datasourceType == 'graphite') {
                         if (this.$.panelDataRequest.lastRequest)
                             this.$.panelDataRequest.lastRequest.abort()
@@ -291,7 +315,7 @@
                 }, 200);
             },
 
-            _computeGraphiteTimestamp: function (timestamp) {
+            _computeGraphiteTimestamp: function(timestamp) {
                 if (typeof timestamp != 'string')
                     return timestamp;
                 ret = timestamp;
@@ -301,11 +325,11 @@
                 return ret;
             },
 
-            _updatePanel: function (e) {
+            _updatePanel: function(e) {
                 if (this.panel.width) {
                     var w = this.panel.width;
                     // append 'px' if needed
-                    if (typeof (w) == 'number' || !w.endsWith('%') && !w.endsWith('px'))
+                    if (typeof(w) == 'number' || !w.endsWith('%') && !w.endsWith('px'))
                         this.panel.width = w + 'px';
                     this.style.width = this.panel.width;
                 } else if (this.panel.span) {
@@ -315,11 +339,11 @@
                 if (this.panel.height) {
                     var h = this.panel.height;
                     // append 'px' if needed
-                    if (typeof (h) == 'number' || !h.endsWith('%') && !h.endsWith('px'))
+                    if (typeof(h) == 'number' || !h.endsWith('%') && !h.endsWith('px'))
                         this.panel.height = h + 'px';
                     this.style.height = this.panel.height;
                 } else if (this.rowHeight) {
-                    if (typeof (this.rowHeight) == 'number' || !this.rowHeight.endsWith('%') && !this.rowHeight.endsWith('px'))
+                    if (typeof(this.rowHeight) == 'number' || !this.rowHeight.endsWith('%') && !this.rowHeight.endsWith('px'))
                         this.rowHeight = this.rowHeight + 'px';
                     this.style.height = this.rowHeight;
                 }
@@ -327,7 +351,7 @@
                 if (this.chartElement) {
                     this.chartElement.style.height = this.style.height;
                     this.chartElement.options.title.text = this.panel.title;
-                    this.async(function () {
+                    this.async(function() {
                         // set y-axis labelString - for some reason we need to wait until the chart is ready for it to get updated
                         var unit = this.panel.yaxes ? (this.panel.yaxes[0].label || this.panel.yaxes[0].format) : "";
                         if (this.chartElement.chart) {
@@ -337,8 +361,8 @@
                     }, 500);
                     //do this if there is a rendered panel
                     if (parseInt(this.offsetWidth)) {
-                        var from = this.from.trim ? + moment().relativeTime(this.from)._d : this.from * 1000,
-                            to = this.to.trim ? + moment().relativeTime(this.to)._d : this.to * 1000;
+                        var from = this.from.trim ? +moment().relativeTime(this.from)._d : this.from * 1000,
+                            to = this.to.trim ? +moment().relativeTime(this.to)._d : this.to * 1000;
                         this.chartElement.options.scales.xAxes[0].time.min = from;
                         this.chartElement.options.scales.xAxes[0].time.max = to;
                         if (this.chartData)
@@ -347,15 +371,15 @@
                 }
             },
 
-            _updateParams: function (from, to, refreshInterval, targets, datasourceType) {
+            _updateParams: function(from, to, refreshInterval, targets, datasourceType) {
                 if (this.datasourceType == "graphite") {
                     //some graphite versions expect 'until' paramater and others "to"
                     var params = {
-                        'format': 'json',
-                        'from': this._computeGraphiteTimestamp(from),
-                        'to': this._computeGraphiteTimestamp(to),
-                        'until': this._computeGraphiteTimestamp(to)
-                    },
+                            'format': 'json',
+                            'from': this._computeGraphiteTimestamp(from),
+                            'to': this._computeGraphiteTimestamp(to),
+                            'until': this._computeGraphiteTimestamp(to)
+                        },
                         tlist = [];
                     for (var i = 0; i < targets.length; i++) {
                         if (targets[i].target)
@@ -364,9 +388,9 @@
                     params['target'] = tlist;
                 } else if (this.datasourceType == "mist.monitor") {
                     var params = {
-                        'start': this._computeGraphiteTimestamp(from),
-                        'stop': this._computeGraphiteTimestamp(to)
-                    },
+                            'start': this._computeGraphiteTimestamp(from),
+                            'stop': this._computeGraphiteTimestamp(to)
+                        },
                         tlist = [];
                     for (var i = 0; i < targets.length; i++) {
                         tlist.push(targets[i].target)
@@ -377,7 +401,7 @@
                 this._timeRangeUpdated();
             },
 
-            _filterTarget: function (target) {
+            _filterTarget: function(target) {
                 var k = Object.keys(this.get('replaceTargets'));
                 for (var i = 0; i < k.length; i++) {
                     target = target.replace(k[i], this.replaceTargets[k[i]])
@@ -385,7 +409,7 @@
                 return target;
             },
 
-            _handlePanelResponse: function (e) {
+            _handlePanelResponse: function(e) {
                 if (!this)
                     return;
 
@@ -406,13 +430,13 @@
                     if (!this.to.trim) {
                         this.chartElement.chart.options.scales.xAxes[0].time.max = 1000 * this.to;
                     } else {
-                        this.chartElement.chart.options.scales.xAxes[0].time.max = + moment().relativeTime(this.to)._d;
+                        this.chartElement.chart.options.scales.xAxes[0].time.max = +moment().relativeTime(this.to)._d;
                     }
 
                     if (!this.from.trim) {
                         this.chartElement.chart.options.scales.xAxes[0].time.min = 1000 * this.from;
                     } else {
-                        this.chartElement.chart.options.scales.xAxes[0].time.min = + moment().relativeTime(this.from)._d;
+                        this.chartElement.chart.options.scales.xAxes[0].time.min = +moment().relativeTime(this.from)._d;
                     }
                 }
 
@@ -430,7 +454,7 @@
                 if (this.refreshInterval > 0 && document.contains(this)) {
                     var to = this.to;
                     if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == ""))
-                        this.async(function () {
+                        this.async(function() {
                             if (this.hasRenderedData) {
                                 if (this.datasourceType == "graphite") {
                                     this.set("params.from", "-2min");
@@ -443,7 +467,7 @@
                 }
             },
 
-            _loadDatatoGraphs: function (cols) {
+            _loadDatatoGraphs: function(cols) {
                 this.chartOptions.title.text = this.panel.title;
                 this.set('loading', false);
                 console.log('_loadDatatoGraphs', cols)
@@ -467,10 +491,10 @@
                 }
             },
 
-            _flowDatatoGraphs: function (cols) {
+            _flowDatatoGraphs: function(cols) {
                 if (this.chartElement) {
-                    this.chartElement.chart.options.scales.xAxes[0].time.max = + moment().relativeTime(this.to)._d;
-                    this.chartElement.chart.options.scales.xAxes[0].time.min = + moment().relativeTime(this.from)._d;
+                    this.chartElement.chart.options.scales.xAxes[0].time.max = +moment().relativeTime(this.to)._d;
+                    this.chartElement.chart.options.scales.xAxes[0].time.min = +moment().relativeTime(this.from)._d;
                     //this.chartElement.updateChart();
                 }
                 for (var b = 0; b < this.chartData.datasets.length; b++) {
@@ -494,7 +518,7 @@
                 }
             },
 
-            transformData: function (data) {
+            transformData: function(data) {
                 // console.log('transformData',data);
                 var columns = [],
                     response,
@@ -565,39 +589,39 @@
                 }
             },
 
-            _computeIsPanelRemovable: function (panel) {
+            _computeIsPanelRemovable: function(panel) {
                 return panel.editable || panel.removable;
             },
 
-            _computeUrl: function (datasourceUri) {
+            _computeUrl: function(datasourceUri) {
                 return this.datasourceUri + '/render';
             },
 
-            _isGraph: function (panel) {
+            _isGraph: function(panel) {
                 return panel.type == "graph"
             },
 
-            _isDashlist: function (panel) {
+            _isDashlist: function(panel) {
                 return panel.type == "dashlist"
             },
 
-            _isText: function (panel) {
+            _isText: function(panel) {
                 return panel.type == "text"
             },
 
-            _isSinglestat: function (panel) {
+            _isSinglestat: function(panel) {
                 return panel.type == "singlestat"
             },
 
-            _isTable: function (panel) {
+            _isTable: function(panel) {
                 return panel.type == "table"
             },
 
-            _computePanelId: function (id, title) {
+            _computePanelId: function(id, title) {
                 return title.replace(/ /g, "-") + "-panel" + id;
             },
 
-            _computeTitle: function (title) {
+            _computeTitle: function(title) {
                 if (title)
                     return title.replace(/_/g, " ");
                 else
