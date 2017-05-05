@@ -1,6 +1,8 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/polymer-sortablejs/polymer-sortablejs.html" />
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+
 <link rel="import" href="dashboard-panel.html">
 
 <dom-module id="dashboard-row">
@@ -9,7 +11,7 @@
              :host {
                 border-collapse: collapse;
                 width: 100%;
-                display: inline-block;
+                display: inline-flex;
             }
 
             body {
@@ -24,8 +26,15 @@
             dashboard-panel {
                 display: block;
             }
+
+            sortable-js, .flex-stretch-align {
+                @apply(--layout-horizontal);
+                height: 100%;
+                width: 100%;
+                flex-wrap: wrap;
+            }
         </style>
-        <div>
+        <div class="flex-stretch-align">
             <template is="dom-if" if="[[row.showTitle]]">
                 <h2 id="show">[[row.title]]</h2>
             </template>
@@ -35,10 +44,10 @@
                       refresh-interval=[[refreshInterval]]
                       datasource-uri="[[_computeDatasourceUri(datasources, item)]]"
                       datasource-type="[[_computeDatasourceType(datasources, item)]]"
-                      row-height="{{row.height}}" panel="[[item]]"
-                      from="[[from]]" to="[[to]]"
-                      replace-targets="[[replaceTargets]]"
-                      style$="width: [[_elementWidth(item.span, width)]];"></dashboard-panel>
+                      panel="[[item]]"
+                      row-height="[[row.height]]" from="[[from]]" to="[[to]]"
+                      time-range-duration-in-minutes=[[timeRangeDurationInMinutes]]
+                      replace-targets="[[replaceTargets]]"></dashboard-panel>
                 </template>
             </sortable-js>
         </div>
@@ -54,6 +63,9 @@
                 title: String,
                 from: String,
                 to: String,
+                timeRangeDurationInMinutes: {
+                    type: Number
+                },
                 refreshInterval: Number,
                 index: Number,
                 replaceTargets: Object,
