@@ -276,7 +276,7 @@
                     datasourceType = this.datasourceType;
                 if (this.datasourceType != 'mist.monitor')
                     return; // step is needed only for mist.monitor datasource
-                var steps = ["10sec", "10min", "6h", "1d", "4d", "7d", "1month"];
+                var steps = ["", "10min", "6h", "1d", "4d", "7d", "1month"];
                 var timeDelta = this.timeRangeDurationInMinutes;
                 if (timeDelta <= 60) { //less than an  hour
                     this.step = steps[0];
