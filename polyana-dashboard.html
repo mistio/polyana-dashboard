@@ -1,16 +1,20 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
-<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../timerange-picker/timerange-picker.html">
+
+<script src='../../bower_components/moment/min/moment.min.js'></script>
+<script src='../timerange-picker/relative.time.parser.js'></script>
 
 <link rel="import" href="dashboard-row.html">
 
 <dom-module id="polyana-dashboard">
     <template>
         <style>
-             :host {
+            :host {
                 display: block;
+                height: 100%;
             }
 
             body {
@@ -40,23 +44,28 @@
             dashboard-row {
                 clear: both;
                 display: block;
+                width: 100%;
+            }
+
+            .flex-stretch-align {
+                @apply(--layout-vertical);
+                height: 100%;
             }
         </style>
 
-        <timerange-picker from="{{from}}" to="{{to}}" refresh-interval={{refreshInterval}}></timerange-picker>
+        <timerange-picker from="{{from}}" to="{{to}}" refresh-interval={{refreshInterval}}
+            time-range-duration-in-minutes={{timeRangeDurationInMinutes}}></timerange-picker>
 
+        <div class="container flex-stretch-align">
         <template is="dom-repeat" items="{{dashboard.rows}}">
-            <dashboard-row id="row-[[index]]" class="row" index="[[index]]" row="[[item]]" from="[[from]]" to="[[to]]" datasources="[[datasources]]" refresh-interval=[[refreshInterval]] replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2;"></dashboard-row>
+            <dashboard-row id="row-[[index]]" class="row" index="[[index]]" row="[[item]]" from="[[from]]" to="[[to]]" time-range-duration-in-minutes=[[timeRangeDurationInMinutes]] datasources="[[datasources]]" refresh-interval=[[refreshInterval]] replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2;"></dashboard-row>
         </template>
+    </div>
 
-        <iron-ajax id="getDashboardAjax" handle-as="json" method="GET"
-            url="[[uri]]" auto on-request="_clearDashboard"
-            on-response="_handleDashboardResponse"
-            debounce-duration="300">
-        </iron-ajax>
+    <iron-ajax id="getDashboardAjax" handle-as="json" method="GET" url="[[uri]]" auto on-request="_clearDashboard" on-response="_handleDashboardResponse" debounce-duration="300">
+    </iron-ajax>
 
-        <iron-ajax id="postDashboardAjax" handle-as="json" method="POST"
-            url="[[uri]]" debounce-duration="300"></iron-ajax>
+    <iron-ajax id="postDashboardAjax" handle-as="json" method="POST" url="[[uri]]" debounce-duration="300"></iron-ajax>
 
     </template>
 
@@ -88,6 +97,9 @@
                 to: {
                     type: String
                 },
+                timeRangeDurationInMinutes: {
+                    type: Number
+                },
                 refreshInterval: {
                     type: Number
                 },
@@ -117,6 +129,7 @@
 
             attached: function() {
                 console.debug('dashboard attached');
+                moment = initializeMomentRelative(moment);
             },
 
             detached: function() {
