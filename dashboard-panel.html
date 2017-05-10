@@ -1,11 +1,12 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/paper-styles/typography.html">
-<link rel="import" href="../../bower_components/paper-material/paper-material.html">
-<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
-<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
-<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
-<link rel="import" href="../../bower_components/iron-resizable-behavior/iron-resizable-behavior.html">
-<link rel="import" href="../../bower_components/chart-elements/chart-elements.html">
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-styles/typography.html">
+<link rel="import" href="../paper-material/paper-material.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-spinner/paper-spinner.html">
+<link rel="import" href="../iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html">
+<link rel="import" href="../chart-elements/chart-elements.html">
 
 <link rel="import" href="panel-edit.html">
 
@@ -152,7 +153,9 @@
                                 if (Object.values)
                                     t = Object.values(data.datasets[0]._meta);
                                 else // Opera & IE don't support Object.values - TODO use polyfill instead
-                                    t = Object.keys(data.datasets[0]._meta).map(function(e) { return obj[e] });
+                                    t = Object.keys(data.datasets[0]._meta).map(function(e) {
+                                    return obj[e]
+                                });
                                 unit = t.length && t[0].controller.chart.options.scales.yAxes[0].scaleLabel.labelString || '';
                                 tooltip.yLabel = nFormatter(Number(tooltip.yLabel), 5) + unit;
                                 return tooltip;
