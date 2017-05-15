@@ -18,6 +18,7 @@
                 transition: height 500ms ease-in;
                 min-width: 400px;
                 min-height: 300px;
+                width: 100%;
             }
 
             paper-spinner {
@@ -50,15 +51,15 @@
             <template is="dom-if" if="[[panel.editable]]">
                 <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
             </template>
-    <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
-    </div>
-    <template is="dom-if" if="[[_isText(panel)]]">
+            <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
+        </div>
+        <template is="dom-if" if="[[_isText(panel)]]">
             <div>[[panel.content]]</div>
         </template>
-    <template is="dom-if" if="[[_isSinglestat(panel)]]">
+        <template is="dom-if" if="[[_isSinglestat(panel)]]">
             <div>[[panel.prefix]] [[panel.postfix]] [[panel.valueMaps.0.op]]</div>
         </template>
-    <paper-spinner active="[[loading]]"></paper-spinner>
+        <paper-spinner active="[[loading]]"></paper-spinner>
     </template>
     <script>
         function nFormatter(num, digits) {
