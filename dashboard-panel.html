@@ -9,6 +9,8 @@
 <link rel="import" href="../echarts-component/echarts-component.html">
 
 <script src="../echarts/dist/echarts.min.js"></script>
+<script src='../moment/min/moment.min.js'></script>
+<script src='../timerange-picker/relative.time.parser.js'></script>
 
 <link rel="import" href="panel-edit.html">
 
@@ -36,9 +38,15 @@
             .head {
                 align-items: center;
                 float: left;
-                margin-bottom: -34px;
+                margin-bottom: -24px;
                 margin-top: 0px;
-                margin-left: -10px;
+                margin-left: 0px;
+            }
+
+            .head > h3 {
+                padding-left: 44px;
+                font-weight: 500;
+                font-size: 16px;
             }
         </style>
 
@@ -50,6 +58,7 @@
                 <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
             </template>
             <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
+            <h3>[[panel.title]]</h3>
         </div>
         <div id="container" style="width: 100%; height: 100%;">
             [[_getPanelContent(panel)]]
@@ -157,9 +166,9 @@
                             },
                             yAxis: {
                                 type: 'value',
-                                axisPointer: {
-                                    label: {
-                                        precision: 2
+                                axisLabel: {
+                                    formatter: function(value) {
+                                        return nFormatter(value, 2);
                                     }
                                 }
                             }
@@ -210,7 +219,7 @@
                     }
                 });
                 this.chart = echarts.init(this.$.container, 'polyana');
-                this.unit = _this.panel && _this.panel.yaxes && _this.panel.yaxes[0] && _this.panel.yaxes[0].format || '';
+                this.unit = _this.panel && _this.panel.yaxes && _this.panel.yaxes[0] && _this.panel.yaxes[0].label || '';
                 this.set('chartOptions.yAxis.name', this.unit);
                 this.set('chartOptions.tooltip', {
                     trigger: 'axis',
@@ -258,7 +267,7 @@
             },
 
             _resize: function() {
-                if (this.panel && this.panel.id)
+                if (this.panel)
                     this.debounce(
                         'resizePanel' + this.panel.id,
                         function(){
@@ -285,6 +294,14 @@
                         this.set('loading', true);
                     }
                 }, 100);
+            },
+
+            _filterTarget: function(target) {
+                var k = Object.keys(this.get('replaceTargets'));
+                for (var i = 0; i < k.length; i++) {
+                    target = target.replace(k[i], this.replaceTargets[k[i]])
+                }
+                return target;
             },
 
             _handlePanelResponse: function(e) {
@@ -370,23 +387,21 @@
                             break;
                     if (i)
                         columns[k].splice(0, i);
-                    var seriesIndex = ret.series.findIndex(function(s){
-                        return s.name == datanames[k]
+                    var seriesName = this._filterTarget(datanames[k]),
+                        seriesIndex = ret.series.findIndex(function(s){
+                        return s.name == seriesName
                     });
                     if (seriesIndex == -1) { // if a series with that name does not exist
                         var seriesType = this.panel.bars ? 'bar' : 'line';
                         ret.series.push({
-                            name: datanames[k],
+                            name: seriesName,
                             data: columns[k],
                             type: seriesType,
                             stack: this.panel.stack,
-                            areaStyle: this.panel.stack ? 
-                                { normal: {
-                                    opacity: .25
-                                }} : {},
+                            areaStyle: this.panel.stack ? { normal: { opacity: .25 } } : {},
                             showSymbol: this.panel.points // TODO: enable series overrides
                         });
-                        ret.legend.data.push(datanames[k]);
+                        ret.legend.data.push(seriesName);
                     } else { // if the series is already there, just stream the new data
                         // remove pre-existing datapoints that are now outside the time window
                         for (var i = 0; i < ret.series[seriesIndex].data.length; i++)
@@ -466,7 +481,7 @@
                     this.chart.setOption({
                         title: {
                             text: this.panel.title,
-                            show: this.panel.title ? true : false,
+                            show: false,
                             link: this.panel.links && this.panel.links.length && this.panel.links[0].uri || '',
                             left: 24
                         }
