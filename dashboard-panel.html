@@ -381,8 +381,13 @@
 
                 for (var k = 0; k < datanames.length; k++) {
                     // remove incoming datapoints that are outside the time window
+                    var dateOffset;
+                    if (typeof(this.from) === 'number')
+                        dateOffset = moment(this.from * 1000)._d;
+                    else
+                        dateOffset = moment().relativeTime(this.from)._d;
                     for (var i = 0; i < columns[k].length; i++)
-                        if (columns[k][i][0] >= moment().relativeTime(this.from)._d)
+                        if (columns[k][i][0] >= dateOffset)
                             break;
                     if (i)
                         columns[k].splice(0, i);
@@ -404,7 +409,7 @@
                     } else { // if the series is already there, just stream the new data
                         // remove pre-existing datapoints that are now outside the time window
                         for (var i = 0; i < ret.series[seriesIndex].data.length; i++)
-                            if (ret.series[seriesIndex].data[i][0] >= moment().relativeTime(this.from)._d)
+                            if (ret.series[seriesIndex].data[i][0] >= dateOffset)
                                 break;
                         if (i)
                             ret.series[seriesIndex].data.splice(0, i);
@@ -435,6 +440,7 @@
                     this.cancelAsync(this.intervalId);
                     this.intervalId = 0;
                 }
+                this.set('chartData.series', []);
                 this.hasRenderedData = false;
                 this._updateStep();
                 this._generateDataRequest();
