@@ -384,7 +384,7 @@
                     var dateOffset;
                     if (typeof(this.from) === 'number')
                         dateOffset = moment(this.from * 1000)._d;
-                    else
+                    else if (typeof(this.from) === 'string')
                         dateOffset = moment().relativeTime(this.from)._d;
                     for (var i = 0; i < columns[k].length; i++)
                         if (columns[k][i][0] >= dateOffset)
