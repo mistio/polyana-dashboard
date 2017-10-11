@@ -307,6 +307,11 @@
                 if (!this || !this.chart)
                     return;
 
+                // set new min max values
+                this.set('chartOptions.xAxis.min', this.convertToDate(this.from));
+                this.set('chartOptions.xAxis.max', this.convertToDate(this.to));
+                this.chart.setOption(this.chartOptions);
+
                 // get data from response
                 var data = e.detail ? e.detail.response : e;
                 this.set('loading', false);
@@ -431,6 +436,15 @@
                 }
                 this.set('chartData', ret);
                 this.chart.setOption(this.chartData);
+            },
+
+            convertToDate: function(time){
+                var time;
+                if (typeof(time) === 'number')
+                    time = moment(time*1000).toDate();
+                else if (typeof(time) === 'string')
+                    time = moment().relativeTime(time).toDate();
+                return time;
             },
 
             _timeRangeUpdated: function() {
