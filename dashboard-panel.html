@@ -439,12 +439,12 @@
             },
 
             convertToDate: function(time){
-                var time;
+                var convertedTime;
                 if (typeof(time) === 'number')
-                    time = moment(time*1000).toDate();
+                    convertedTime = moment(time*1000).toDate();
                 else if (typeof(time) === 'string')
-                    time = moment().relativeTime(time).toDate();
-                return time;
+                    convertedTime = moment().relativeTime(time).toDate();
+                return convertedTime;
             },
 
             _timeRangeUpdated: function() {
