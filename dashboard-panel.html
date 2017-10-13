@@ -151,8 +151,6 @@
                     value: function() {
                         return {
                             xAxis: {
-                                min: moment().toDate(),
-                                max: moment().relativeTime('now-10min').toDate(),
                                 type: 'time',
                                 splitLine: {
                                     show: false
@@ -221,6 +219,8 @@
                 });
                 this.chart = echarts.init(this.$.container, 'polyana');
                 this.unit = _this.panel && _this.panel.yaxes && _this.panel.yaxes[0] && _this.panel.yaxes[0].label || '';
+                this.set('chartOptions.xAxis.min', this._convertToDate(this.from));
+                this.set('chartOptions.xAxis.max', this._convertToDate(this.to));
                 this.set('chartOptions.yAxis.name', this.unit);
                 this.set('chartOptions.tooltip', {
                     trigger: 'axis',
