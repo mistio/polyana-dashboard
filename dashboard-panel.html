@@ -7,7 +7,7 @@
 <link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html">
 
-<script src="../echarts/dist/echarts.min.js"></script>
+<script src="../echarts/dist/echarts.js"></script>
 <script src='../moment/min/moment.min.js'></script>
 <script src='../timerange-picker/relative.time.parser.js'></script>
 
@@ -186,7 +186,7 @@
                     type: Object,
                     value: {}
                 },
-                intervalId: String,
+                intervalId: Number,
                 index: Number,
                 unit: {
                     type: String,
@@ -219,6 +219,8 @@
                 });
                 this.chart = echarts.init(this.$.container, 'polyana');
                 this.unit = _this.panel && _this.panel.yaxes && _this.panel.yaxes[0] && _this.panel.yaxes[0].label || '';
+                this.set('chartOptions.xAxis.min', this._convertToDate(this.from));
+                this.set('chartOptions.xAxis.max', this._convertToDate(this.to));
                 this.set('chartOptions.yAxis.name', this.unit);
                 this.set('chartOptions.tooltip', {
                     trigger: 'axis',
@@ -256,7 +258,7 @@
 
             deletePanel: function(e) {
                 this.cancelAsync(this.intervalId);
-                this.intervalId = 0;
+                this.set('intervalId', null);
                 this.loading = true;
                 this.fire('delete-panel', {
                     panelId: this.panel.id,
@@ -306,6 +308,10 @@
             _handlePanelResponse: function(e) {
                 if (!this || !this.chart)
                     return;
+                // set new min max values
+                this.set('chartOptions.xAxis.min', this._convertToDate(this.from));
+                this.set('chartOptions.xAxis.max', this._convertToDate(this.to));
+                this.chart.setOption(this.chartOptions);
 
                 // get data from response
                 var data = e.detail ? e.detail.response : e;
@@ -318,7 +324,7 @@
                 if (this.refreshInterval > 0 && document.contains(this)) {
                     var to = this.to;
                     if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == ""))
-                        this.async(function() {
+                        var intervalId = this.async(function() {
                             if (this.hasRenderedData) {
                                 if (this.datasourceType == "graphite") {
                                     this.set("params.from", "-2min");
@@ -328,6 +334,7 @@
                             }
                             this._generateDataRequest();
                         }, this.refreshInterval);
+                        this.set('intervalId', intervalId);
                 }
             },
 
@@ -384,7 +391,7 @@
                     var dateOffset;
                     if (typeof(this.from) === 'number')
                         dateOffset = moment(this.from * 1000)._d;
-                    else
+                    else if (typeof(this.from) === 'string')
                         dateOffset = moment().relativeTime(this.from)._d;
                     for (var i = 0; i < columns[k].length; i++)
                         if (columns[k][i][0] >= dateOffset)
@@ -433,12 +440,21 @@
                 this.chart.setOption(this.chartData);
             },
 
+            _convertToDate: function(time){
+                var convertedTime;
+                if (typeof(time) === 'number')
+                    convertedTime = moment(time*1000).toDate();
+                else if (typeof(time) === 'string')
+                    convertedTime = moment().relativeTime(time).toDate();
+                return convertedTime;
+            },
+
             _timeRangeUpdated: function() {
                 console.debug("_timeRangeUpdated", this.to, this.from);
                 // clear previous async task
                 if (this.intervalId) {
                     this.cancelAsync(this.intervalId);
-                    this.intervalId = 0;
+                    this.set('intervalId', null);
                 }
                 this.set('chartData.series', []);
                 this.hasRenderedData = false;
