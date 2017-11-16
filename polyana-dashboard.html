@@ -133,9 +133,9 @@
                     this.importHref(this.resolveUrl('echarts-import.html'), this.initDashboard, function(e) {
                         console.error('Failed to load echarts', e);
                     }, true);
-                }
-                else
+                } else {
                     this.initDashboard();
+                }
             },
 
             initDashboard: function(){
