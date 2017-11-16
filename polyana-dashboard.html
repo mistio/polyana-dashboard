@@ -129,7 +129,16 @@
             },
 
             attached: function() {
-                console.debug('dashboard attached');
+                if (typeof echarts == 'undefined'){
+                    this.importHref(this.resolveUrl('echarts-import.html'), this.initDashboard, function(e) {
+                        console.error('Failed to load echarts', e);
+                    }, true);
+                }
+                else
+                    this.initDashboard();
+            },
+
+            initDashboard: function(){
                 moment = initializeMomentRelative(moment);
                 this._updateDashboard();
             },
