@@ -129,13 +129,15 @@
             },
 
             attached: function() {
-                if (typeof echarts == 'undefined'){
+                /*if (typeof echarts == 'undefined' || typeof echarts.version == 'undefined'){
+                    delete echarts;
                     this.importHref(this.resolveUrl('echarts-import.html'), this.initDashboard, function(e) {
                         console.error('Failed to load echarts', e);
                     }, true);
                 } else {
                     this.initDashboard();
-                }
+                }*/
+                this.initDashboard();
             },
 
             initDashboard: function(){

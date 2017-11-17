@@ -1,6 +1,6 @@
 {
   "name": "polyana-dashboard",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "authors": [
     "Dimitris Moraitis <dimo@mist.io>",
     "Christina Papakonstantinou <xristina@mist.io>"
@@ -32,6 +32,6 @@
     "web-component-tester": "^4.0.0"
   },
   "resolutions": {
-    "echarts": "^3.7.2"
+    "echarts": "^3.8.5"
   }
 }
