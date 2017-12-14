@@ -11,7 +11,7 @@
 
 <script src='../moment/min/moment.min.js'></script>
 <script src='../timerange-picker/relative.time.parser.js'></script>
-<script src='../echarts/dist/echarts.min.js'></script>
+<script src='../echarts/dist/echarts.common.min.js'></script>
 
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/3.8.5/echarts.min.js" integrity="sha256-7aRWxAaH0PFLbAt5oJLWIliWFHPZWuFbCGchtzd6njk=" crossorigin="anonymous"></script-->
 
@@ -159,9 +159,12 @@
                             },
                             axisLabel: {
                                 formatter: function (value, index) {
-                                    if (index == 0)
-                                        return echarts.format.formatTime('yyyy-MM-dd hh:mm:ss', value)
-                                    return echarts.format.formatTime('hh:mm:ss', value)
+                                    if (echarts && echarts.format) {
+                                        if (index == 0)
+                                            return echarts.format.formatTime('yyyy-MM-dd hh:mm:ss', value)
+                                        return echarts.format.formatTime('hh:mm:ss', value)
+                                    }
+                                    return value;
                                 }
                             }
                         },
