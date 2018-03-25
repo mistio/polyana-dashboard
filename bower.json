@@ -1,6 +1,6 @@
 {
   "name": "polyana-dashboard",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "authors": [
     "Dimitris Moraitis <dimo@mist.io>",
     "Christina Papakonstantinou <xristina@mist.io>"
@@ -23,12 +23,12 @@
   ],
   "dependencies": {
     "polymer": "Polymer/polymer#^1.9.0",
-    "timerange-picker": "mistio/timerange-picker#^0.1.4",
+    "timerange-picker": "mistio/timerange-picker#^0.2.0",
     "polymer-sortablejs": "^0.1.3",
-    "paper-spinner": "^1.2.1"
+    "paper-spinner": "^2.2.0"
   },
   "devDependencies": {
-    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
+    "iron-component-page": "PolymerElements/iron-component-page#^2.0.0",
     "web-component-tester": "^4.0.0"
   },
   "resolutions": {
