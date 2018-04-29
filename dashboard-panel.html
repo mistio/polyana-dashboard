@@ -141,10 +141,12 @@
                         series: [],
                         legend: {
                             data: [],
-                            top: 'top',
-                            right: 70,
-                            height: 50,
-                            orient: 'vertical'
+                            top: 12,
+                            left: 40,
+                            right: 18,
+                            type: 'scroll',
+                            orient: 'horizontal',
+                            height: 60
                         }
                     }
                 }
@@ -416,7 +418,8 @@
                         type: seriesType,
                         stack: this.panel.stack,
                         areaStyle: this.panel.stack ? { normal: { opacity: .25 } } : {},
-                        showSymbol: this.panel.points // TODO: enable series overrides
+                        showSymbol: this.panel.points, // TODO: enable series overrides,
+                        symbol: 'roundRect'
                     });
                     ret.legend.data.push(seriesName);
                 } else { // if the series is already there, just stream the new data
