@@ -3,7 +3,7 @@
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
-<link rel="import" href="../../bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
 <dom-module id="panel-edit">
     <template>
@@ -60,11 +60,11 @@
                 <div class="settings-section display">
                     <h2>[[computeTitle(panel.title)]] Data display</h2>
                     <paper-dropdown-menu label="Select graph draw mode" placeholder="Spline" on-select="_changeGraph">
-                        <paper-menu class="dropdown-content" selected="{{type}}" attr-for-selected="data-value">
+                        <paper-listbox class="dropdown-content" selected="{{type}}" attr-for-selected="data-value">
                             <paper-item data-value="bar">Bar</paper-item>
                             <paper-item data-value="spline">Spline</paper-item>
                             <paper-item data-value="line">Line</paper-item>
-                        </paper-menu>
+                        </paper-listbox>
                     </paper-dropdown-menu>
                     <paper-checkbox id="step" on-tap="_changeGraph">Stack</paper-checkbox>
                 </div>
@@ -72,13 +72,13 @@
                     <h2>Step Interval</h2>
                     <paper-input id="step-number" type="number" on-input="_clearDropDown" value="{{validInput}}" label="Step number" placeholder="eg. 5"></paper-input>
                     <paper-dropdown-menu id="step-unit" label="Time unit" placeholder="minutes" on-select="_changeStep">
-                        <paper-menu class="dropdown-content" selected="{{stepType}}" attr-for-selected="data-value">
+                        <paper-listbox class="dropdown-content" selected="{{stepType}}" attr-for-selected="data-value">
                             <paper-item data-value="sec">seconds</paper-item>
                             <paper-item data-value="min">minutes</paper-item>
                             <paper-item data-value="d">days</paper-item>
                             <paper-item data-value="month">month</paper-item>
                             <paper-item data-value="y">year</paper-item>
-                        </paper-menu>
+                        </paper-listbox>
                     </paper-dropdown-menu>
                 </div>
                 <div class="settings-section x-axis">
