@@ -301,7 +301,7 @@
                         this.$.panelDataRequest.lastRequest.abort()
                     this.$.panelDataRequest.generateRequest();
                 } else if (this.datasourceType == 'mist.monitor') {
-                    var socket = document.querySelector('mist-socket');
+                    var socket = document.querySelector('mist-app').shadowRoot.querySelector('mist-socket');
                     var prefix = this.panel.machine || [false, false];
                     var payload = prefix.concat([this.params.start, this.params.stop, this.step, 0, this.params.metrics]);
                     // TODO abort last request
