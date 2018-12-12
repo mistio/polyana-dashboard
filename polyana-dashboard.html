@@ -201,7 +201,7 @@
                 // Return object with all targets referenced in the dashboard, grouped by datasource
                 var targets = {},
                     defaultDatasource;
-                if (!dashboard.rows)
+                if (!dashboard || !dashboard.rows)
                     return {}
                 for (var i = 0; i < dashboard.rows.length; i++) { // iterate rows
                     if (dashboard.rows[i].panels) { // if row has panels
