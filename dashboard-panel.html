@@ -310,7 +310,7 @@
                     }
                     this.set('loading', true);
                 }
-            }, 100);
+            }.bind(this), 100);
         },
 
         _filterTarget: function(target) {
