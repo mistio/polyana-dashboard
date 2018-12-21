@@ -305,7 +305,9 @@
                     var prefix = this.panel.machine || [false, false];
                     var payload = prefix.concat([this.params.start, this.params.stop, this.step, 0, this.params.metrics]);
                     // TODO abort last request
-                    socket.getStats(payload, this._handlePanelResponse.bind(this));
+                    if (socket){
+                        socket.getStats(payload, this._handlePanelResponse.bind(this));
+                    }
                     this.set('loading', true);
                 }
             }, 100);
