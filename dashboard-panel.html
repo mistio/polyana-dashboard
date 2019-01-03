@@ -200,8 +200,12 @@
                 type: Object,
                 value: {}
             },
-            intervalId: Number,
-            index: Number,
+            intervalId: {
+                type: Number
+            },
+            index: {
+                type: Number
+            },
             unit: {
                 type: String,
                 value: ''
@@ -220,7 +224,7 @@
         ],
 
         attached: function() {
-            console.debug('panel attached', this.panel && this.panel.id, this.datasourceType);
+            // console.debug('panel attached', this.panel && this.panel.id, this.datasourceType);
             var colorPalette = ['#607D8B', '#d96557', '#3F51B5', '#009688', '#795548', '#8c76d1', '#795548',
                                 '#0277BD', '#0099cc', '#424242', '#D48900', '#43A047', '#2F2F3E'],
                 _this = this;
@@ -337,9 +341,10 @@
             if (!this.hasRenderedData && this.chartData.series.length)
                 this.hasRenderedData = true;
 
-            if (this.refreshInterval > 0 && document.contains(this)) {
+            // console.log('dashboard-panel', document.contains(this));
+            if (this.refreshInterval > 0) {
                 var to = this.to;
-                if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == ""))
+                if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == "")) {
                     var intervalId = this.async(function() {
                         if (this.hasRenderedData) {
                             if (this.datasourceType == "graphite") {
@@ -349,8 +354,9 @@
                             }
                         }
                         this._generateDataRequest();
-                    }, this.refreshInterval);
-                    this.set('intervalId', intervalId);
+                    }.bind(this), this.refreshInterval);
+                }
+                this.set('intervalId', intervalId);
             }
         },
 
