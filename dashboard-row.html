@@ -26,7 +26,7 @@
 
             dashboard-panel {
                 display: block;
-                margin: 0px auto 16px;
+                margin: 24px auto;
             }
 
             sortable-js, .flex-stretch-align {
@@ -40,8 +40,7 @@
             <template is="dom-if" if="[[row.showTitle]]">
                 <h2 id="show">[[row.title]]</h2>
             </template>
-    <!-- <sortable-js> -->
-        <template is="dom-repeat" items="{{row.panels}}">
+            <template is="dom-repeat" items="{{row.panels}}">
                 <dashboard-panel id="panel-[[item.id]]" index="[[index]]"
                       refresh-interval=[[refreshInterval]]
                       datasource-uri="[[_computeDatasourceUri(datasources, item)]]"
@@ -53,8 +52,7 @@
                       style$="[[_calculatePanelStyle(item)]]">
                 </dashboard-panel>
             </template>
-    <!-- </sortable-js> -->
-    </div>
+        </div>
     </template>
     <script>
         Polymer({

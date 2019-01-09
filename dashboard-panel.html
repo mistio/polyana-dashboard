@@ -1,4 +1,4 @@
-<link rel="import" href="../polymer/polymer.html">
+§<link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-styles/typography.html">
 <link rel="import" href="../paper-material/paper-material.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
@@ -28,47 +28,42 @@
             }
 
             paper-spinner {
-                float: right;
                 margin: 6px 12px;
                 width: 20px;
                 height: 20px;
+                padding-left: 16px;
             }
 
             paper-icon-button {
                 opacity: 0.5;
                 z-index: 5;
-                position: absolute;
-                top: 11px;
             }
 
             .head {
                 position: relative;
+                display: flex;
                 align-items: center;
-                float: left;
                 margin: 0;
             }
 
             .head > h3 {
-                padding-left: 44px;
                 font-weight: 500;
                 font-size: 16px;
                 margin: 0;
+                flex: 1;
             }
         </style>
 
         <iron-ajax id="panelDataRequest" handle-as="json" method="GET" contentType="application/json" url="[[_computeUrl(datasourceUri)]]"
             params="[[params]]" loading="{{loading}}" on-response="_handlePanelResponse" debounce-duration="300"></iron-ajax>
 
-
         <div class="head layout horizontal">
             <template is="dom-if" if="[[panel.editable]]">
                 <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
             </template>
+            <paper-spinner active="[[loading]]"></paper-spinner>
+            <h3>[[panel.title]]</h3>
             <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
-            <h3>
-                <paper-spinner active="[[loading]]"></paper-spinner>
-                [[panel.title]]
-            </h3>
         </div>
         <div id="container" style="width: 100%; height: 100%;">
             [[_getPanelContent(panel)]]
