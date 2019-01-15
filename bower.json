@@ -32,6 +32,6 @@
     "web-component-tester": "^4.0.0"
   },
   "resolutions": {
-    "echarts": "^3.8.5"
+    "echarts": "^4.2.0-rc.2"
   }
 }
