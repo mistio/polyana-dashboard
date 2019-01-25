@@ -1,14 +1,19 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-styles/typography.html">
-<link rel="import" href="../paper-material/paper-material.html">
+<link rel="import" href="../paper-styles/shadow.html">
 <link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../vaadin-split-layout/vaadin-split-layout.html">
+<link rel="import" href="../iron-collapse/iron-collapse.html">
+<link rel="import" href="../paper-button/paper-button.html">
+
 <link rel="import" href="../timerange-picker/timerange-picker.html">
 
 <script src='../moment/min/moment.min.js'></script>
 <script src='../timerange-picker/relative.time.parser.js'></script>
 
-<link rel="import" href="dashboard-row.html">
+<link rel="import" href="dashboard-panel.html">
 
 <dom-module id="polyana-dashboard">
     <template>
@@ -16,41 +21,48 @@
             :host {
                 display: block;
                 height: 100%;
-            }
-
-            body {
-                padding: 20px;
+                background-color: #fafafa;
             }
 
             .list-group-item {
                 cursor: move;
-                cursor: -webkit-grabbing;
-            }
-
-            paper-material {
-                width: 100%;
-                padding: 8px 0;
-                box-sizing: border-box;
-            }
-
-            .timerange-area {
-                justify-content: flex-end;
-            }
-
-            paper-card {
-                padding: 16px;
-                margin: 16px;
-            }
-
-            dashboard-row {
-                clear: both;
-                display: block;
-                width: 100%;
             }
 
             .flex-stretch-align {
                 @apply(--layout-vertical);
                 height: 100%;
+            }
+
+            .row {
+                @apply(--layout-horizontal);
+                height: 100%;
+                width: 100%;
+                flex-wrap: wrap;
+                clear: both;
+                justify-content: space-evenly;
+            }
+
+            paper-button.row-header {
+                justify-content: left;
+                text-transform: none;
+                font-weight: 500;
+                font-size: 14px;
+            }
+
+            .shadow-2dp { @apply --shadow-elevation-2dp; }
+
+            dashboard-panel {
+                margin: 8px;
+                background-color: #fff;
+                padding: 8px;
+            }
+
+            .shadow {
+                border: 1px solid #eee;
+            }
+
+            .shadow:hover {
+                @apply --shadow-elevation-2dp;
             }
         </style>
 
@@ -58,15 +70,34 @@
             time-range-duration-in-minutes={{timeRangeDurationInMinutes}}></timerange-picker>
 
         <div class="container flex-stretch-align">
-        <template is="dom-repeat" items="{{dashboard.rows}}">
-            <dashboard-row id="row-[[index]]" class="row" index="[[index]]" row="[[item]]" from="[[from]]" to="[[to]]" time-range-duration-in-minutes=[[timeRangeDurationInMinutes]] datasources="[[datasources]]" refresh-interval=[[refreshInterval]] replace-targets="[[replaceTargets]]" style="height: [[item.height]]*2;"></dashboard-row>
-        </template>
-    </div>
+            <template is="dom-repeat" items="{{dashboard.rows}}" as="row">
+                <paper-button toggles active={{row.collapsed}} class="row-header" hidden$=[[!row.title]]><iron-icon icon$="[[_computeRowIcon(row.collapsed)]]"></iron-icon>[[row.title]]</paper-button>
+                <iron-collapse opened={{!row.collapsed}}>
+                    <template is="dom-if" if="[[!row.collapsed]]" restamp>
+                        <div class="collapse-content row" id="row-[[index]]" index="[[index]]" style$="height: [[row.height]]*2;">
+                            <template is="dom-repeat" items="{{row.panels}}" as="panel">
+                                <dashboard-panel id="panel-[[panel.id]]" index="[[index]]"
+                                    refresh-interval=[[refreshInterval]]
+                                    datasource-uri="[[_computeDatasourceUri(datasources, panel)]]"
+                                    datasource-type="[[_computeDatasourceType(datasources, panel)]]"
+                                    panel="{{panel}}"
+                                    row-height="[[row.height]]" from="[[from]]" to="[[to]]"
+                                    time-range-duration-in-minutes=[[timeRangeDurationInMinutes]]
+                                    replace-targets="[[replaceTargets]]"
+                                    class="shadow"
+                                    style$="[[_calculatePanelStyle(panel)]]">
+                                </dashboard-panel>
+                            </template>
+                        </div>
+                    </template>
+                </iron-collapse>
+            </template>
+        </div>
 
-    <iron-ajax id="getDashboardAjax" handle-as="json" method="GET" url=[[uri]] on-request="_clearDashboard" on-response="_handleDashboardResponse">
-    </iron-ajax>
+        <iron-ajax id="getDashboardAjax" handle-as="json" method="GET" url=[[uri]] on-request="_clearDashboard" on-response="_handleDashboardResponse">
+        </iron-ajax>
 
-    <iron-ajax id="postDashboardAjax" handle-as="json" method="POST" url="[[uri]]" debounce-duration="300"></iron-ajax>
+        <iron-ajax id="postDashboardAjax" handle-as="json" method="POST" url="[[uri]]" debounce-duration="300"></iron-ajax>
 
     </template>
 
@@ -232,6 +263,55 @@
                 }
                 return targets
             },
+
+            _computeRowIcon: function (collapsed) {
+                return collapsed ? 'icons:chevron-right' : 'icons:expand-more';
+            },
+
+            _calculatePanelStyle: function(item) {
+                var ret = '', height = '';
+                if (item.span)
+                    ret += 'width: calc(' + (100 * item.span / 12) + '% - 16px);';
+                if (item.height)
+                    height = item.height;
+                else if (this.row && this.row.height)
+                    height = this.row.height;
+                else
+                    height = 'auto';
+
+                if (isNaN(height))
+                    ret += 'height: ' + height;
+                else
+                    ret += 'height: ' + height + 'px';
+
+                return ret;
+            },
+
+            _computeDatasource: function(datasources, panel) {
+                if (!panel)
+                    return
+                for (var i = 0; i < datasources.length; i++) {
+                    if (!panel.datasource && datasources[i].isDefault)
+                        return datasources[i];
+                    if (panel.datasource == datasources[i].name)
+                        return datasources[i];
+                }
+            },
+
+            _computeDatasourceUri: function(datasources, panel) {
+                var datasource = this._computeDatasource(datasources, panel);
+                if (!datasource)
+                    return;
+                var prefix = '/api/datasources/proxy/';
+                return datasource.uri || prefix + datasource.id;
+            },
+
+            _computeDatasourceType: function(datasources, panel) {
+                var datasource = this._computeDatasource(datasources, panel);
+                if (!datasource)
+                    return
+                return datasource.type;
+            }
         });
     </script>
 </dom-module>

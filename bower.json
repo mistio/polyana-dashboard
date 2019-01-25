@@ -24,7 +24,6 @@
   "dependencies": {
     "polymer": "Polymer/polymer#^2.0.0",
     "timerange-picker": "mistio/timerange-picker#polymer2",
-    "polymer-sortablejs": "^0.1.3",
     "paper-spinner": "^2.1.0"
   },
   "devDependencies": {
@@ -32,6 +31,8 @@
     "web-component-tester": "^4.0.0"
   },
   "resolutions": {
-    "echarts": "^4.2.0-rc.2"
+    "echarts": "^4.2.0-rc.2",
+    "polymer": "^v2.0.0",
+    "webcomponentsjs": "^v1.1.0"
   }
 }

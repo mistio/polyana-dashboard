@@ -6,6 +6,10 @@
 <link rel="import" href="../iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../paper-toolbar/paper-toolbar.html">
+
 
 <link rel="import" href="panel-edit.html">
 
@@ -46,11 +50,41 @@
                 margin: 0;
             }
 
-            .head > h3 {
+            div.title {
                 font-weight: 500;
                 font-size: 16px;
                 margin: 0;
                 flex: 1;
+                text-align: center;
+            }
+
+            iron-icon {
+                --iron-icon-height: 20px;
+                --iron-icon-width: 20px;
+                margin-left: 0px;
+                margin-right: 8px;
+                color: #000;
+                fill: #999;
+            }
+
+            paper-tooltip {
+                --paper-tooltip-delay-in: 100;
+            }
+
+            paper-toolbar {
+                width: 100%;
+                color: #000;
+                --paper-toolbar-height: 36px;
+                --paper-toolbar-background: transparent;
+                --paper-toolbar-title: {
+                    font-size: 16px;
+                    color: #000;
+                };
+            }
+
+            paper-icon-button.more {
+                height: 32px;
+                width: 32px;
             }
         </style>
 
@@ -58,12 +92,19 @@
             params="[[params]]" loading="{{loading}}" on-response="_handlePanelResponse" debounce-duration="300"></iron-ajax>
 
         <div class="head layout horizontal">
+            <paper-toolbar justify="center">
+                <iron-icon icon="icons:info" id="infoIcon" hidden$=[[!panel.description]] slot="top"></iron-icon>
+                <paper-tooltip for="infoIcon" slot="top">[[panel.description]]</paper-tooltip>
+                <paper-spinner active="[[loading]]" slot="top"></paper-spinner>
+                <div slot="top" class="title">
+                    [[panel.title]]
+                </div>
+                <paper-icon-button  slot="top" icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
+                <!--paper-icon-button slot="top" class="more" icon="more-vert" on-tap="moreAction"></paper-icon-button-->
+            </paper-toolbar>
             <template is="dom-if" if="[[panel.editable]]">
                 <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
             </template>
-            <paper-spinner active="[[loading]]"></paper-spinner>
-            <h3>[[panel.title]]</h3>
-            <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
         </div>
         <div id="container" style="width: 100%; height: 100%;">
             [[_getPanelContent(panel)]]
@@ -265,10 +306,6 @@
             }
         },
 
-        ready: function() {
-
-        },
-
         deletePanel: function(e) {
             this.cancelAsync(this.intervalId);
             this.set('intervalId', null);
@@ -293,8 +330,8 @@
         },
 
         _generateDataRequest: function() {
-            this.async(function() {
-                console.debug("generating data request");
+            this.debounce('_generateDataRequest', function() {
+                console.debug("generating data request", this.params.start, this.params.stop, this.step, this.params.metrics);
                 if (this.datasourceType == 'graphite') {
                     if (this.$.panelDataRequest.lastRequest)
                         this.$.panelDataRequest.lastRequest.abort()
@@ -336,7 +373,6 @@
             if (!this.hasRenderedData && this.chartData.series.length)
                 this.hasRenderedData = true;
 
-            // console.log('dashboard-panel', document.contains(this));
             if (this.refreshInterval > 0) {
                 var to = this.to;
                 if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == "")) {
@@ -350,8 +386,8 @@
                         }
                         this._generateDataRequest();
                     }.bind(this), this.refreshInterval);
+                    this.set('intervalId', intervalId);
                 }
-                this.set('intervalId', intervalId);
             }
         },
 
@@ -426,7 +462,7 @@
                         data: columns[k],
                         type: seriesType,
                         stack: this.panel.stack,
-                        areaStyle: this.panel.stack ? { normal: { opacity: .25 } } : {},
+                        areaStyle: this.panel.stack ? { normal: { opacity: .25 } } : { normal: { opacity: .0 } },
                         showSymbol: this.panel.points, // TODO: enable series overrides,
                         symbol: 'roundRect'
                     });
