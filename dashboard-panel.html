@@ -1,4 +1,4 @@
-<link rel="import" href="../polymer/polymer.html">
+§<link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-styles/typography.html">
 <link rel="import" href="../paper-material/paper-material.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
@@ -6,6 +6,10 @@
 <link rel="import" href="../iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../paper-toolbar/paper-toolbar.html">
+
 
 <link rel="import" href="panel-edit.html">
 
@@ -28,47 +32,79 @@
             }
 
             paper-spinner {
-                float: right;
                 margin: 6px 12px;
                 width: 20px;
                 height: 20px;
+                padding-left: 16px;
             }
 
             paper-icon-button {
                 opacity: 0.5;
                 z-index: 5;
-                position: absolute;
-                top: 11px;
             }
 
             .head {
                 position: relative;
+                display: flex;
                 align-items: center;
-                float: left;
                 margin: 0;
             }
 
-            .head > h3 {
-                padding-left: 44px;
+            div.title {
                 font-weight: 500;
                 font-size: 16px;
                 margin: 0;
+                flex: 1;
+                text-align: center;
+            }
+
+            iron-icon {
+                --iron-icon-height: 20px;
+                --iron-icon-width: 20px;
+                margin-left: 0px;
+                margin-right: 8px;
+                color: #000;
+                fill: #999;
+            }
+
+            paper-tooltip {
+                --paper-tooltip-delay-in: 100;
+            }
+
+            paper-toolbar {
+                width: 100%;
+                color: #000;
+                --paper-toolbar-height: 36px;
+                --paper-toolbar-background: transparent;
+                --paper-toolbar-title: {
+                    font-size: 16px;
+                    color: #000;
+                };
+            }
+
+            paper-icon-button.more {
+                height: 32px;
+                width: 32px;
             }
         </style>
 
         <iron-ajax id="panelDataRequest" handle-as="json" method="GET" contentType="application/json" url="[[_computeUrl(datasourceUri)]]"
             params="[[params]]" loading="{{loading}}" on-response="_handlePanelResponse" debounce-duration="300"></iron-ajax>
 
-
         <div class="head layout horizontal">
+            <paper-toolbar justify="center">
+                <iron-icon icon="icons:info" id="infoIcon" hidden$=[[!panel.description]] slot="top"></iron-icon>
+                <paper-tooltip for="infoIcon" slot="top">[[panel.description]]</paper-tooltip>
+                <paper-spinner active="[[loading]]" slot="top"></paper-spinner>
+                <div slot="top" class="title">
+                    [[panel.title]]
+                </div>
+                <paper-icon-button  slot="top" icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
+                <!--paper-icon-button slot="top" class="more" icon="more-vert" on-tap="moreAction"></paper-icon-button-->
+            </paper-toolbar>
             <template is="dom-if" if="[[panel.editable]]">
                 <panel-edit date-format="{{chartAxis.x.tick.format}}" step={{step}} panel="{{panel}}"></panel-edit>
             </template>
-            <paper-icon-button icon="icons:close" on-tap="deletePanel" hidden$="[[!_computeIsPanelRemovable(panel)]]"></paper-icon-button>
-            <h3>
-                <paper-spinner active="[[loading]]"></paper-spinner>
-                [[panel.title]]
-            </h3>
         </div>
         <div id="container" style="width: 100%; height: 100%;">
             [[_getPanelContent(panel)]]
@@ -200,8 +236,12 @@
                 type: Object,
                 value: {}
             },
-            intervalId: Number,
-            index: Number,
+            intervalId: {
+                type: Number
+            },
+            index: {
+                type: Number
+            },
             unit: {
                 type: String,
                 value: ''
@@ -220,7 +260,7 @@
         ],
 
         attached: function() {
-            console.debug('panel attached', this.panel && this.panel.id, this.datasourceType);
+            // console.debug('panel attached', this.panel && this.panel.id, this.datasourceType);
             var colorPalette = ['#607D8B', '#d96557', '#3F51B5', '#009688', '#795548', '#8c76d1', '#795548',
                                 '#0277BD', '#0099cc', '#424242', '#D48900', '#43A047', '#2F2F3E'],
                 _this = this;
@@ -266,10 +306,6 @@
             }
         },
 
-        ready: function() {
-
-        },
-
         deletePanel: function(e) {
             this.cancelAsync(this.intervalId);
             this.set('intervalId', null);
@@ -294,21 +330,23 @@
         },
 
         _generateDataRequest: function() {
-            this.async(function() {
-                console.debug("generating data request");
+            this.debounce('_generateDataRequest', function() {
+                console.debug("generating data request", this.params.start, this.params.stop, this.step, this.params.metrics);
                 if (this.datasourceType == 'graphite') {
                     if (this.$.panelDataRequest.lastRequest)
                         this.$.panelDataRequest.lastRequest.abort()
                     this.$.panelDataRequest.generateRequest();
                 } else if (this.datasourceType == 'mist.monitor') {
-                    var socket = document.querySelector('mist-socket');
+                    var socket = document.querySelector('mist-app').shadowRoot.querySelector('mist-socket');
                     var prefix = this.panel.machine || [false, false];
                     var payload = prefix.concat([this.params.start, this.params.stop, this.step, 0, this.params.metrics]);
                     // TODO abort last request
-                    socket.getStats(payload, this._handlePanelResponse.bind(this));
+                    if (socket){
+                        socket.getStats(payload, this._handlePanelResponse.bind(this));
+                    }
                     this.set('loading', true);
                 }
-            }, 100);
+            }.bind(this), 100);
         },
 
         _filterTarget: function(target) {
@@ -335,9 +373,9 @@
             if (!this.hasRenderedData && this.chartData.series.length)
                 this.hasRenderedData = true;
 
-            if (this.refreshInterval > 0 && document.contains(this)) {
+            if (this.refreshInterval > 0) {
                 var to = this.to;
-                if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == ""))
+                if (typeof to == "string" && (to.trim().startsWith('now') || to.trim().startsWith('-') || to.trim() == "")) {
                     var intervalId = this.async(function() {
                         if (this.hasRenderedData) {
                             if (this.datasourceType == "graphite") {
@@ -347,8 +385,9 @@
                             }
                         }
                         this._generateDataRequest();
-                    }, this.refreshInterval);
+                    }.bind(this), this.refreshInterval);
                     this.set('intervalId', intervalId);
+                }
             }
         },
 
@@ -423,7 +462,7 @@
                         data: columns[k],
                         type: seriesType,
                         stack: this.panel.stack,
-                        areaStyle: this.panel.stack ? { normal: { opacity: .25 } } : {},
+                        areaStyle: this.panel.stack ? { normal: { opacity: .25 } } : { normal: { opacity: .0 } },
                         showSymbol: this.panel.points, // TODO: enable series overrides,
                         symbol: 'roundRect'
                     });
