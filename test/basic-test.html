@@ -17,7 +17,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <script src="../../../bower_components/web-component-tester/browser.js"></script>
 
     <!-- Step 1: import the element to test -->
-    <link rel="import" href="../polyana-dashboard.html">
+    <script type="module" src="../polyana-dashboard.js"></script>
   </head>
   <body>
 
@@ -30,43 +30,44 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
     </test-fixture>
 
-    <script>
-      suite('<polyana-dashboard>', function() {
+    <script type="module">
+import '../polyana-dashboard.js';
+suite('<polyana-dashboard>', function() {
 
-        var myEl;
+  var myEl;
 
-        setup(function() {
-          myEl = fixture('polyana-dashboard-fixture');
-        });
+  setup(function() {
+    myEl = fixture('polyana-dashboard-fixture');
+  });
 
-        test('defines the "author" property', function() {
-          assert.equal(myEl.author.name, 'Dimitri Glazkov');
-          assert.equal(myEl.author.image, 'http://addyosmani.com/blog/wp-content/uploads/2013/04/unicorn.jpg');
-        });
+  test('defines the "author" property', function() {
+    assert.equal(myEl.author.name, 'Dimitri Glazkov');
+    assert.equal(myEl.author.image, 'http://addyosmani.com/blog/wp-content/uploads/2013/04/unicorn.jpg');
+  });
 
-        test('says hello', function() {
-          assert.equal(myEl.sayHello(), 'polyana-dashboard says, Hello World!');
+  test('says hello', function() {
+    assert.equal(myEl.sayHello(), 'polyana-dashboard says, Hello World!');
 
-          var greetings = myEl.sayHello('greetings Earthlings');
-          assert.equal(greetings, 'polyana-dashboard says, greetings Earthlings');
-        });
+    var greetings = myEl.sayHello('greetings Earthlings');
+    assert.equal(greetings, 'polyana-dashboard says, greetings Earthlings');
+  });
 
-        test('fires lasers', function(done) {
-          myEl.addEventListener('polyana-dashboard-lasers', function(event) {
-            assert.equal(event.detail.sound, 'Pew pew!');
-            done();
-          });
-          myEl.fireLasers();
-        });
+  test('fires lasers', function(done) {
+    myEl.addEventListener('polyana-dashboard-lasers', function(event) {
+      assert.equal(event.detail.sound, 'Pew pew!');
+      done();
+    });
+    myEl.fireLasers();
+  });
 
-        test('distributed children', function() {
-          var els = myEl.getContentChildren();
-          assert.equal(els.length, 1, 'one distributed node');
-          assert.equal(els[0], myEl.querySelector('h2'), 'content distributed correctly');
-        });
+  test('distributed children', function() {
+    var els = myEl.getContentChildren();
+    assert.equal(els.length, 1, 'one distributed node');
+    assert.equal(els[0], myEl.querySelector('h2'), 'content distributed correctly');
+  });
 
-      });
-    </script>
+});
+</script>
 
   </body>
 </html>
