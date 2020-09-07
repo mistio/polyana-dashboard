@@ -9,7 +9,7 @@
     "ECharts"
   ],
   "homepage": "https://github.com/mistio/polyana-dashboard",
-  "name": "@polymer/polyana-dashboard",
+  "name": "@mistio/polyana-dashboard",
   "version": "3.0.0",
   "resolutions": {
     "inherits": "2.0.3",
@@ -30,5 +30,19 @@
   "devDependencies": {
     "@polymer/iron-component-page": "^4.0.0",
     "wct-browser-legacy": "^1.0.1"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mistio/polyana-dashboard.git"
+  },
+  "author": "eis",
+  "bugs": {
+    "url": "https://github.com/mistio/polyana-dashboard/issues"
   }
 }
