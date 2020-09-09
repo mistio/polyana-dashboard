@@ -4,26 +4,21 @@
   from HTML and may be out of place here. Review them and
   then delete this comment!
 */
-import "./node_modules/@polymer/paper-styles/typography.js";
-import "./node_modules/@polymer/paper-material/paper-material.js";
-import "./node_modules/@polymer/paper-icon-button/paper-icon-button.js";
-import "./node_modules/@polymer/paper-spinner/paper-spinner.js";
-import "./node_modules/@polymer/iron-flex-layout/iron-flex-layout-classes.js";
-import "./node_modules/@polymer/iron-ajax/iron-ajax.js";
-import "./node_modules/@polymer/iron-resizable-behavior/iron-resizable-behavior.js";
-import "./node_modules/@polymer/iron-icon/iron-icon.js";
-import "./node_modules/@polymer/paper-tooltip/paper-tooltip.js";
-import "./node_modules/@polymer/paper-toolbar/paper-toolbar.js";
-import { Polymer } from './node_modules/@polymer/polymer/lib/legacy/polymer-fn.js';
-import { html } from './node_modules/@polymer/polymer/lib/utils/html-tag.js';
-import moment from "./node_modules/moment/src/moment.js";
-import * as echarts from  "./node_modules/echarts/src/echarts.js";
-// import * as echarts from './node_modules/echarts/lib/echarts'
-// import './node_modules/echarts/lib/chart/line'
-// import './node_modules/echarts/lib/chart/bar'
-// import './node_modules/echarts/lib/component/tooltip'
-// import './node_modules/echarts/lib/component/title'
-// import './node_modules/echarts/lib/component/legend'
+import "@polymer/paper-styles/typography.js";
+import "@polymer/paper-material/paper-material.js";
+import "@polymer/paper-icon-button/paper-icon-button.js";
+import "@polymer/paper-spinner/paper-spinner.js";
+import "@polymer/iron-flex-layout/iron-flex-layout-classes.js";
+import "@polymer/iron-ajax/iron-ajax.js";
+import "@polymer/iron-resizable-behavior/iron-resizable-behavior.js";
+import "@polymer/iron-icon/iron-icon.js";
+import "@polymer/paper-tooltip/paper-tooltip.js";
+import "@polymer/paper-toolbar/paper-toolbar.js";
+import { Polymer } from '@polymer/polymer/lib/legacy/polymer-fn.js';
+import { html } from '@polymer/polymer/lib/utils/html-tag.js';
+import moment from "moment/src/moment.js";
+import * as echarts from  "echarts/src/echarts.js";
+
 import './panel-edit.js';
 
 //<script src='../timerange-picker/relative.time.parser.js'></script>
