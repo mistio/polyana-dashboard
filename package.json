@@ -24,8 +24,22 @@
   ],
   "license": "BSD-3-Clause",
   "dependencies": {
+    "@mistio/timerange-picker": "^3.0.0-beta",
+    "@polymer/iron-collapse": "^3.0.1",
+    "@polymer/paper-button": "^3.0.1",
+    "@polymer/paper-checkbox": "^3.1.0",
+    "@polymer/paper-dialog": "^3.0.1",
+    "@polymer/paper-dialog-scrollable": "^3.0.1",
+    "@polymer/paper-item": "^3.0.1",
+    "@polymer/paper-listbox": "^3.0.1",
+    "@polymer/paper-material": "^3.0.1",
+    "@polymer/paper-spinner": "^3.0.0",
+    "@polymer/paper-styles": "^3.0.1",
+    "@polymer/paper-toolbar": "^3.0.1",
+    "@polymer/paper-tooltip": "^3.0.1",
     "@polymer/polymer": "^3.0.0",
-    "@polymer/paper-spinner": "^3.0.0"
+    "echarts": "^4.9.0",
+    "moment": "^2.27.0"
   },
   "devDependencies": {
     "@polymer/iron-component-page": "^4.0.0",

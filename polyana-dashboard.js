@@ -1,6 +1,18 @@
+import "./node_modules/@polymer/paper-styles/typography.js";
+import "./node_modules/@polymer/paper-styles/shadow.js";
+import "./node_modules/@polymer/iron-flex-layout/iron-flex-layout.js";
+import "./node_modules/@polymer/iron-ajax/iron-ajax.js";
+import "./node_modules/@polymer/iron-icon/iron-icon.js";
+import "./node_modules/@polymer/iron-collapse/iron-collapse.js";
+import "./node_modules/@polymer/paper-button/paper-button.js";
+import "./node_modules/@mistio/timerange-picker/timerange-picker.js"
+import { Polymer } from './node_modules/@polymer/polymer/lib/legacy/polymer-fn.js';
+import { html } from './node_modules/@polymer/polymer/lib/utils/html-tag.js';
+import moment from "./node_modules/moment/src/moment";
+import initializeMomentRelative from "./node_modules/@mistio/timerange-picker/relative.time.parser.js"
 import './dashboard-panel.js';
 Polymer({
-  _template: Polymer.html`
+  _template: html`
         <style>
             :host {
                 display: block;
@@ -143,7 +155,7 @@ Polymer({
   },
 
   initDashboard: function(){
-      moment = initializeMomentRelative(moment);
+      let momnt = initializeMomentRelative(moment);
       this._updateDashboard();
   },
 
