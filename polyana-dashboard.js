@@ -8,7 +8,7 @@ import "@polymer/paper-button/paper-button.js";
 import "@mistio/timerange-picker/timerange-picker.js"
 import { Polymer } from '@polymer/polymer/lib/legacy/polymer-fn.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
-import moment from "moment/src/moment";
+import moment from "moment/src/moment.js"
 import initializeMomentRelative from "@mistio/timerange-picker/relative.time.parser.js"
 import './dashboard-panel.js';
 Polymer({
@@ -155,8 +155,9 @@ Polymer({
   },
 
   initDashboard: function(){
-      let momnt = initializeMomentRelative(moment);
-      this._updateDashboard();
+    initializeMomentRelative(moment);
+
+    this._updateDashboard();
   },
 
   detached: function() {

@@ -17,7 +17,7 @@ import "@polymer/paper-toolbar/paper-toolbar.js";
 import { Polymer } from '@polymer/polymer/lib/legacy/polymer-fn.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 import moment from "moment/src/moment.js";
-import * as echarts from  "echarts/src/echarts.js";
+import * as echarts from  'echarts/echarts.all.js';
 
 import './panel-edit.js';
 
@@ -547,7 +547,7 @@ Polymer({
   _computeGraphiteTimestamp: function(timestamp) {
       if (typeof timestamp != 'string')
           return timestamp;
-      ret = timestamp;
+      let ret = timestamp;
       if (ret.endsWith("m"))
           ret = ret.replace("m", "min");
       ret = ret.replace("now", "");
