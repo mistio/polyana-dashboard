@@ -39,6 +39,7 @@
     "@polymer/paper-tooltip": "^3.0.1",
     "@polymer/polymer": "^3.0.0",
     "echarts": "^4.9.0",
+    "lodash.clonedeep": "^4.5.0",
     "moment": "^2.27.0"
   },
   "devDependencies": {
