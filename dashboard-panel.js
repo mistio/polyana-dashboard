@@ -18,7 +18,6 @@ import { Polymer } from '@polymer/polymer/lib/legacy/polymer-fn.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 import moment from "moment/src/moment.js";
 import * as echarts from  'echarts/echarts.all.js';
-import * as cloneDeep from 'lodash/cloneDeep';
 
 import './panel-edit.js';
 
@@ -441,7 +440,7 @@ Polymer({
           }
       }
 
-      var ret = cloneDeep(this.chartData);
+      var ret = {...this.chartData};
 
       for (var k = 0; k < datanames.length; k++) {
           // remove incoming datapoints that are outside the time window
