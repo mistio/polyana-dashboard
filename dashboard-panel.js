@@ -476,8 +476,7 @@ Polymer({
             p => p[0].getTime() === column[0][0].getTime()
           );
           if (firstCommonDatapointIndex > -1){
-              const ind2 = series.data.length - firstCommonDatapointIndex;
-            series.data.splice(firstCommonDatapointIndex, ind2);
+            series.data.splice(firstCommonDatapointIndex, series.data.length - firstCommonDatapointIndex);
           }
           column.forEach(col => {
             series.data.push(col);
