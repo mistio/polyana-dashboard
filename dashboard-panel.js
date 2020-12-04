@@ -440,59 +440,52 @@ Polymer({
           }
       }
 
-      var ret = {...this.chartData};
+      const ret = {...this.chartData};
+      datanames.forEach((dataname, index) => {
+        // remove incoming datapoints that are outside the time window
+        const column = columns[index];
+        const dateOffset = typeof (this.from) === 'number' ? moment(this.from * 1000)._d : moment().relativeTime(this.from)._d;
+        const columnIndex = column.findIndex(c => c[0] >= dateOffset);
 
-      for (var k = 0; k < datanames.length; k++) {
-          // remove incoming datapoints that are outside the time window
-          var dateOffset;
-          if (typeof(this.from) === 'number')
-              dateOffset = moment(this.from * 1000)._d;
-          else if (typeof(this.from) === 'string')
-              dateOffset = moment().relativeTime(this.from)._d;
-          for (var i = 0; i < columns[k].length; i++)
-              if (columns[k][i][0] >= dateOffset)
-                  break;
-          if (i)
-              columns[k].splice(0, i);
-          var seriesName = this._filterTarget(datanames[k]),
-              seriesIndex = ret.series.findIndex(function(s){
-              return s.name == seriesName
+        if (columnIndex > -1) { column.splice(0, columnIndex); }
+
+        const seriesName = this._filterTarget(dataname);
+        const seriesIndex = ret.series.findIndex(s => s.name === seriesName);
+
+        if (seriesIndex === -1) { // if a series with that name does not exist
+          ret.series.push({
+            name: seriesName,
+            data: column,
+            type: this.panel.bars ? 'bar' : 'line',
+            stack: this.panel.stack,
+            areaStyle: this.panel.stack ? { normal: { opacity: 0.25 } } : { normal: { opacity: 0.0 } },
+            showSymbol: this.panel.points, // TODO: enable series overrides,
+            symbol: 'roundRect',
           });
-          if (seriesIndex == -1) { // if a series with that name does not exist
-              var seriesType = this.panel.bars ? 'bar' : 'line';
-              ret.series.push({
-                  name: seriesName,
-                  data: columns[k],
-                  type: seriesType,
-                  stack: this.panel.stack,
-                  areaStyle: this.panel.stack ? { normal: { opacity: .25 } } : { normal: { opacity: .0 } },
-                  showSymbol: this.panel.points, // TODO: enable series overrides,
-                  symbol: 'roundRect'
-              });
-              ret.legend.data.push(seriesName);
-          } else { // if the series is already there, just stream the new data
-              // remove pre-existing datapoints that are now outside the time window
-              for (var i = 0; i < ret.series[seriesIndex].data.length; i++)
-                  if (ret.series[seriesIndex].data[i][0] >= dateOffset)
-                      break;
-              if (i)
-                  ret.series[seriesIndex].data.splice(0, i);
+          ret.legend.data.push(seriesName);
+        } else { // if the series is already there, just stream the new data
+          // remove pre-existing datapoints that are now outside the time window
+          const series = ret.series[seriesIndex];
+          const seriesDataIndex= series.data.findIndex(data => data[0] >= dateOffset);
 
-              // find first common datapoint
-              var firstCommonDatapointIndex = ret.series[seriesIndex].data.findIndex(
-                  function(p) {
-                      return p[0].getTime() == columns[k][0][0].getTime();
-                  }
-              );
-              if (firstCommonDatapointIndex > -1)
-                  ret.series[seriesIndex].data.splice(firstCommonDatapointIndex, ret.series[seriesIndex].data.length - firstCommonDatapointIndex);
-              for (var l = 0; l < columns[k].length; l++) {
-                  ret.series[seriesIndex].data.push(columns[k][l]);
-              }
+          if (seriesDataIndex > -1) { series.data.splice(0, seriesDataIndex); }
 
-              ret.series[seriesIndex].animation = false;
+
+          // find first common datapoint
+          const firstCommonDatapointIndex = series.data.findIndex(
+            p => p[0].getTime() === column[0][0].getTime()
+          );
+          if (firstCommonDatapointIndex > -1){
+              const ind2 = series.data.length - firstCommonDatapointIndex;
+            series.data.splice(firstCommonDatapointIndex, ind2);
           }
-      }
+          column.forEach(col => {
+            series.data.push(col);
+          });
+          series.animation = false;
+        }
+      });
+
       this.set('chartData', ret);
       this.chart.setOption(this.chartData);
   },
