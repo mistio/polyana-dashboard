@@ -13,8 +13,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>polyana-dashboard Demo</title>
-    <script src="../../../bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
-    <link rel="import" href="../polyana-dashboard.html">
+    <!-- <script src="../../../bower_components/webcomponentsjs/webcomponents-lite.min.js"></script> -->
+    <script type="module" src="../polyana-dashboard.js"></script>
   </head>
   <body unresolved>
 
@@ -27,22 +27,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <h2>Hello polyana-dashboard</h2>
     </polyana-dashboard>
 
-    <script>
-      var seedElement = document.querySelector('polyana-dashboard');
+    <script type="module">
+import '../polyana-dashboard.js';
+var seedElement = document.querySelector('polyana-dashboard');
+document.querySelector('#saybtn').addEventListener('click', function() {
+  alert(seedElement.sayHello('Hallo!'));
+});
 
-      document.querySelector('#saybtn').addEventListener('click', function() {
-        alert(seedElement.sayHello('Hallo!'));
-      });
+document.querySelector('#laserbtn').addEventListener('click', function() {
+  seedElement.fireLasers();
+});
 
-      document.querySelector('#laserbtn').addEventListener('click', function() {
-        seedElement.fireLasers();
-      });
-
-      document.addEventListener("polyana-dashboard-lasers", function(e) {
-        console.log(e.detail.sound);
-      });
-
-    </script>
+document.addEventListener("polyana-dashboard-lasers", function(e) {
+  console.log(e.detail.sound);
+});
+</script>
 
   </body>
 </html>
