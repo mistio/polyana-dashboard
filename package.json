@@ -10,7 +10,7 @@
   ],
   "homepage": "https://github.com/mistio/polyana-dashboard",
   "name": "@mistio/polyana-dashboard",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "resolutions": {
     "inherits": "2.0.3",
     "samsam": "1.1.3",
@@ -38,7 +38,7 @@
     "@polymer/paper-toolbar": "^3.0.1",
     "@polymer/paper-tooltip": "^3.0.1",
     "@polymer/polymer": "^3.0.0",
-    "echarts": "^4.9.0",
+    "echarts": "^5.0.2",
     "moment": "^2.27.0"
   },
   "devDependencies": {
