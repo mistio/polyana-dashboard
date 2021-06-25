@@ -469,18 +469,21 @@ Polymer({
           const seriesDataIndex= series.data.findIndex(data => data[0] >= dateOffset);
 
           if (seriesDataIndex > -1) { series.data.splice(0, seriesDataIndex); }
+        // Because victoria might alter timestamps of previous datapoints
+        // we find the closest existing datapoint to the incoming ones
+        // and delete the rest from the graph, then we populate
+        // the graph with the new ones
 
-
-          // find first common datapoint
-          const firstCommonDatapointIndex = series.data.findIndex(
-            p => p[0].getTime() === column[0][0].getTime()
-          );
-          if (firstCommonDatapointIndex > -1){
-            series.data.splice(firstCommonDatapointIndex, series.data.length - firstCommonDatapointIndex);
-          }
-          column.forEach(col => {
+        // find the timestamp of the first incoming datapoint
+        const incomingFirstTime = column[0][0].getTime();
+        // remove all existing datapoints that are later than the above
+        const existingMatchingIndex = series.data.findIndex(
+            c => c[0].getTime()>= incomingFirstTime);
+        series.data = series.data.slice(0, existingMatchingIndex);
+        // introduce new datapoints to the graph
+        column.forEach(col => {
             series.data.push(col);
-          });
+        });
           series.animation = false;
         }
       });
