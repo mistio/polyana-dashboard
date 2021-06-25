@@ -477,9 +477,10 @@ Polymer({
         // find the timestamp of the first incoming datapoint
         const incomingFirstTime = column[0][0].getTime();
         // remove all existing datapoints that are later than the above
-        const existingMathingIndex = series.data.findIndex(
+        const existingMatchingIndex = series.data.findIndex(
             c => c[0].getTime()>= incomingFirstTime);
-        series.data = series.data.slice(0, existingMathingIndex);
+        series.data = series.data.slice(0, existingMatchingIndex);
+        // introduce new datapoints to the graph
         column.forEach(col => {
             series.data.push(col);
         });
