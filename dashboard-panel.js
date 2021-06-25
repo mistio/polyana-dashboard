@@ -469,12 +469,18 @@ Polymer({
           const seriesDataIndex= series.data.findIndex(data => data[0] >= dateOffset);
 
           if (seriesDataIndex > -1) { series.data.splice(0, seriesDataIndex); }
+        // Because victoria might alter timestamps of previous datapoints
+        // we find the closest existing datapoint to the incoming ones
+        // and delete the rest from the graph, then we populate
+        // the graph with the new ones
 
-        // find last drawn datapoint
-        const lastDpTime = series.data.slice(-1)[0][0].getTime();
-        const newDpIndex = column.findIndex(c => {c[0].getTime() > lastDpTime});
-        // add new datapoints only
-        column.slice(newDpIndex).forEach(col => {
+        // find the timestamp of the first incoming datapoint
+        const incomingFirstTime = column[0][0].getTime();
+        // remove all existing datapoints that are later than the above
+        const existingMathingIndex = series.data.findIndex(
+            c => c[0].getTime()>= incomingFirstTime);
+        series.data = series.data.slice(0, existingMathingIndex);
+        column.forEach(col => {
             series.data.push(col);
         });
           series.animation = false;
