@@ -299,7 +299,7 @@ Polymer({
       this.chart.setOption(this.chartOptions);
       this.chart.setOption(this.chartData);
       this._updatePanel();
-      window.addEventListener('resize', this._resize, true);
+      window.addEventListener('resize', this._resize.bind(this), true);
   },
 
   detached: function() {
