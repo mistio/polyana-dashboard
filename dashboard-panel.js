@@ -378,13 +378,13 @@ Polymer({
               if (metric && metric.target) {
                 let name = this.metricsLegend[metric.target];
                 if (name.split('{{').length >= 2) {
-                    const substitutes = []
-                    for(let i=1; i < name.split('{{').length; i++){
-                        substitutes.push(name.split('{{')[i].replace('}}', '').replace('-', ''))
-                    }
-                    name = name.split('-')[0];
+                    const substitutes = name.match(/(?<={{)(.*?)(?=}})/g)
+                    const substitutesObj = {}
                     substitutes.forEach(substitute => {
-                        name = `${name}-${metric.metric[substitute]}`
+                        substitutesObj[substitute] = metric.metric[substitute];
+                    });
+                    name = name.replace(/\{\{(.*?)\}\}/g, (match, token) => {
+                        return substitutesObj[token];
                     });
                 }
                 metric.name = name;
