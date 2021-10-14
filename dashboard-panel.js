@@ -377,16 +377,9 @@ Polymer({
           Object.values(data.metrics).forEach(metric => {
               if (metric && metric.target) {
                 let name = this.metricsLegend[metric.target];
-                if (name.split('{{').length >= 2) {
-                    const substitutes = name.match(/(?<={{)(.*?)(?=}})/g)
-                    const substitutesObj = {}
-                    substitutes.forEach(substitute => {
-                        substitutesObj[substitute] = metric.metric[substitute];
-                    });
-                    name = name.replace(/\{\{(.*?)\}\}/g, (match, token) => {
-                        return substitutesObj[token];
-                    });
-                }
+                name = name.replace(/\{\{(.*?)\}\}/g, (match, token) => {
+                    return metric.metric[token];
+                });
                 metric.name = name;
               }
           });
