@@ -373,6 +373,17 @@ Polymer({
       // get data from response
       var data = e.detail ? e.detail.response : e;
       this.set('loading', false);
+      if(this.metricsLegend) {
+          Object.values(data.metrics).forEach(metric => {
+              if (metric && metric.target) {
+                let name = this.metricsLegend[metric.target];
+                name = name.replace(/\{\{(.*?)\}\}/g, (match, token) => {
+                    return metric.metric[token];
+                });
+                metric.name = name;
+              }
+          });
+      }
       this.updateChartData(data);
 
       if (!this.hasRenderedData && this.chartData.series.length)
@@ -552,7 +563,7 @@ Polymer({
   },
 
   _updatePanel: function(e) {
-      if (this.chart && this.panel)
+      if (this.chart && this.panel){
           this.chart.setOption({
               title: {
                   text: this.panel.title,
@@ -561,6 +572,9 @@ Polymer({
                   left: 24
               }
           });
+          this.metricsLegend = this._getMetricsLegend();
+      }
+
   },
 
   _updateParams: function(from, to, refreshInterval, targets, datasourceType) {
@@ -615,5 +629,12 @@ Polymer({
       else if (panel.type == "graph")
           return '';
       return ''
+  },
+  _getMetricsLegend(){
+      const metricsLegend = {};
+      this.panel.targets.forEach(target => {
+          metricsLegend[target.target] = target.legendFormat;
+      });
+      return metricsLegend;
   }
 });
