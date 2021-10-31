@@ -375,7 +375,7 @@ Polymer({
       this.set('loading', false);
       if(this.metricsLegend) {
           Object.values(data.metrics).forEach(metric => {
-              if (metric && metric.target) {
+              if (metric && metric.target && this.metricsLegend[metric.target]) {
                 let name = this.metricsLegend[metric.target];
                 name = name.replace(/\{\{(.*?)\}\}/g, (match, token) => {
                     return metric.metric[token];

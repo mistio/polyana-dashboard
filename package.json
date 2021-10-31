@@ -10,7 +10,7 @@
   ],
   "homepage": "https://github.com/mistio/polyana-dashboard",
   "name": "@mistio/polyana-dashboard",
-  "version": "3.0.7",
+  "version": "3.0.8",
   "resolutions": {
     "inherits": "2.0.3",
     "samsam": "1.1.3",
